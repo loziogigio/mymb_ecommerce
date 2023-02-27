@@ -10,10 +10,10 @@ image_uri = None
 
 
 def get_solr_instance():
-    """Get the Solr instance from the B2C Settings DocType"""
+    """Get the Solr instance from the Mymb b2c Settings DocType"""
 
     global solr
-    doc = frappe.get_doc('B2C Settings')
+    doc = frappe.get_doc('Mymb b2c Settings')
 
     if not solr:
         solr_url = doc.get('solr_url')
@@ -22,12 +22,12 @@ def get_solr_instance():
     return solr
 
 def get_image_uri_instance():
-    """Get the Solr image instance from the B2C Settings DocType"""
+    """Get the Solr image instance from the Mymb b2c Settings DocType"""
 
     global image_uri
 
     if not image_uri:
-        doc = frappe.get_doc('B2C Settings')
+        doc = frappe.get_doc('Mymb b2c Settings')
         image_uri = doc.get('image_uri')
 
     return image_uri
@@ -66,7 +66,7 @@ def catalogue(args=None):
     elif order_by == 'price-desc':
         search_params['sort'] = 'prezzo desc'
 
-    # Get the Solr instance from the B2C Settings DocType
+    # Get the Solr instance from the Mymb b2c Settings DocType
     solr = get_solr_instance()
 
     # Execute the search and get the results
@@ -282,7 +282,7 @@ def get_default_product_values():
 
 @frappe.whitelist(allow_guest=True)
 def products():
-    # Get the Solr instance from the B2C Settings DocType
+    # Get the Solr instance from the Mymb b2c Settings DocType
     solr = get_solr_instance()
 
     # Get the slug parameter from the query string
