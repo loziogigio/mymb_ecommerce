@@ -15,7 +15,8 @@
   "variant_id",
   "variant_of",
   "inventory_synced_on",
-  "item_synced_on"
+  "item_synced_on",
+  "oarti"
  ],
  "fields": [
   {
@@ -53,8 +54,8 @@
    "fieldname": "sku",
    "fieldtype": "Data",
    "label": "SKU",
-   "read_only": 1,
-   "search_index": 1
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "column_break_5",
@@ -92,11 +93,19 @@
    "fieldtype": "Datetime",
    "label": "Item Data Synced On",
    "read_only": 1
+  },
+  {
+   "fieldname": "oarti",
+   "fieldtype": "Data",
+   "label": "Codice interno articolo",
+   "read_only": 1,
+   "reqd": 1,
+   "unique": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-02-26 13:53:31.887999",
+ "modified": "2023-03-06 15:55:39.188450",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Item",

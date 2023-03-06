@@ -1,2 +1,5 @@
-# frappe -- https://github.com/frappe/frappe is installed via 'bench init'
+mysql-connector-python==8.0.27
 pysolr==3.9.0
+SQLAlchemy==2.0.4
+pymongo==4.3.3
+mysqlclient==2.1.1

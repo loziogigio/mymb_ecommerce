@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2023-03-03 13:06:42.002816",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "mymb_b2c_location_id",
+  "mymb_b2c_location_name",
+  "erpnext_warehouse"
+ ],
+ "fields": [
+  {
+   "fieldname": "erpnext_warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "ERPNext Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "mymb_b2c_location_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mymb b2c Location ID",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "mymb_b2c_location_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mymb b2c Location Name",
+   "read_only": 1,
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-03-03 13:07:29.373951",
+ "modified_by": "Administrator",
+ "module": "mymb b2c",
+ "name": "Mymb b2c Warehouse Mapping",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

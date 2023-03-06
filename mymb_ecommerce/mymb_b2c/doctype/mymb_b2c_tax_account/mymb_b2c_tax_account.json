@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "creation": "2023-03-03 13:03:10.670524",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mymb_b2c_tax",
+  "column_break_2",
+  "tax_account",
+  "tax_description"
+ ],
+ "fields": [
+  {
+   "fieldname": "mymb_b2c_tax",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mymb b2c Tax/Shipping Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "ERPNext Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tax Description",
+   "translatable": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2023-03-03 13:03:10.670524",
+ "modified_by": "Administrator",
+ "module": "mymb b2c",
+ "name": "Mymb b2c Tax Account",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

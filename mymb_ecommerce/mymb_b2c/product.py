@@ -1,11 +1,13 @@
 from typing import List, NewType
 
+from mymb_ecommerce.mymb_b2c.api_product import MymbB2cItem
+
 import frappe
 from frappe import _
 from frappe.utils import get_url, now
 from frappe.utils.nestedset import get_root_of
 from stdnum.ean import is_valid as validate_barcode
-from mymb_ecommerce.mymb_ecommerce.mymb_b2c.solr_search import get_solr_instance, map_solr_response_b2c
+
 
 from mymb_ecommerce.mymb_ecommerce.doctype.mymb_item import mymb_item
 from mymb_ecommerce.mymb_b2c.api_client import JsonDict, MymbAPIClient
@@ -25,33 +27,45 @@ from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 
 ItemCode = NewType("ItemCode", str)
 
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def test(args=None):
+
+#     db = MysqlConnection(host="161.156.172.254", port=33077, user="root", password="z6GBW~s#", database="bricocasa")
+#     result = db.query("SELECT * FROM orders limit 10")
+#     print(result)
+#     # Call the catalogue function with the given arguments
+    return "test"
+
 # mymb_b2c product to ERPNext item mapping
 # reference: https://documentation.mymb_b2c.com/docs/itemtype-get.html
 MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING = {
-	"skuCode": "item_code",
-	"name": "item_name",
-	"description": "description",
-	"weight": "weight_per_unit",  # weight_uom = always grams
-	"brand": "brand",  # Link Field, migth not exist
-	"shelfLife": "shelf_life_in_days",
-	"hsnCode": "gst_hsn_code",
-	"imageUrl": "image",
-	"length": ITEM_LENGTH_FIELD,
-	"width": ITEM_WIDTH_FIELD,
-	"height": ITEM_HEIGHT_FIELD,
-	"batchGroupCode": ITEM_BATCH_GROUP_FIELD,
+    "carti": "item_code",
+    "name": "item_name",
+    "description": "description",
+    "prezzo": "standard_rate",
+    "slug": "website_link",
+    "images": "item_images",
+    "brand": "brand"
 }
+
 
 ERPNEXT_TO_MYMB_B2C_ITEM_MAPPING = {v: k for k, v in MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING.items()}
 
 
-def import_product_from_mymb_b2c(sku: str, client: MymbAPIClient = None) -> None:
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def import_mymb_b2c_product(sku: str):
+    import_product_from_mymb_b2c(sku)
+    return "Import successful"
+
+
+def import_product_from_mymb_b2c(sku: str, client: MymbB2cItem = None) -> None:
 	"""Sync specified SKU from Mymb b2c."""
 
 	if not client:
-		client = MymbAPIClient()
+		client = MymbB2cItem()
 
 	response = client.get_mymb_b2c_item(sku)
+	print(response)
 
 	try:
 		if not response:
@@ -82,35 +96,35 @@ def import_product_from_mymb_b2c(sku: str, client: MymbAPIClient = None) -> None
 		)
 
 
-def _create_item_dict(uni_item):
+def _create_item_dict(mymb_b2c_item):
 	""" Helper function to build item document fields"""
 
 	item_dict = {"weight_uom": DEFAULT_WEIGHT_UOM}
 
-	_validate_create_brand(uni_item.get("brand"))
+	_validate_create_brand(mymb_b2c_item.get("brand"))
 
-	for uni_field, erpnext_field in MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING.items():
+	for mymb_b2c_item_field, erpnext_field in MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING.items():
 
-		value = uni_item.get(uni_field)
+		value = mymb_b2c_item.get(mymb_b2c_item_field)
 		if not _validate_field(erpnext_field, value):
 			continue
 
 		item_dict[erpnext_field] = value
 
-	item_dict["barcodes"] = _get_barcode_data(uni_item)
-	item_dict["disabled"] = int(not uni_item.get("enabled"))
-	item_dict["item_group"] = _get_item_group(uni_item.get("categoryCode"))
+	item_dict["barcodes"] = _get_barcode_data(mymb_b2c_item)
+	item_dict["disabled"] = int(not mymb_b2c_item.get("enabled"))
+	item_dict["item_group"] = _get_item_group(mymb_b2c_item.get("categoryCode"))
 	item_dict["name"] = item_dict["item_code"]  # when naming is by item series
 
 	return item_dict
 
 
-def _get_barcode_data(uni_item):
+def _get_barcode_data(mymb_b2c_item):
 	"""Extract barcode information from Mymb b2c item and return as child doctype row for Item table"""
 	barcodes = []
 
-	ean = uni_item.get("ean")
-	upc = uni_item.get("upc")
+	ean = mymb_b2c_item.get("ean")
+	upc = mymb_b2c_item.get("upc")
 
 	if ean and validate_barcode(ean):
 		barcodes.append({"barcode": ean, "barcode_type": "EAN"})
@@ -120,13 +134,14 @@ def _get_barcode_data(uni_item):
 	return barcodes
 
 
-def _check_and_match_existing_item(uni_item):
+def _check_and_match_existing_item(mymb_b2c_item):
 	"""Tries to match new item with existing item using SKU == item_code.
 
 	Returns true if matched and linked.
 	"""
 
-	sku = uni_item["skuCode"]
+	sku = mymb_b2c_item["carti"]
+	oarti = mymb_b2c_item["id"]
 	item_name = frappe.db.get_value("Item", {"item_code": sku})
 	if item_name:
 		try:
@@ -138,6 +153,7 @@ def _check_and_match_existing_item(uni_item):
 					"integration_item_code": sku,
 					"has_variants": 0,
 					"sku": sku,
+					"oarti": oarti
 				}
 			)
 			mymb_item.insert()
@@ -335,35 +351,3 @@ def validate_item(doc, method=None):
 			_("Mymb b2c Product category required in Item Group: {}").format(item_group.name)
 		)
 
-
-@frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_product_details(slug):
-    # Get the Solr instance from the B2C Settings DocType
-    solr = get_solr_instance()
-
-    # Construct the Solr query to search for the product based on its slug
-    query = f'slug:{slug}'
-
-    # Construct the Solr search parameters
-    search_params = {
-        'q': query,
-        'rows': 1,
-    }
-
-    # Execute the search and get the results
-    search_results = solr.search(**search_params)
-
-    # Check if there are any search results
-    if search_results.hits == 0:
-        frappe.throw(_('Product not found'), frappe.DoesNotExistError)
-
-    # Extract the product details from the Solr result
-    product = map_solr_response_b2c([dict(search_results.docs[0])])[0]
-
-    # Construct the response
-    response =  {
-        'product': product,
-    }
-
-    # Return the response with HTTP 200 status
-    return response

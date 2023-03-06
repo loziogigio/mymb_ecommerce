@@ -11,15 +11,15 @@ app_license = "MIT"
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/mymb_ecommerce/css/mymb_ecommerce.css"
-# app_include_js = "/assets/mymb_ecommerce/js/mymb_ecommerce.js"
+# app_include_css = "/assets/ecommerce_integrations/css/mymb_ecommerce.css"
+# app_include_js = "/assets/ecommerce_integrations/js/mymb_ecommerce.js"
 
 # include js, css files in header of web template
-# web_include_css = "/assets/mymb_ecommerce/css/mymb_ecommerce.css"
-# web_include_js = "/assets/mymb_ecommerce/js/mymb_ecommerce.js"
+# web_include_css = "/assets/ecommerce_integrations/css/mymb_ecommerce.css"
+# web_include_js = "/assets/ecommerce_integrations/js/mymb_ecommerce.js"
 
 # include custom scss in every website theme (without file extension ".scss")
-# website_theme_scss = "mymb_ecommerce/public/scss/website"
+# website_theme_scss = "ecommerce_integrations/public/scss/website"
 
 # include js, css files in header of web form
 # webform_include_js = {"doctype": "public/js/doctype.js"}
@@ -29,7 +29,13 @@ app_license = "MIT"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Shopify Settings": "public/js/mymb_b2c/old_settings.js",
+	"Sales Order": "public/js/unicommerce/sales_order.js",
+	"Sales Invoice": "public/js/unicommerce/sales_invoice.js",
+	"Item": "public/js/unicommerce/item.js",
+	"Stock Entry": "public/js/unicommerce/stock_entry.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -42,7 +48,7 @@ app_license = "MIT"
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Generators
@@ -51,26 +57,11 @@ app_license = "MIT"
 # automatically create page for each record of this doctype
 # website_generators = ["Web Page"]
 
-# Jinja
-# ----------
-
-# add methods and filters to jinja environment
-# jinja = {
-#	"methods": "mymb_ecommerce.utils.jinja_methods",
-#	"filters": "mymb_ecommerce.utils.jinja_filters"
-# }
-
 # Installation
 # ------------
 
 # before_install = "mymb_ecommerce.install.before_install"
 # after_install = "mymb_ecommerce.install.after_install"
-
-# Uninstallation
-# ------------
-
-# before_uninstall = "mymb_ecommerce.uninstall.before_uninstall"
-# after_uninstall = "mymb_ecommerce.uninstall.after_uninstall"
 
 # Desk Notifications
 # ------------------
@@ -83,11 +74,11 @@ app_license = "MIT"
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -95,107 +86,112 @@ app_license = "MIT"
 # Override standard doctype classes
 
 # override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
+# 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
 # Document Events
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	"Item": {
+		"after_insert": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
+		"on_update": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
+		"validate": [
+			"mymb_ecommerce.utils.taxation.validate_tax_template",
+			# "mymb_ecommerce.unicommerce.product.validate_item",
+		],
+	},
+	"Sales Order": {
+		# "on_update_after_submit": "mymb_ecommerce.unicommerce.order.update_shipping_info",
+		# "on_cancel": "mymb_ecommerce.unicommerce.status_updater.ignore_pick_list_on_sales_order_cancel",
+	},
+	# "Stock Entry": {
+	# 	"validate": "mymb_ecommerce.unicommerce.grn.validate_stock_entry_for_grn",
+	# 	"on_submit": "mymb_ecommerce.unicommerce.grn.upload_grn",
+	# 	"on_cancel": "mymb_ecommerce.unicommerce.grn.prevent_grn_cancel",
+	# },
+	"Item Price": {"on_change": "mymb_ecommerce.utils.price_list.discard_item_prices"},
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-#	"all": [
-#		"mymb_ecommerce.tasks.all"
-#	],
-#	"daily": [
-#		"mymb_ecommerce.tasks.daily"
-#	],
-#	"hourly": [
-#		"mymb_ecommerce.tasks.hourly"
-#	],
-#	"weekly": [
-#		"mymb_ecommerce.tasks.weekly"
-#	],
-#	"monthly": [
-#		"mymb_ecommerce.tasks.monthly"
-#	],
-# }
+scheduler_events = {
+	"all": ["mymb_ecommerce.mymb_b2c.inventory.update_inventory_on_shopify"],
+	"daily": [],
+	"daily_long": [
+		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_stocks"
+	],
+	"hourly": [
+		"mymb_ecommerce.mymb_b2c.order.sync_old_orders",
+		# "mymb_ecommerce.amazon.doctype.amazon_sp_api_settings.amazon_sp_api_settings.schedule_get_order_details",
+	],
+	"hourly_long": [
+		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_invoices",
+		# "mymb_ecommerce.unicommerce.product.upload_new_items",
+		# "mymb_ecommerce.unicommerce.status_updater.update_sales_order_status",
+		# "mymb_ecommerce.unicommerce.status_updater.update_shipping_package_status",
+	],
+	"weekly": [],
+	"monthly": [],
+	"cron": {
+		# Every five minutes
+		# "*/5 * * * *": [
+		# 	# "mymb_ecommerce.unicommerce.order.sync_new_orders",
+		# 	# "mymb_ecommerce.unicommerce.inventory.update_inventory_on_unicommerce",
+		# ],
+	},
+}
+
+
+# bootinfo - hide old doctypes
+# extend_bootinfo = "mymb_ecommerce.boot.boot_session"
 
 # Testing
 # -------
 
-# before_tests = "mymb_ecommerce.install.before_tests"
+before_tests = "mymb_ecommerce.utils.before_test.before_tests"
 
 # Overriding Methods
 # ------------------------------
 #
 # override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "mymb_ecommerce.event.get_events"
+# 	"frappe.desk.doctype.event.event.get_events": "mymb_ecommerce.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-#	"Task": "mymb_ecommerce.task.get_dashboard_data"
+# 	"Task": "mymb_ecommerce.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
 #
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
 
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
-
-# Request Events
-# ----------------
-# before_request = ["mymb_ecommerce.utils.before_request"]
-# after_request = ["mymb_ecommerce.utils.after_request"]
-
-# Job Events
-# ----------
-# before_job = ["mymb_ecommerce.utils.before_job"]
-# after_job = ["mymb_ecommerce.utils.after_job"]
 
 # User Data Protection
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
-# ]
-
-# Authentication and authorization
-# --------------------------------
-
-# auth_hooks = [
-#	"mymb_ecommerce.auth.validate"
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
 # ]

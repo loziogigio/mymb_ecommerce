@@ -1,331 +1,75 @@
+# Copyright (c) 2021, Frappe and contributors
+# For license information, please see LICENSE
 import re
 
+MODULE_NAME = "mymb_b2c"
 SETTINGS_DOCTYPE = "Mymb b2c Settings"
-MODULE_NAME = "mymb_b2b"
+SETTING_DOCTYPE = "Mymb b2c Settings"
+OLD_SETTINGS_DOCTYPE = "Mymb b2c Settings"
 
-DEFAULT_WEIGHT_UOM = "Gram"
+API_VERSION = "2022-04"
+
+WEBHOOK_EVENTS = [
+	"orders/create",
+	"orders/paid",
+	"orders/fulfilled",
+	"orders/cancelled",
+	"orders/partially_fulfilled",
+]
+
+EVENT_MAPPER = {
+	"orders/create": "ecommerce_integrations.mymb_b2c.order.sync_sales_order",
+	"orders/paid": "ecommerce_integrations.mymb_b2c.invoice.prepare_sales_invoice",
+	"orders/fulfilled": "ecommerce_integrations.mymb_b2c.fulfillment.prepare_delivery_note",
+	"orders/cancelled": "ecommerce_integrations.mymb_b2c.order.cancel_order",
+	"orders/partially_fulfilled": "ecommerce_integrations.mymb_b2c.fulfillment.prepare_delivery_note",
+}
+
+SHOPIFY_VARIANTS_ATTR_LIST = ["option1", "option2", "option3"]
+
+# custom fields
+
+CUSTOMER_ID_FIELD = "mymb_b2c_customer_id"
+ORDER_ID_FIELD = "mymb_b2c_order_id"
+ORDER_NUMBER_FIELD = "mymb_b2c_order_number"
+ORDER_STATUS_FIELD = "mymb_b2c_order_status"
+FULLFILLMENT_ID_FIELD = "mymb_b2c_fulfillment_id"
+SUPPLIER_ID_FIELD = "mymb_b2c_supplier_id"
+ADDRESS_ID_FIELD = "mymb_b2c_address_id"
+ORDER_ITEM_DISCOUNT_FIELD = "mymb_b2c_item_discount"
+ITEM_SELLING_RATE_FIELD = "mymb_b2c_selling_rate"
+
+# ERPNext already defines the default UOMs from Shopify but names are different
+WEIGHT_TO_ERPNEXT_UOM_MAP = {"kg": "Kg", "g": "Gram", "oz": "Ounce", "lb": "Pound"}
+
+
+DEFAULT_WEIGHT_UOM = "Kg"
 MYMB_B2C_SKU_PATTERN = re.compile(r"[A-Za-z0-9._\-/]{3,45}")
 
 
 # Custom fields
-ITEM_SYNC_CHECKBOX = "sync_with_mymb_b2bc"
-ORDER_CODE_FIELD = "mymb_b2bc_order_code"
-CHANNEL_ID_FIELD = "mymb_b2bc_channel_id"
-ORDER_STATUS_FIELD = "mymb_b2bc_order_status"
-ORDER_INVOICE_STATUS_FIELD = "mymb_b2bc_invoicing_status"
-ORDER_ITEM_CODE_FIELD = "mymb_b2bc_order_item_code"
-ORDER_ITEM_BATCH_NO = "mymb_b2bc_batch_code"
-PRODUCT_CATEGORY_FIELD = "mymb_b2bc_product_category"
-FACILITY_CODE_FIELD = "mymb_b2bc_facility_code"
-INVOICE_CODE_FIELD = "mymb_b2bc_invoice_code"
-SHIPPING_PACKAGE_CODE_FIELD = "mymb_b2bc_shipping_package_code"
-RETURN_CODE_FIELD = "mymb_b2bc_return_code"
-TRACKING_CODE_FIELD = "mymb_b2bc_tracking_code"
-SHIPPING_PROVIDER_CODE = "mymb_b2bc_shipping_provider"
-MANIFEST_GENERATED_CHECK = "mymb_b2bc_manifest_generated"
-ADDRESS_JSON_FIELD = "mymb_b2bc_raw_billing_address"
-CUSTOMER_CODE_FIELD = "mymb_b2bc_customer_code"
-PACKAGE_TYPE_FIELD = "mymb_b2bc_package_type"
-ITEM_LENGTH_FIELD = "mymb_b2bc_item_length"
-ITEM_WIDTH_FIELD = "mymb_b2bc_item_width"
-ITEM_HEIGHT_FIELD = "mymb_b2bc_item_height"
-ITEM_BATCH_GROUP_FIELD = "mymb_b2bc_batch_group_code"
-SHIPPING_PACKAGE_STATUS_FIELD = "mymb_b2bc_shipping_package_status"
-IS_COD_CHECKBOX = "mymb_b2bc_is_cod"
-SHIPPING_METHOD_FIELD = "mymb_b2bc_shipping_method"
-
-
-GRN_STOCK_ENTRY_TYPE = "GRN on Mymb"
-
-
-# Tax -> Mymb tax amount field mapping
-TAX_FIELDS_MAPPING = {
-	"igst": "integratedGst",
-	"cgst": "centralGst",
-	"sgst": "stateGst",
-	"ugst": "unionTerritoryGst",
-	"tcs": "tcsAmount",
-	"cash_on_delivery_charges": "cashOnDeliveryCharges",
-	"gift_wrap_charges": "giftWrapCharges",
-	"shipping_charges": "shippingCharges",
-	"shipping_method_charges": "shippingMethodCharges",
-}
-
-# Tax -> Mymb tax "rate" field mapping
-TAX_RATE_FIELDS_MAPPING = {
-	"igst": "integratedGstPercentage",
-	"cgst": "centralGstPercentage",
-	"sgst": "stateGstPercentage",
-	"ugst": "unionTerritoryGstPercentage",
-}
-
-# field name for accounts in Mymb channels
-CHANNEL_TAX_ACCOUNT_FIELD_MAP = {
-	"igst": "igst_account",
-	"cgst": "cgst_account",
-	"sgst": "sgst_account",
-	"ugst": "ugst_account",
-	"tcs": "tcs_account",
-	"cash_on_delivery_charges": "cod_account",
-	"gift_wrap_charges": "gift_wrap_account",
-	"shipping_charges": "fnf_account",
-	"shipping_method_charges": "fnf_account",
-}
-
-
-MYMB_B2C_COUNTRY_MAPPING = {
-	"AD": "Andorra",
-	"AE": "United Arab Emirates",
-	"AF": "Afghanistan",
-	"AG": "Antigua and Barbuda",
-	"AI": "Anguilla",
-	"AL": "Albania",
-	"AM": "Armenia",
-	"AO": "Angola",
-	"AQ": "Antarctica",
-	"AR": "Argentina",
-	"AS": "American Samoa",
-	"AT": "Austria",
-	"AU": "Australia",
-	"AW": "Aruba",
-	"AZ": "Azerbaijan",
-	"BA": "Bosnia and Herzegovina",
-	"BB": "Barbados",
-	"BD": "Bangladesh",
-	"BE": "Belgium",
-	"BF": "Burkina Faso",
-	"BG": "Bulgaria",
-	"BH": "Bahrain",
-	"BI": "Burundi",
-	"BJ": "Benin",
-	"BM": "Bermuda",
-	"BR": "Brazil",
-	"BS": "Bahamas",
-	"BT": "Bhutan",
-	"BV": "Bouvet Island",
-	"BW": "Botswana",
-	"BY": "Belarus",
-	"BZ": "Belize",
-	"CA": "Canada",
-	"CF": "Central African Republic",
-	"CH": "Switzerland",
-	"CI": "Ivory Coast",
-	"CK": "Cook Islands",
-	"CL": "Chile",
-	"CM": "Cameroon",
-	"CN": "China",
-	"CO": "Colombia",
-	"CR": "Costa Rica",
-	"CU": "Cuba",
-	"CV": "Cape Verde",
-	"CX": "Christmas Island",
-	"CY": "Cyprus",
-	"CZ": "Czech Republic",
-	"DE": "Germany",
-	"DJ": "Djibouti",
-	"DK": "Denmark",
-	"DM": "Dominica",
-	"DO": "Dominican Republic",
-	"DZ": "Algeria",
-	"EC": "Ecuador",
-	"EE": "Estonia",
-	"EG": "Egypt",
-	"EH": "Western Sahara",
-	"ER": "Eritrea",
-	"ES": "Spain",
-	"ET": "Ethiopia",
-	"FI": "Finland",
-	"FJ": "Fiji",
-	"FK": "Falkland Islands",
-	"FM": "Micronesia",
-	"FO": "Faroe Islands",
-	"FR": "France",
-	"GA": "Gabon",
-	"GB": "United Kingdom",
-	"GD": "Grenada",
-	"GE": "Georgia",
-	"GF": "French Guiana",
-	"GG": "Guernsey",
-	"GH": "Ghana",
-	"GI": "Gibraltar",
-	"GL": "Greenland",
-	"GM": "Gambia",
-	"GN": "Guinea",
-	"GP": "Guadeloupe",
-	"GQ": "Equatorial Guinea",
-	"GR": "Greece",
-	"GS": "South Georgia and the South Sandwich Islands",
-	"GT": "Guatemala",
-	"GU": "Guam",
-	"GW": "Guinea-Bissau",
-	"GY": "Guyana",
-	"HK": "Hong Kong",
-	"HM": "Heard Island and McDonald Islands",
-	"HN": "Honduras",
-	"HR": "Croatia",
-	"HT": "Haiti",
-	"HU": "Hungary",
-	"ID": "Indonesia",
-	"IE": "Ireland",
-	"IL": "Israel",
-	"IM": "Isle of Man",
-	"IN": "India",
-	"IO": "British Indian Ocean Territory",
-	"IQ": "Iraq",
-	"IR": "Iran",
-	"IS": "Iceland",
-	"IT": "Italy",
-	"JE": "Jersey",
-	"JM": "Jamaica",
-	"JO": "Jordan",
-	"JP": "Japan",
-	"KE": "Kenya",
-	"KG": "Kyrgyzstan",
-	"KH": "Cambodia",
-	"KI": "Kiribati",
-	"KM": "Comoros",
-	"KN": "Saint Kitts and Nevis",
-	"KR": "Korea, Republic of",
-	"KW": "Kuwait",
-	"KY": "Cayman Islands",
-	"KZ": "Kazakhstan",
-	"LB": "Lebanon",
-	"LC": "Saint Lucia",
-	"LI": "Liechtenstein",
-	"LK": "Sri Lanka",
-	"LR": "Liberia",
-	"LS": "Lesotho",
-	"LT": "Lithuania",
-	"LU": "Luxembourg",
-	"LV": "Latvia",
-	"LY": "Libya",
-	"MA": "Morocco",
-	"MC": "Monaco",
-	"MD": "Moldova, Republic of",
-	"ME": "Montenegro",
-	"MG": "Madagascar",
-	"MH": "Marshall Islands",
-	"MK": "Macedonia",
-	"ML": "Mali",
-	"MM": "Myanmar",
-	"MN": "Mongolia",
-	"MO": "Macao",
-	"MP": "Northern Mariana Islands",
-	"MQ": "Martinique",
-	"MR": "Mauritania",
-	"MS": "Montserrat",
-	"MT": "Malta",
-	"MU": "Mauritius",
-	"MV": "Maldives",
-	"MW": "Malawi",
-	"MX": "Mexico",
-	"MY": "Malaysia",
-	"MZ": "Mozambique",
-	"NA": "Namibia",
-	"NC": "New Caledonia",
-	"NE": "Niger",
-	"NF": "Norfolk Island",
-	"NG": "Nigeria",
-	"NI": "Nicaragua",
-	"NL": "Netherlands",
-	"NO": "Norway",
-	"NP": "Nepal",
-	"NR": "Nauru",
-	"NU": "Niue",
-	"NZ": "New Zealand",
-	"OM": "Oman",
-	"PA": "Panama",
-	"PE": "Peru",
-	"PF": "French Polynesia",
-	"PG": "Papua New Guinea",
-	"PH": "Philippines",
-	"PK": "Pakistan",
-	"PL": "Poland",
-	"PM": "Saint Pierre and Miquelon",
-	"PN": "Pitcairn",
-	"PR": "Puerto Rico",
-	"PT": "Portugal",
-	"PW": "Palau",
-	"PY": "Paraguay",
-	"QA": "Qatar",
-	"RO": "Romania",
-	"RS": "Serbia",
-	"RU": "Russian Federation",
-	"RW": "Rwanda",
-	"SA": "Saudi Arabia",
-	"SB": "Solomon Islands",
-	"SC": "Seychelles",
-	"SD": "Sudan",
-	"SE": "Sweden",
-	"SG": "Singapore",
-	"SI": "Slovenia",
-	"SJ": "Svalbard and Jan Mayen",
-	"SK": "Slovakia",
-	"SL": "Sierra Leone",
-	"SM": "San Marino",
-	"SN": "Senegal",
-	"SO": "Somalia",
-	"SR": "Suriname",
-	"ST": "Sao Tome and Principe",
-	"SV": "El Salvador",
-	"SY": "Syria",
-	"SZ": "Swaziland",
-	"TC": "Turks and Caicos Islands",
-	"TD": "Chad",
-	"TF": "French Southern Territories",
-	"TG": "Togo",
-	"TH": "Thailand",
-	"TJ": "Tajikistan",
-	"TK": "Tokelau",
-	"TM": "Turkmenistan",
-	"TN": "Tunisia",
-	"TO": "Tonga",
-	"TR": "Turkey",
-	"TT": "Trinidad and Tobago",
-	"TV": "Tuvalu",
-	"TW": "Taiwan",
-	"TZ": "Tanzania",
-	"UA": "Ukraine",
-	"UG": "Uganda",
-	"UM": "United States Minor Outlying Islands",
-	"US": "United States",
-	"UY": "Uruguay",
-	"UZ": "Uzbekistan",
-	"VC": "Saint Vincent and the Grenadines",
-	"VE": "Venezuela, Bolivarian Republic of",
-	"VN": "Vietnam",
-	"VU": "Vanuatu",
-	"WF": "Wallis and Futuna",
-	"WS": "Samoa",
-	"YE": "Yemen",
-	"YT": "Mayotte",
-	"ZA": "South Africa",
-	"ZM": "Zambia",
-	"ZW": "Zimbabwe",
-}
-
-
-MYMB_B2C_ITALIAN_REGIONS_MAPPING = {
-    "ABR": "Abruzzo",
-    "BAS": "Basilicata",
-    "CAL": "Calabria",
-    "CAM": "Campania",
-    "EMR": "Emilia-Romagna",
-    "FVG": "Friuli-Venezia Giulia",
-    "LAZ": "Lazio",
-    "LIG": "Liguria",
-    "LOM": "Lombardia",
-    "MAR": "Marche",
-    "MOL": "Molise",
-    "PAB": "P.A. Bolzano",
-    "PAT": "P.A. Trento",
-    "PIE": "Piemonte",
-    "PUG": "Puglia",
-    "SAR": "Sardegna",
-    "SIC": "Sicilia",
-    "TOS": "Toscana",
-    "UMB": "Umbria",
-    "VAO": "Valle d'Aosta",
-    "VEN": "Veneto"
-}
-
+ITEM_SYNC_CHECKBOX = "sync_with_mymb_b2c"
+ORDER_CODE_FIELD = "mymb_b2c_order_code"
+CHANNEL_ID_FIELD = "mymb_b2c_channel_id"
+ORDER_STATUS_FIELD = "mymb_b2c_order_status"
+ORDER_INVOICE_STATUS_FIELD = "mymb_b2c_invoicing_status"
+ORDER_ITEM_CODE_FIELD = "mymb_b2c_order_item_code"
+ORDER_ITEM_BATCH_NO = "mymb_b2c_batch_code"
+PRODUCT_CATEGORY_FIELD = "mymb_b2c_product_category"
+FACILITY_CODE_FIELD = "mymb_b2c_facility_code"
+INVOICE_CODE_FIELD = "mymb_b2c_invoice_code"
+SHIPPING_PACKAGE_CODE_FIELD = "mymb_b2c_shipping_package_code"
+RETURN_CODE_FIELD = "mymb_b2c_return_code"
+TRACKING_CODE_FIELD = "mymb_b2c_tracking_code"
+SHIPPING_PROVIDER_CODE = "mymb_b2c_shipping_provider"
+MANIFEST_GENERATED_CHECK = "mymb_b2c_manifest_generated"
+ADDRESS_JSON_FIELD = "mymb_b2c_raw_billing_address"
+CUSTOMER_CODE_FIELD = "mymb_b2c_customer_code"
+PACKAGE_TYPE_FIELD = "mymb_b2c_package_type"
+ITEM_LENGTH_FIELD = "mymb_b2c_item_length"
+ITEM_WIDTH_FIELD = "mymb_b2c_item_width"
+ITEM_HEIGHT_FIELD = "mymb_b2c_item_height"
+ITEM_BATCH_GROUP_FIELD = "mymb_b2c_batch_group_code"
+SHIPPING_PACKAGE_STATUS_FIELD = "mymb_b2c_shipping_package_status"
+IS_COD_CHECKBOX = "mymb_b2c_is_cod"
+SHIPPING_METHOD_FIELD = "mymb_b2c_shipping_method"

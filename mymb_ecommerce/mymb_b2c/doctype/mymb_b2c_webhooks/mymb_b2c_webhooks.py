@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class Mymbb2cWarehouses(Document):
+class Mymbb2cWebhooks(Document):
 	pass

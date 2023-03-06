@@ -1,36 +1,16 @@
 
-import json
-import pysolr
-
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 import frappe
 from frappe import _
 
-solr = None
-image_uri = None
+config = Configurations()
+solr_instance = config.get_solr_instance()
+image_uri_instance = config.get_image_uri_instance()
 
-
-def get_solr_instance():
-    """Get the Solr instance from the Mymb b2c Settings DocType"""
-
-    global solr
-    doc = frappe.get_doc('Mymb b2c Settings')
-
-    if not solr:
-        solr_url = doc.get('solr_url')
-        solr = pysolr.Solr(solr_url)
-
-    return solr
-
-def get_image_uri_instance():
-    """Get the Solr image instance from the Mymb b2c Settings DocType"""
-
-    global image_uri
-
-    if not image_uri:
-        doc = frappe.get_doc('Mymb b2c Settings')
-        image_uri = doc.get('image_uri')
-
-    return image_uri
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def shop(args=None):
+    # Call the catalogue function with the given arguments
+    return catalogue(args)
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
@@ -66,14 +46,15 @@ def catalogue(args=None):
     elif order_by == 'price-desc':
         search_params['sort'] = 'prezzo desc'
 
-    # Get the Solr instance from the Mymb b2c Settings DocType
-    solr = get_solr_instance()
+    # Get the Solr instance from the Configurations class
+    solr = solr_instance
 
+    print(search_params)
     # Execute the search and get the results
-    search_results = solr.search(**search_params)
+    solr_results = solr.search(**search_params)
 
     # Get the total number of search results
-    count = search_results.hits
+    count = solr_results['hits']
 
     # Calculate the number of pages
     pages = int((count + per_page - 1) / per_page)
@@ -82,7 +63,9 @@ def catalogue(args=None):
     is_last = (start + per_page >= count)
 
     # Extract the search results from the response
-    search_results = [dict(result) for result in search_results]
+    search_results = [dict(result) for result in solr_results['results']]
+
+    # Get the image uri instance from the Configurations class
 
     search_results_mapped = map_solr_response_b2c(search_results)
 
@@ -100,11 +83,7 @@ def catalogue(args=None):
     return response
 
 
-    # Return the response with HTTP 200 status
-    # return response.values()
-
-
-def map_solr_response_b2c(search_results):
+def map_solr_response_b2c(search_results ):
     # Define the mapping between Solr and our response
     field_mapping = {
         'id': 'id',
@@ -121,8 +100,6 @@ def map_solr_response_b2c(search_results):
         'slug':'slug'
     }
 
-    # Get the Solr image instance URI
-    image_uri = get_image_uri_instance()
 
     # Initialize the mapped results list
     mapped_results = []
@@ -136,7 +113,7 @@ def map_solr_response_b2c(search_results):
                 continue
             if solr_field == 'images':
                 # Map the image URLs
-                images = get_image_sizes(result, image_uri)
+                images = get_image_sizes(result, image_uri_instance)
                 mapped_result.update(images)
             else:
                 mapped_result[response_field] = result[solr_field]
@@ -283,7 +260,7 @@ def get_default_product_values():
 @frappe.whitelist(allow_guest=True)
 def products():
     # Get the Solr instance from the Mymb b2c Settings DocType
-    solr = get_solr_instance()
+    solr = solr_instance
 
     # Get the slug parameter from the query string
     slug = frappe.local.request.args.get('slug')
@@ -302,14 +279,14 @@ def products():
     }
 
     # Execute the search and get the results
-    search_results = solr.search(**search_params)
+    solr_results = solr.search(**search_params)
 
     # Check if there are any search results
-    if search_results.hits == 0:
+    if solr_results['hits'] == 0:
         frappe.throw(_('Product not found'), frappe.DoesNotExistError)
 
     # Extract the product details from the Solr result
-    product = map_solr_response_b2c([dict(search_results.docs[0])])[0]
+    product = map_solr_response_b2c([dict(solr_results['results'][0])])[0]
 
     # Construct the response
     response =  {
