@@ -1,4 +1,5 @@
 
+from mymb_ecommerce.mymb_b2c.settings.media import Media
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 import frappe
 from frappe import _
@@ -105,6 +106,7 @@ def map_solr_response_b2c(search_results ):
     mapped_results = []
 
     # Map the Solr results to our desired format
+    media = Media(image_uri_instance)
     for result in search_results:
         mapped_result = get_default_product_values()  # Add default values
         for solr_field, response_field in field_mapping.items():
@@ -113,7 +115,7 @@ def map_solr_response_b2c(search_results ):
                 continue
             if solr_field == 'images':
                 # Map the image URLs
-                images = get_image_sizes(result, image_uri_instance)
+                images = media.get_image_sizes(result)
                 mapped_result.update(images)
             else:
                 mapped_result[response_field] = result[solr_field]
@@ -186,57 +188,6 @@ def map_solr_response_b2c(search_results ):
 
     return mapped_results
 
-
-def get_image_sizes(result, image_uri):
-    """
-    Get image URLs for different sizes from Solr result
-    """
-    images = {
-        'large_pictures': [],
-        'small_pictures': [],
-        'gallery_pictures': [],
-        'main_pictures': []
-    }
-    image_sizes = {
-        'large_pictures': {
-            'prefix': '',
-            'width': '1000',
-            'height': '1000'
-        },
-        'small_pictures': {
-            'prefix': 'thumb_',
-            'width': '150',
-            'height': '150'
-        },
-        'gallery_pictures': {
-            'prefix': 'gallery_',
-            'width': '350',
-            'height': '350'
-        },
-        'main_pictures': {
-            'prefix': 'main_',
-            'width': '800',
-            'height': '800'
-        }
-    }
-    
-    for image_size in image_sizes:
-        size_data = image_sizes[image_size]
-        size_prefix = size_data['prefix']
-        size_width = size_data['width']
-        size_height = size_data['height']
-        size_images = []
-
-        for image in result['images']:
-            size_images.append({
-                'url': image_uri + '/' + result['id'] + '/' + size_prefix + image,
-                'width': size_width,
-                'height': size_height
-            })
-
-        images[image_size] = size_images
-    
-    return images
 
 def get_default_product_values():
     return {

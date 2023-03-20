@@ -131,6 +131,7 @@ def create_mymb_item(
 	item_dict: Dict,
 	variant_id: Optional[str] = None,
 	sku: Optional[str] = None,
+	oarti: Optional[str] = None,
 	variant_of: Optional[str] = None,
 	has_variants=0,
 ) -> None:
@@ -150,6 +151,7 @@ def create_mymb_item(
 		"doctype": "Item",
 		"is_stock_item": 1,
 		"is_sales_item": 1,
+		"include_item_in_manufacturing": 0,
 		"item_defaults": [{"company": get_default_company()}],
 	}
 
@@ -169,6 +171,7 @@ def create_mymb_item(
 			"variant_id": cstr(variant_id),
 			"variant_of": cstr(variant_of),
 			"sku": sku,
+			"oarti": oarti,
 			"item_synced_on": now(),
 		}
 	)

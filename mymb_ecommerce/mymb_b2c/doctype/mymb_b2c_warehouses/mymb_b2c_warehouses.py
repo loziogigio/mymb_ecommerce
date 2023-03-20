@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class Mymbb2cWarehouseMapping(Document):
+class Mymbb2cWarehouses(Document):
 	pass

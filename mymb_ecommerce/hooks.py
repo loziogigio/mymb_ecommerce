@@ -95,8 +95,8 @@ doctype_js = {
 
 doc_events = {
 	"Item": {
-		"after_insert": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
-		"on_update": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
+		# "after_insert": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
+		# "on_update": "mymb_ecommerce.mymb_b2c.product.upload_erpnext_item",
 		"validate": [
 			"mymb_ecommerce.utils.taxation.validate_tax_template",
 			# "mymb_ecommerce.unicommerce.product.validate_item",
@@ -118,7 +118,7 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
-	"all": ["mymb_ecommerce.mymb_b2c.inventory.update_inventory_on_shopify"],
+	# "all": ["mymb_ecommerce.mymb_b2c.inventory.update_inventory_on_shopify"],
 	"daily": [],
 	"daily_long": [
 		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_stocks"
@@ -156,9 +156,10 @@ before_tests = "mymb_ecommerce.utils.before_test.before_tests"
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "mymb_ecommerce.event.get_events"
-# }
+override_whitelisted_methods = {
+	"payments.payment_gateways.doctype.paypal_settings.paypal_settings.get_express_checkout_details": "mymb_ecommerce.mymb_ecommerce.payment.get_express_checkout_details",
+    "payments.payment_gateways.doctype.paypal_settings.paypal_settings.confirm_payment": "mymb_ecommerce.mymb_ecommerce.payment.confirm_payment"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

@@ -2,7 +2,7 @@
 # For license information, please see LICENSE
 import re
 
-MODULE_NAME = "mymb_b2c"
+MODULE_NAME = "mymb b2c"
 SETTINGS_DOCTYPE = "Mymb b2c Settings"
 SETTING_DOCTYPE = "Mymb b2c Settings"
 OLD_SETTINGS_DOCTYPE = "Mymb b2c Settings"
@@ -55,7 +55,7 @@ ORDER_STATUS_FIELD = "mymb_b2c_order_status"
 ORDER_INVOICE_STATUS_FIELD = "mymb_b2c_invoicing_status"
 ORDER_ITEM_CODE_FIELD = "mymb_b2c_order_item_code"
 ORDER_ITEM_BATCH_NO = "mymb_b2c_batch_code"
-PRODUCT_CATEGORY_FIELD = "mymb_b2c_product_category"
+PRODUCT_CATEGORY_FIELD = "mymb b2c product category"
 FACILITY_CODE_FIELD = "mymb_b2c_facility_code"
 INVOICE_CODE_FIELD = "mymb_b2c_invoice_code"
 SHIPPING_PACKAGE_CODE_FIELD = "mymb_b2c_shipping_package_code"

@@ -36,7 +36,6 @@
   "inventory_sync_settings_section",
   "enable_inventory_sync",
   "inventory_sync_frequency",
-  "warehouse_mapping",
   "grn_settings_section",
   "use_stock_entry_for_grn",
   "vendor_code",
@@ -186,12 +185,6 @@
    "options": "5\n10\n15\n30\n60"
   },
   {
-   "fieldname": "warehouse_mapping",
-   "fieldtype": "Table",
-   "label": "Mymb b2c Mapping",
-   "options": "Mymb b2c Warehouses"
-  },
-  {
    "collapsible": 1,
    "fieldname": "grn_settings_section",
    "fieldtype": "Section Break",
@@ -270,7 +263,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-02-27 05:46:56.059970",
+ "modified": "2023-03-07 17:47:42.082606",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

@@ -97,15 +97,14 @@
   {
    "fieldname": "oarti",
    "fieldtype": "Data",
-   "label": "Codice interno articolo",
+   "label": "Internal item code",
    "read_only": 1,
-   "reqd": 1,
    "unique": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-03-06 15:55:39.188450",
+ "modified": "2023-03-07 08:27:49.680498",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Item",

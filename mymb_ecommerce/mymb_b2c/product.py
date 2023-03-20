@@ -1,4 +1,7 @@
 from typing import List, NewType
+from frappe.utils.data import nowtime, today
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.mymb_b2c.settings.media import Media
 
 from mymb_ecommerce.mymb_b2c.api_product import MymbB2cItem
 
@@ -8,6 +11,7 @@ from frappe.utils import get_url, now
 from frappe.utils.nestedset import get_root_of
 from stdnum.ean import is_valid as validate_barcode
 
+from multiprocessing import Pool
 
 from mymb_ecommerce.mymb_ecommerce.doctype.mymb_item import mymb_item
 from mymb_ecommerce.mymb_b2c.api_client import JsonDict, MymbAPIClient
@@ -27,6 +31,7 @@ from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 
 ItemCode = NewType("ItemCode", str)
 
+
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 def test(args=None):
 
@@ -41,47 +46,133 @@ def test(args=None):
 MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING = {
     "carti": "item_code",
     "name": "item_name",
-    "description": "description",
+    "description": "item_description",
     "prezzo": "standard_rate",
     "slug": "website_link",
-    "images": "item_images",
     "brand": "brand"
 }
 
 
 ERPNEXT_TO_MYMB_B2C_ITEM_MAPPING = {v: k for k, v in MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING.items()}
 
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def import_all_products_from_mymb_b2c(batch_size: int = 100) -> str:
+    """Import all products from Mymb b2c to ERPNext using background jobs"""
+    # Initialize MymbB2cItem client
+    client = MymbB2cItem()
 
-@frappe.whitelist(allow_guest=True, methods=['GET'])
-def import_mymb_b2c_product(sku: str):
-    import_product_from_mymb_b2c(sku)
-    return "Import successful"
+    # Get total count of items
+    total_count = client.get_mymb_b2c_item_count()
+    total_count = 50
 
 
-def import_product_from_mymb_b2c(sku: str, client: MymbB2cItem = None) -> None:
+    # Process items in batches
+    for offset in range(0, total_count, batch_size):
+        # Get batch of items
+        print(offset,total_count, batch_size)
+        items = client.get_item_batch_by_offset(batch_size=batch_size, offset=offset)
+
+        # Submit jobs to queue
+        for item in items:
+             frappe.enqueue(import_mymb_b2c_single_product, mymb_b2c_item=item , queue='short')
+
+    return "Importing products from Mymb b2c is in progress"
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def import_mymb_b2c_single_product(sku: str = None , mymb_b2c_item : any = None):
+    
+	if(mymb_b2c_item != None):
+		item = mymb_b2c_item
+	elif(sku!=None):
+		client = MymbB2cItem()
+		item = client.get_mymb_b2c_item(sku)
+
+	import_product_from_mymb_b2c(item)
+
+	stock = item["disponibilita"]
+	if stock > 0:
+		stock_reconciliation_b2bc_product(item)
+	return "Import successful"
+
+def stock_reconciliation_b2bc_product(mymb_b2c_item):
+		item = mymb_b2c_item
+		stock = mymb_b2c_item["disponibilita"]
+		item_code = item['carti']
+		item = frappe.get_doc('Item', item_code)
+		item.disabled = 0
+		item.save()
+		update_main_image_item(mymb_b2c_item)
+
+		# Update stock
+		warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+
+		# Get current stock qty in the warehouse
+		current_qty = frappe.db.get_value('Bin', {'item_code': item_code, 'warehouse': warehouse}, 'actual_qty')
+
+		# Calculate the new qty to add to the warehouse
+		new_qty = stock
+
+		if current_qty != new_qty:
+			# Create a dictionary with the item data
+			item_data = get_item_data(warehouse=warehouse,row=item, qty=new_qty, current_qty=current_qty, valuation_rate=item.standard_rate)
+
+			# Create a stock reconciliation for the item
+			stock_recon = frappe.get_doc({
+				'doctype': 'Stock Reconciliation',
+				'title': f"Stock Update for {item.item_name}",
+				'purpose': 'Stock Reconciliation',
+				'warehouse': warehouse,
+				'items': [item_data]
+			})
+			stock_recon.insert(ignore_permissions=True)
+			stock_recon.submit()
+
+def update_main_image_item(mymb_b2c_item):
+	item = mymb_b2c_item
+	item_code = item['carti']
+	item = frappe.get_doc('Item', item_code)
+	if(mymb_b2c_item["images"]):
+		config = Configurations()
+		image_uri_instance = config.get_image_uri_instance()
+		media = Media(image_uri_instance)
+		images = media.get_image_sizes(mymb_b2c_item)
+		if item.image != images["gallery_pictures"][0]["url"]:
+			item.image = images["gallery_pictures"][0]["url"]
+			item.save()
+
+def get_item_data(warehouse,row, qty, valuation_rate, current_qty, serial_no=None):
+	return {
+		"item_code": row.item_code,
+		"warehouse": warehouse,
+		"qty": qty,
+		"item_name": row.item_name,
+		"valuation_rate": valuation_rate,
+		"current_qty": current_qty,
+		"current_valuation_rate": valuation_rate
+	}
+
+
+def import_product_from_mymb_b2c(item: any) -> None:
 	"""Sync specified SKU from Mymb b2c."""
 
-	if not client:
-		client = MymbB2cItem()
-
-	response = client.get_mymb_b2c_item(sku)
-	print(response)
-
 	try:
-		if not response:
+		if not item:
 			frappe.throw(_("Mymb b2c item not found"))
 
-		item = response["itemTypeDTO"]
+		sku = item["carti"]
 		if _check_and_match_existing_item(item):
 			return
-
+		
 		item_dict = _create_item_dict(item)
-		mymb_item.create_mymb_item(MODULE_NAME, integration_item_code=sku, item_dict=item_dict)
+
+		mymb_item.create_mymb_item(MODULE_NAME, integration_item_code=sku,sku=sku, oarti=item["id"], item_dict=item_dict)
 	except Exception as e:
 		create_mymb_b2c_log(
 			status="Failure",
 			message=f"Failed to import Item: {sku} from Mymb b2c",
-			response_data=response,
+			response_data=item,
 			make_new=True,
 			exception=e,
 			rollback=True,
@@ -91,7 +182,7 @@ def import_product_from_mymb_b2c(sku: str, client: MymbB2cItem = None) -> None:
 		create_mymb_b2c_log(
 			status="Success",
 			message=f"Successfully imported Item: {sku} from Mymb b2c",
-			response_data=response,
+			response_data=item,
 			make_new=True,
 		)
 
@@ -116,6 +207,14 @@ def _create_item_dict(mymb_b2c_item):
 	item_dict["item_group"] = _get_item_group(mymb_b2c_item.get("categoryCode"))
 	item_dict["name"] = item_dict["item_code"]  # when naming is by item series
 
+	#If i have images in the image array i am taking the gallery version
+	if(mymb_b2c_item["images"]):
+		config = Configurations()
+		image_uri_instance = config.get_image_uri_instance()
+		media = Media(image_uri_instance)
+		images = media.get_image_sizes(mymb_b2c_item)
+		item_dict["image"] = images["gallery_pictures"][0]["url"]
+		
 	return item_dict
 
 
@@ -153,7 +252,7 @@ def _check_and_match_existing_item(mymb_b2c_item):
 					"integration_item_code": sku,
 					"has_variants": 0,
 					"sku": sku,
-					"oarti": oarti
+					"oarti":oarti
 				}
 			)
 			mymb_item.insert()
@@ -193,9 +292,9 @@ def _get_item_group(category_code):
 	        2. Default Item group configured in Mymb b2c settings.
 	        3. root of Item Group tree."""
 
-	item_group = frappe.db.get_value("Item Group", {PRODUCT_CATEGORY_FIELD: category_code})
-	if category_code and item_group:
-		return item_group
+	# item_group = frappe.db.get_value("Item Group", {PRODUCT_CATEGORY_FIELD: category_code})
+	# if category_code and item_group:
+	# 	return item_group
 
 	default_item_group = frappe.db.get_single_value("Mymb b2c Settings", "default_item_group")
 	if default_item_group:
@@ -351,3 +450,10 @@ def validate_item(doc, method=None):
 			_("Mymb b2c Product category required in Item Group: {}").format(item_group.name)
 		)
 
+
+def upload_mymb_b2c_kafka(doc, method=None):
+	"""This hook is called when inserting new or updating existing `Item`.
+
+	New items are pushed to shopify and changes to existing items are
+	updated depending on what is configured in "Shopify Setting" doctype.
+	"""

@@ -40,13 +40,13 @@ class MymbB2cItem:
 
         # Execute the search and get the results
         solr_results = self.solr.search(**search_params)
-
+        
         # Check if there are any search results
         if solr_results['hits'] == 0:
             return None, False
 
         # Extract the product details from the Solr result
-        product = dict(solr_results['results'].docs[0])
+        product = dict(solr_results['results'][0])
 
 		# Add image URLs to the product details
         if product['num_images'] > 0:
@@ -61,3 +61,76 @@ class MymbB2cItem:
 
 		# Return the product details
         return product, True
+    
+    def get_item_batch_by_offset(self, batch_size: int, offset: int) -> List[JsonDict]:
+        """
+        Get MymbAPIClient items in batches using the Solr 'start' parameter.
+
+        :param batch_size: The size of each batch.
+        :param offset: The offset of the first item to retrieve.
+        :return: A list of MymbAPIClient items.
+        """
+        items = []
+
+        while True:
+            # Construct the Solr query to search for products
+            query = 'carti:*'
+
+            # Construct the Solr search parameters
+            search_params = {
+                'q': query,
+                'rows': batch_size,
+                'start': offset,
+                'fl': '*,score'
+            }
+
+            try:
+                # Execute the search and get the results
+                solr_results = self.solr.search(**search_params)
+
+                # Check if there are any search results
+                if solr_results['hits'] == 0:
+                    break
+
+                # Extract the products from the Solr result
+                products = [dict(result) for result in solr_results['results']]
+
+                # Add image URLs to the products details
+                for product in products:
+                    if product['num_images'] > 0:
+                        # Get the image file name
+                        image_file_name = product['images'][0]
+
+                        # Construct the image URL
+                        image_url = f'{self.image_uri}/{image_file_name}'
+
+                        # Add the image URL to the product details
+                        product['image_url'] = image_url
+
+                # Add the products to the items list
+                items.extend(products)
+
+                # If the number of retrieved items is less than the batch size, then all items have been retrieved
+                if len(products) < batch_size:
+                    break
+
+                # Increment the offset to retrieve the next batch of items
+                offset += batch_size
+
+            except Exception as e:
+                # Log any errors and return the retrieved items
+                frappe.log_error(_('Error retrieving items from Solr: {0}').format(str(e)))
+                break
+
+        return items
+
+    def get_mymb_b2c_item_count(self) -> int:
+        """Get the total count of items in Mymb B2c."""
+        query = 'carti:*'
+        search_params = {
+            'q': query,
+            'rows': 0,
+        }
+        solr_results = self.solr.search(**search_params)
+        return solr_results["hits"]
+
