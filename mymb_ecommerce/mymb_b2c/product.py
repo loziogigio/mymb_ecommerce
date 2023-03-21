@@ -255,7 +255,7 @@ def _check_and_match_existing_item(mymb_b2c_item):
 					"oarti":oarti
 				}
 			)
-			mymb_item.insert()
+			mymb_item.insert(ignore_permissions=True)
 			return True
 		except Exception:
 			return False
@@ -267,7 +267,7 @@ def _validate_create_brand(brand):
 		return
 
 	if not frappe.db.exists("Brand", brand):
-		frappe.get_doc(doctype="Brand", brand=brand).insert()
+		frappe.get_doc(doctype="Brand", brand=brand).insert(ignore_permissions=True)
 
 
 def _validate_field(item_field, name):
@@ -421,7 +421,7 @@ def _handle_mymb_item(item_code: ItemCode) -> None:
 				"sku": item_code,
 				"item_synced_on": now(),
 			}
-		).insert()
+		).insert(ignore_permissions=True)
 
 
 def validate_item(doc, method=None):

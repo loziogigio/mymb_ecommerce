@@ -67,21 +67,20 @@ def _create_sales_order(quotation ):
     # if quotation.status != "Draft":
     #     frappe.throw("Cannot create Sales Order for non-draft quotation.")
 
-    
 	items = []
-
 	for quotation_item in quotation.items:
-		order_item = frappe.new_doc("Sales Order Item")
-		order_item.item_code = quotation_item.item_code
-		order_item.item_name = quotation_item.item_name
-		order_item.description = quotation_item.description
-		order_item.qty = quotation_item.qty
-		order_item.uom = quotation_item.uom
-		order_item.rate = quotation_item.rate
-		order_item.amount = quotation_item.amount
-		order_item.price_list_rate = quotation_item.price_list_rate
-		# Set any other properties that you want to copy from the quotation item
-		items.append(order_item)
+		item_dict = {
+			"item_code": quotation_item.item_code,
+			"item_name": quotation_item.item_name,
+			"description": quotation_item.description,
+			"qty": quotation_item.qty,
+			"uom": quotation_item.uom,
+			"rate": quotation_item.rate,
+			"amount": quotation_item.amount,
+			"price_list_rate": quotation_item.price_list_rate,
+			# Add any other properties that you want to copy from the quotation item
+		}
+		items.append(item_dict)
 
 	customer_address_name, customer_address, shipping_address_name, shipping_address = get_quotation_addresses(quotation.name)
 	order = frappe.get_doc({ 
