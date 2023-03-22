@@ -29,10 +29,10 @@ def create_quotation(items, customer_id=None, contact_info=None, shipping_addres
         # contact = _create_contact(customer, contact_info)
 
         # Create new Address documents and link them to the Contact document
-        billing_address = _create_address(customer, contact_info, address_type='Billing')
+        billing_address = _create_address(customer, contact_info, address_type='Shipping')
 
         if shipping_address_different:
-            shipping_address = _create_address(customer, contact_info, address_type='Shipping')
+            shipping_address = _create_address(customer, contact_info, address_type='Billing')
         else:
             # Use the same address as the billing address if shipping address is not different
             shipping_address = billing_address
@@ -48,27 +48,6 @@ def create_quotation(items, customer_id=None, contact_info=None, shipping_addres
     # Return the Quotation document ID
     return quotation.name
 
-def _create_contact(customer, contact_info):
-    # Create a new Contact document
-    contact = frappe.new_doc('Contact')
-    contact.update({
-        'first_name': contact_info.get('first_name'),
-        'last_name': contact_info.get('last_name'),
-        'email_id': contact_info.get('email'),
-        'mobile_no': contact_info.get('mobile' , None),
-        'customer': customer.name
-    })
-
-    # Save the Contact document
-    contact.insert(ignore_permissions=True)
-
-    # Link the Contact document to the Customer document
-    customer.append('contacts', {
-        'contact': contact.name
-    })
-    customer.save(ignore_permissions=True)
-
-    return contact
 
 def _create_address(customer, contact_info, address_type='Billing'):
     # Create a new Address document
@@ -108,52 +87,59 @@ def _create_address(customer, contact_info, address_type='Billing'):
 
 
 @frappe.whitelist(allow_guest=True)
-def create_customer(same_address=True, **params):
-    # use same address for shipping and billing if same_address is True
-    if same_address:
-        billing_address = params.get("address")
-        shipping_address = params.get("address")
-    else:
-        billing_address = params.get("billing_address")
-        shipping_address = params.get("shipping_address")
+def get_sales_orders_for_current_user():
+    user = frappe.session.user
+    sales_orders = frappe.get_list("Sales Order", filters={"owner": user})
 
-    customer = frappe.get_doc({
-        "doctype": "Customer",
-        "owner": "Guest",
-        "customer_name": params.get("customer_name"),
-        "customer_type": params.get("customer_type"),
-        "gender": params.get("gender"),
-        "email_id": params.get("email_id"),
-        "mobile_no": params.get("mobile_no"),
-        "customer_group": params.get("customer_group"),
-        "territory": params.get("territory"),
-        "billing_address": billing_address,
-        "shipping_address_name": params.get("shipping_address_name"),
-        "shipping_address": shipping_address,
-    })
+    return sales_orders
 
-    customer.insert(ignore_permissions=True)
-    return customer
+import frappe
 
-@frappe.whitelist(allow_guest=True)
-def connect_quotation_to_sales_order(quotation_id, sales_order_id):
-    # Get the Quotation and Sales Order documents
-    quotation = frappe.get_doc('Quotation', quotation_id)
-    sales_order = frappe.get_doc('Sales Order', sales_order_id)
+@frappe.whitelist()
+def get_sales_orders_for_current_customer(page_num, page_size):
+    user = frappe.session.user
 
-    # Submit the Quotation
-    quotation.submit()
+    # Fetch the Customer linked to the current user using the "user" field
+    customer = frappe.db.get_value("Customer", {"name": user}, "name")
 
-    # Connect the Quotation to the Sales Order
-    sales_order.append('items', {
-        'item_code': quotation.name,
-        'item_name': quotation.name,
-        'description': 'Quotation ' + quotation.name,
-        'qty': 1,
-        'rate': quotation.grand_total,
-        'amount': quotation.grand_total
-    })
-    sales_order.save(ignore_permissions=True)
+    if not customer:
+        return {"error": "No customer found for the current user"}
 
-    # Return success message
-    return 'Quotation {0} connected to Sales Order {1}'.format(quotation_id, sales_order_id)
+    # Calculate the offset based on the current page number and page size
+    offset = (page_num - 1) * page_size
+
+    # Fetch the Sales Orders related to the customer using a custom SQL query with pagination
+    sales_orders = frappe.db.sql("""
+        SELECT
+            name,status,creation,modified, total, shipping_address, total_qty, address_display as billing_address
+        FROM
+            `tabSales Order`
+        WHERE
+            `tabSales Order`.`customer` = %s
+        ORDER BY `tabSales Order`.`creation` DESC
+        LIMIT %s OFFSET %s
+    """, (customer, page_size, offset), as_dict=True)
+
+    return sales_orders
+
+
+@frappe.whitelist()
+def get_sales_order_details(order_id):
+    # Fetch the Sales Order using the provided order ID
+    sales_order = frappe.get_doc("Sales Order", order_id)
+    # Return an error message if the Sales Order is not found
+    if not sales_order:
+        return {"error": f"No Sales Order found with ID {order_id}"}
+
+    # Verify that the current user is the owner of the Sales Order
+    if not frappe.session.user == sales_order.customer:
+        return {"error": "You do not have permission to access this Sales Order"}
+
+    # Extract the relevant fields from the Sales Order document and return them as a dictionary
+    return {
+        "name": sales_order.name,
+        # "customer": sales_order.customer,
+        "status": sales_order.status,
+        "total": sales_order.total,
+        "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
+    }

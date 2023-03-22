@@ -7,6 +7,11 @@ from frappe.utils import add_days, today
 from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
 from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import get_redirect_uri, setup_redirect,update_integration_request_status,make_post_request,get_paypal_and_transaction_details
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+
+config = Configurations()
+mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
+mymb_b2c_payment_failed_page = config.get_mymb_b2c_payment_failed_page()
 
 
 
@@ -67,7 +72,9 @@ def _create_sales_order(quotation ):
     # if quotation.status != "Draft":
     #     frappe.throw("Cannot create Sales Order for non-draft quotation.")
 
+    
 	items = []
+
 	for quotation_item in quotation.items:
 		item_dict = {
 			"item_code": quotation_item.item_code,
@@ -102,8 +109,6 @@ def _create_sales_order(quotation ):
         "party_name": quotation.customer_name,
         "delivery_date":  None,
 		"order_type":"Shopping Cart",
-
-        # "payment_entry": payment_entry.name,
         "discounts": 0
     })
 
@@ -397,21 +402,13 @@ def confirm_payment(token):
 				frappe.db.commit()
 			
 
-			redirect_url = "http://ecommerce.crowdechain.com/payment-success?doctype={}&docname={}".format(
-				data.get("reference_doctype"), data.get("reference_docname")
+			redirect_url = "{}?doctype={}&docname={}".format(
+				mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
 			)
 		else:
-			redirect_url = "http://ecommerce.crowdechain.com/payment-failed"
+			redirect_url = mymb_b2c_payment_failed_page
 
 		setup_redirect(data, redirect_url )
 
 	except Exception:
 		frappe.log_error(frappe.get_traceback())
-
-# {
-# 	'dn': 'SAL-ORD-2023-00041', 
-# 	'dt': 'Sales Order', 
-# 	'submit_doc': '1', 
-# 	'order_type': 'Shopping Cart', 
-# 	'cmd': 'erpnext.accounts.doctype.payment_request.payment_request.make_payment_request'
-# }

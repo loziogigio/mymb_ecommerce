@@ -12,6 +12,8 @@
   "image_uri",
   "column_break_79ic",
   "mymb_b2c_site",
+  "mymb_b2c_payment_success_page",
+  "mymb_b2c_payment_failed_page",
   "column_break_2",
   "username",
   "password",
@@ -258,12 +260,22 @@
    "fieldname": "upload_item_to_mymb_b2c",
    "fieldtype": "Check",
    "label": "Upload new items to Mymb b2c"
+  },
+  {
+   "fieldname": "mymb_b2c_payment_success_page",
+   "fieldtype": "Data",
+   "label": "Success payment page"
+  },
+  {
+   "fieldname": "mymb_b2c_payment_failed_page",
+   "fieldtype": "Data",
+   "label": "Failed payment page"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-03-07 17:47:42.082606",
+ "modified": "2023-03-21 20:26:17.643738",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

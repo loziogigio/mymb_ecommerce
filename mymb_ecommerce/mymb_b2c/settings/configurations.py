@@ -9,6 +9,8 @@ class Configurations:
         self.image_uri = self.doc.get('image_uri')
         #solr section
         self.solr_url = self.doc.get('solr_url')
+        self.mymb_b2c_payment_success_page =  self.doc.get('mymb_b2c_payment_success_page')
+        self.mymb_b2c_payment_failed_page=  self.doc.get('mymb_b2c_payment_failed_page')
         self.solr = None
         #mysql section
         # self.mysql_settings = self.doc.get('mysql_settings').as_dict()
@@ -26,6 +28,16 @@ class Configurations:
         """Get the Solr image instance from the Mymb b2c Settings DocType"""
 
         return self.image_uri
+    
+    def get_mymb_b2c_payment_success_page(self):
+        """Get Success payment page from the Mymb b2c Settings DocType"""
+
+        return self.mymb_b2c_payment_success_page
+
+    def get_mymb_b2c_payment_failed_page(self):
+        """Get Failed payment page from the Mymb b2c Settings DocType"""
+
+        return self.mymb_b2c_payment_failed_page
     
     # def get_mysql_connection(self):
     #     """Get the MySQL connection from the Mymb b2c Settings DocType"""
