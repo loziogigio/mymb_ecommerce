@@ -29,8 +29,8 @@ def catalogue(args=None):
     start = page*per_page
     text = frappe.local.request.args.get('search_term') or '*'
 
-    # Construct the Solr query to search for text
-    query = f'text:{text}'
+   # Construct the Solr query to search for text and filter by non-empty "slugs" field
+    query = f'text:{text} AND -slugs_s:("")'
 
     order_by = frappe.local.request.args.get('order_by')
 
