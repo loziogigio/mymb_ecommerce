@@ -46,9 +46,13 @@ def create_customer_and_user(email, first_name, last_name, password):
     })
     customer.insert()
 
+    # Create a JWT token for the new user
+    token= create_jwt(user)
+
     return {
         "user": user.name,
-        "customer": customer.name
+        "customer": customer.name,
+        "jwt": token
     }
 
 @frappe.whitelist(allow_guest=True)
