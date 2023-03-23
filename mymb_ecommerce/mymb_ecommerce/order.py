@@ -89,9 +89,10 @@ def _create_address(customer, contact_info, address_type='Billing'):
 
 
 @frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
 def get_addresses_for_current_customer():
 
-    user = frappe.session.user
+    user = frappe.local.jwt_payload['email']
     # Fetch the Customer linked to the current user using the "user" field
     customer = frappe.db.get_value("Customer", {"name": user}, "name")
 
@@ -141,7 +142,8 @@ def get_sales_orders_for_current_customer(page_num, page_size):
     return sales_orders
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
 def get_sales_order_details(order_id):
     # Fetch the Sales Order using the provided order ID
     sales_order = frappe.get_doc("Sales Order", order_id)
@@ -149,8 +151,9 @@ def get_sales_order_details(order_id):
     if not sales_order:
         return {"error": f"No Sales Order found with ID {order_id}"}
 
+    user = frappe.local.jwt_payload['email']
     # Verify that the current user is the owner of the Sales Order
-    if not frappe.session.user == sales_order.customer:
+    if not user == sales_order.customer:
         return {"error": "You do not have permission to access this Sales Order"}
 
     # Extract the relevant fields from the Sales Order document and return them as a dictionary
