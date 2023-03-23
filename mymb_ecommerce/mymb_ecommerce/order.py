@@ -120,6 +120,15 @@ def get_sales_orders_for_current_customer(page_num, page_size):
         LIMIT %s OFFSET %s
     """, (customer, page_size, offset), as_dict=True)
 
+        # Fetch the details for each item associated with each sales order
+    for order in sales_orders:
+        order_items = frappe.db.sql("""
+            SELECT item_code, item_name, qty, rate, image
+            FROM `tabSales Order Item`
+            WHERE parent=%s
+        """, order['name'], as_dict=True)
+        order['items'] = order_items
+
     return sales_orders
 
 

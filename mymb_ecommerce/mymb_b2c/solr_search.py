@@ -13,13 +13,6 @@ def shop(args=None):
     # Call the catalogue function with the given arguments
     return catalogue(args)
 
-
-@frappe.whitelist(allow_guest=True, methods=['GET'])
-def shop(args=None):
-    # Call the catalogue function with the given arguments
-    return catalogue(args)
-
-
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 def catalogue(args=None):
     # Get the "start" and "per_page" parameters from the query string
@@ -30,7 +23,7 @@ def catalogue(args=None):
     text = frappe.local.request.args.get('search_term') or '*'
 
    # Construct the Solr query to search for text and filter by non-empty "slugs" field
-    query = f'text:{text} AND -slug:("")'
+    query = f'text:{text} AND -slug:("") '
 
     order_by = frappe.local.request.args.get('order_by')
 
