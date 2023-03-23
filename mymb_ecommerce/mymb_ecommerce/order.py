@@ -1,5 +1,7 @@
 import frappe
 from payments.utils.utils import get_payment_gateway_controller
+from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
+jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_id=None, contact_info=None, shipping_address_different=False):
@@ -87,17 +89,24 @@ def _create_address(customer, contact_info, address_type='Billing'):
 
 
 @frappe.whitelist(allow_guest=True)
-def get_sales_orders_for_current_user():
+def get_addresses_for_current_customer():
+
     user = frappe.session.user
-    sales_orders = frappe.get_list("Sales Order", filters={"owner": user})
+    # Fetch the Customer linked to the current user using the "user" field
+    customer = frappe.db.get_value("Customer", {"name": user}, "name")
 
-    return sales_orders
+     # Get all the dynamic links associated with the customer record
+    dynamic_links = frappe.get_all('Dynamic Link', filters={'link_doctype': 'Customer', 'link_name': customer, 'parenttype': 'Address'}, fields=['parent'])
 
-import frappe
+    # Get all the addresses associated with the customer record using the dynamic links
+    addresses = [frappe.get_doc('Address', link.parent) for link in dynamic_links]
 
-@frappe.whitelist()
+    return addresses
+
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
 def get_sales_orders_for_current_customer(page_num, page_size):
-    user = frappe.session.user
+    user = frappe.local.jwt_payload['email']
 
     # Fetch the Customer linked to the current user using the "user" field
     customer = frappe.db.get_value("Customer", {"name": user}, "name")

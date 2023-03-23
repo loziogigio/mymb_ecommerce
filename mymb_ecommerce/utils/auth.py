@@ -1,5 +1,15 @@
+import datetime
 import frappe
 from frappe.utils.password import update_password
+from frappe.utils import now_datetime, add_to_date
+from frappe.utils.password import check_password
+from frappe import _, msgprint
+
+
+
+
+from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY, JWT_EXPIRATION_DELTA
+jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 @frappe.whitelist()
 def create_customer_and_user(email, first_name, last_name, password):
@@ -40,3 +50,39 @@ def create_customer_and_user(email, first_name, last_name, password):
         "user": user.name,
         "customer": customer.name
     }
+
+@frappe.whitelist(allow_guest=True)
+def sigin(usr, pwd):
+    user = frappe.get_doc("User", usr)
+    if user and check_password(user.name, pwd):
+        token = create_jwt(user)
+        return {
+            "message": "Authentication successful",
+            "jwt": token,
+        }
+    else:
+        msgprint(_("Invalid login credentials"), raise_exception=True)
+
+def create_jwt(user):
+    payload = {
+        'sub': user.name,
+        'email': user.email,
+        'roles': [role.role for role in user.get("roles")],
+        'iat': now_datetime(),
+    }
+    token = jwt_manager.encode(payload, expiration_minutes=JWT_EXPIRATION_DELTA * 60)
+    return token
+
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def me():
+    # Get the user information from the JWT token payload
+    jwt_payload = frappe.local.jwt_payload
+    user_info = {
+        "name": jwt_payload.get("sub"),
+        "email": jwt_payload.get("email"),
+        "roles": jwt_payload.get("roles", []),
+        "iat":   datetime.datetime.fromtimestamp(jwt_payload.get("iat")).strftime('%Y-%m-%d %H:%M:%S')
+        # Add other user fields as needed
+    }
+    return user_info
