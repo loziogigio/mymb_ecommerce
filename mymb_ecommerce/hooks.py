@@ -124,7 +124,7 @@ scheduler_events = {
 		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_stocks"
 	],
 	"hourly": [
-		"mymb_ecommerce.mymb_b2c.order.sync_old_orders",
+		# "mymb_ecommerce.mymb_b2c.order.sync_old_orders",
 		# "mymb_ecommerce.amazon.doctype.amazon_sp_api_settings.amazon_sp_api_settings.schedule_get_order_details",
 	],
 	"hourly_long": [
@@ -196,3 +196,4 @@ override_whitelisted_methods = {
 # 		"doctype": "{doctype_4}"
 # 	}
 # ]
+

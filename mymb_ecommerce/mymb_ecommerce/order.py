@@ -4,7 +4,7 @@ from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 @frappe.whitelist(allow_guest=True)
-def create_quotation(items, customer_id=None, contact_info=None, shipping_address_different=False):
+def create_quotation(items, customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None):
 
     # Fetch the customer from request
     if not customer_id:

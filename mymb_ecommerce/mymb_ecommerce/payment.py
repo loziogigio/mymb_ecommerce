@@ -241,7 +241,6 @@ def payment_result(payment_entry_name, status):
 
         frappe.msgprint("Payment failed.")
 
-import urllib.parse
 
 def get_payment_url(payment_entry, payment_type, payment_settings):
     if payment_type == "paypal":
