@@ -2,7 +2,9 @@ import frappe
 from frappe import _
 from frappe.utils import get_url
 import urllib.parse
-from frappe.utils import add_days, today
+from frappe.utils import add_days, today, getdate
+from datetime import date
+
 
 from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
@@ -59,8 +61,10 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         frappe.throw("Cannot create payment for a quotation with zero grand total.")
     
     sales_order = _create_sales_order(quotation)
+
+
     
-    doc = make_payment_request(dn=sales_order.name,dt="Sales Order" , order_type="Shopping Cart" , submit_doc=1)
+    doc = make_payment_request(dn=sales_order.name,dt="Sales Order" , order_type="Shopping Cart" , submit_doc=1  )
     
 
     return {
@@ -112,8 +116,30 @@ def _create_sales_order(quotation ):
         "discounts": 0
     })
 
+	# Update custom form field from quotation
+	order.update({
+		"quotation_name": quotation.name,
+		"recipient_full_name": quotation.recipient_full_name,
+		"recipient_email": quotation.recipient_email,
+		"invoice_requested": quotation.invoice_requested,
+		"channel": quotation.channel,
+		"customer_type": quotation.customer_type
+	});
+
+	# Update custom form field from quotation based on customer type
+	if quotation.customer_type == "Individual" and quotation.invoice_requested == "YES":
+		order.update({"tax_code": quotation.tax_code})
+	elif quotation.customer_type == "Company" and quotation.invoice_requested == "YES":
+		order.update({
+			"vat_number": quotation.vat_number,
+			"company_name": quotation.company_name,
+			"pec": quotation.pec,
+			"client_id": quotation.client_id,
+			"recipient_code": quotation.recipient_code
+		})
+
 	order.insert(ignore_permissions=True)
-	order.submit()
+	# order.submit()
 	return order
 
 def get_quotation_addresses(quotation_name):
@@ -276,56 +302,6 @@ def get_paypal_url(payment_entry, paypal_settings):
     return paypal_url + "?" + urllib.parse.urlencode(paypal_params)
 
 
-
-
-@frappe.whitelist(allow_guest=True, xss_safe=True)
-def confirm_payment(token):
-    
-	try:
-		custom_redirect_to = None
-		data, params, url = get_paypal_and_transaction_details(token)
-
-		params.update(
-			{
-				"METHOD": "DoExpressCheckoutPayment",
-				"PAYERID": data.get("payerid"),
-				"TOKEN": token,
-				"PAYMENTREQUEST_0_PAYMENTACTION": "SALE",
-				"PAYMENTREQUEST_0_AMT": data.get("amount"),
-				"PAYMENTREQUEST_0_CURRENCYCODE": data.get("currency").upper(),
-			}
-		)
-
-		response = make_post_request(url, data=params)
-
-		if response.get("ACK")[0] == "Success":
-			update_integration_request_status(
-				token,
-				{
-					"transaction_id": response.get("PAYMENTINFO_0_TRANSACTIONID")[0],
-					"correlation_id": response.get("CORRELATIONID")[0],
-				},
-				"Completed",
-			)
-
-			if data.get("reference_doctype") and data.get("reference_docname"):
-				custom_redirect_to = frappe.get_doc(
-					data.get("reference_doctype"), data.get("reference_docname")
-				).run_method("on_payment_authorized", "Completed")
-				frappe.db.commit()
-
-			redirect_url = "payment-success?doctype={}&docname={}".format(
-				data.get("reference_doctype"), data.get("reference_docname")
-			)
-		else:
-			redirect_url = "payment-failed"
-
-		setup_redirect(data, redirect_url, custom_redirect_to)
-
-	except Exception:
-		frappe.log_error(frappe.get_traceback())
-
-
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def get_express_checkout_details(token):
 	try:
@@ -384,7 +360,9 @@ def confirm_payment(token):
 
 		response = make_post_request(url, data=params)
 
+
 		if response.get("ACK")[0] == "Success":
+			_confirm_sales_order(payment_request_id=data.get("reference_docname") , status=response.get("ACK")[0] , payment_code=response.get("PAYMENTINFO_0_TRANSACTIONID")[0])
 			update_integration_request_status(
 				token,
 				{
@@ -400,7 +378,6 @@ def confirm_payment(token):
 				).run_method("on_payment_authorized", "Completed")
 				frappe.db.commit()
 			
-
 			redirect_url = "{}?doctype={}&docname={}".format(
 				mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
 			)
@@ -411,3 +388,26 @@ def confirm_payment(token):
 
 	except Exception:
 		frappe.log_error(frappe.get_traceback())
+
+def _confirm_sales_order(payment_request_id, status, payment_code=None):
+    # Fetch Sales Order from payment_request_id
+    sales_order_doc = frappe.get_doc("Payment Request", payment_request_id).reference_name
+
+    # Get Quotation from sales_order_doc.quotation_ref
+    quotation_doc = frappe.get_doc("Sales Order", sales_order_doc).quotation_name
+
+    # Submit the Quotation
+    qtn = frappe.get_doc("Quotation", quotation_doc)
+    if qtn.docstatus == 0:
+        qtn.submit()
+
+
+    # Update Sales Order
+    so = frappe.get_doc("Sales Order", sales_order_doc)
+    so.transaction_date = frappe.utils.now_datetime()
+    so.paid = 'YES' if status == "Success" else 'NO'
+    so.order_status = "New"
+    so.payment_code = payment_code
+    so.quotation = qtn
+    so.save()
+    so.submit()
