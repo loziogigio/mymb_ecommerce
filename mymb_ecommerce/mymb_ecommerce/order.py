@@ -50,18 +50,18 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
         # contact = _create_contact(customer, contact_info)
 
         # Create new Address documents and link them to the Contact document
-        billing_address = _create_address(customer, contact_info, address_type='Shipping' , full_name=full_name)
+        billing_address_name = _create_address(customer, contact_info, address_type='Shipping' , full_name=full_name)
 
         if shipping_address_different:
-            shipping_address = _create_address(customer, contact_info, address_type='Billing', full_name=full_name)
+            shipping_address_name = _create_address(customer, contact_info, address_type='Billing', full_name=full_name)
         else:
             # Use the same address as the billing address if shipping address is not different
-            shipping_address = billing_address
+            shipping_address_name = billing_address_name
 
 
         # Set the billing and shipping addresses of the Quotation document
-        quotation.customer_address = billing_address.name
-        quotation.shipping_address_name = shipping_address.name
+        quotation.customer_address = billing_address_name
+        quotation.shipping_address_name = shipping_address_name
 
     # Save the Quotation document as a draft
     quotation.insert(ignore_permissions=True)
@@ -71,13 +71,19 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
 
 
 def _create_address(customer, contact_info, address_type='Billing' , full_name=None):
-    # Create a new Address document
-    address = frappe.new_doc('Address')
+
 
     if address_type == 'Shipping':
         address_info = contact_info.get('shipping_address')
     else :
         address_info = contact_info.get('billing_address')
+
+    #We use an already created adress
+    if(address_info.get('name')):
+        return address_info.get('name')
+
+    # Create a new Address document
+    address = frappe.new_doc('Address')
 
 
     address.update({
@@ -105,7 +111,7 @@ def _create_address(customer, contact_info, address_type='Billing' , full_name=N
     address.insert(ignore_permissions=True)
 
 
-    return address
+    return address.name
 
 
 @frappe.whitelist(allow_guest=True)
@@ -122,7 +128,23 @@ def get_addresses_for_current_customer():
     # Get all the addresses associated with the customer record using the dynamic links
     addresses = [frappe.get_doc('Address', link.parent) for link in dynamic_links]
 
-    return addresses
+    # Extract only the required fields from the Address documents and return as a list of dictionaries
+    output = []
+    for address in addresses:
+        output.append({
+            'name': address.name,
+            'address_line1': address.address_line1,
+            'address_line2': address.address_line2,
+            'city': address.city,
+            'state': address.state,
+            'pincode': address.pincode,
+            'country': address.country,
+            'address_type': address.address_type,
+            'is_primary_address':address.is_primary_address,
+            'email_id':address.email_id,
+            'phone':address.phone
+        })
+    return output
 
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
