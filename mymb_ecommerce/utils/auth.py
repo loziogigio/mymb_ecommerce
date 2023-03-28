@@ -77,6 +77,65 @@ def create_jwt(user):
     token = jwt_manager.encode(payload, expiration_minutes=JWT_EXPIRATION_DELTA * 60)
     return token
 
+#get user info with the linked customer
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def get_user_info():
+    # Get the user information from the JWT token payload
+    jwt_payload = frappe.local.jwt_payload
+    user_email = jwt_payload.get("email")
+
+    user = frappe.get_doc("User", user_email)
+    customer = frappe.get_doc("Customer", {"customer_name": user_email})
+
+    return {
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "roles": [role.role for role in user.get("roles")],
+        "customer": customer
+    }
+
+#update user firstname, lastname
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def update_user_info( first_name=None, last_name=None):
+    # Get the user information from the JWT token payload
+    jwt_payload = frappe.local.jwt_payload
+    user_email = jwt_payload.get("email")
+    user = frappe.get_doc("User", user_email)
+
+    if first_name:
+        user.first_name = first_name
+    if last_name:
+        user.last_name = last_name
+
+    user.save(ignore_permissions=True)
+
+    return {
+        "message": "User information updated successfully",
+        "first_name": user.first_name,
+        "last_name": user.last_name
+    }
+
+#update user password old_password, new_password
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def update_user_password(user_email, old_password, new_password):
+    # Get the user information from the JWT token payload
+    jwt_payload = frappe.local.jwt_payload
+    user_email = jwt_payload.get("email")
+    user = frappe.get_doc("User", user_email)
+
+    if check_password(user.name, old_password):
+        update_password(user_email, new_password)
+        return {
+            "message": "Password updated successfully",
+        }
+    else:
+        msgprint(_("Invalid old password"), raise_exception=True)
+
+
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
 def me():

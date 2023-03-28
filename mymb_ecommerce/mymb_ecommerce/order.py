@@ -146,6 +146,34 @@ def get_addresses_for_current_customer():
         })
     return output
 
+
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def disable_addresses_for_current_customer(address_name):
+    # Get the user information from the JWT token payload
+    jwt_payload = frappe.local.jwt_payload
+    user_email = jwt_payload.get("email")
+
+    # Fetch the Customer linked to the current user using the "user" field
+    customer = frappe.db.get_value("Customer", {"user": user_email}, "name")
+
+    # Check if the address exists and is associated with the customer
+    dynamic_link = frappe.db.get_value('Dynamic Link', {'link_doctype': 'Customer', 'link_name': customer, 'parenttype': 'Address', 'parent': address_name}, 'name')
+
+    if dynamic_link:
+        # If the address exists and is linked to the customer, set the "enabled" field to False
+        address = frappe.get_doc("Address", address_name)
+        address.enabled = False
+        address.save(ignore_permissions=True)
+
+        return {
+            "message": "Address disabled successfully",
+            "address_name": address_name
+        }
+    else:
+        return {"error": "Address not found or not associated with the current user"}
+
+
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
 def get_sales_orders_for_current_customer(page_num, page_size):
