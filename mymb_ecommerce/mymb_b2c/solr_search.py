@@ -21,9 +21,20 @@ def catalogue(args=None):
     page = page - 1 if page > 0 else 0
     start = page*per_page
     text = frappe.local.request.args.get('search_term') or '*'
+    groups = frappe.local.request.args.get('category') or None
 
    # Construct the Solr query to search for text and filter by non-empty "slugs" field
-    query = f'text:{text} AND -slug:("") '
+    query = f'text:{text} AND -slug:("")'
+
+    # Check if min_price is provided in the query string and add it to the query if it is
+    min_price = frappe.local.request.args.get('min_price')
+    if min_price and float(min_price) > 0:
+        query += f'AND prezzo:[{min_price} TO *]'
+
+    # Check if max_price is provided in the query string and add it to the query if it is
+    max_price = frappe.local.request.args.get('max_price')
+    if max_price and float(max_price) > 0:
+        query += f'AND prezzo:[* TO {max_price}]'
 
     order_by = frappe.local.request.args.get('order_by')
 
@@ -32,7 +43,12 @@ def catalogue(args=None):
         'q': query,
         'start': start,
         'rows': per_page,
+        'stats': 'true',
+        'stats.field': 'prezzo'
     }
+
+    if groups:
+       search_params["groups"]=groups 
 
     # Sort the search results based on the value of the "order_by" parameter
     if order_by == 'price-asc':
@@ -43,12 +59,18 @@ def catalogue(args=None):
     # Get the Solr instance from the Configurations class
     solr = solr_instance
 
-    print(search_params)
     # Execute the search and get the results
     solr_results = solr.search(**search_params)
 
     # Get the total number of search results
-    count = solr_results['hits']
+    count = solr_results.get('hits')
+
+    # Get the minimum and maximum prices of all products
+    solr_full_response = solr_results.get('response')
+    stats = solr_full_response.stats
+    price_stats = stats.get('stats_fields', {}).get('prezzo', {})
+    min_price_all = price_stats.get('min')
+    max_price_all = price_stats.get('max')
 
     # Calculate the number of pages
     pages = int((count + per_page - 1) / per_page)
@@ -64,6 +86,9 @@ def catalogue(args=None):
     search_results_mapped = map_solr_response_b2c(search_results)
 
     # Construct the response
+    facet = solr_results.get('facet_counts')
+    if facet:
+        category = facet.get('category')
     response =  {
         'totalCount': count,
         'current_page': page + 1,
@@ -72,7 +97,10 @@ def catalogue(args=None):
         'is_last':is_last,
         'products': search_results_mapped,
         'solr_result' : search_results,
-        'query': query
+        'query': query,
+        'min_price_all': int(min_price_all) if min_price_all is not None else None,
+        'max_price_all': int(max_price_all) if max_price_all is not None else None,
+        "category": category
     }
     return response
 
