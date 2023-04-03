@@ -83,14 +83,14 @@ class Solr:
     def get_facet(response, groups, features):
         # Get the facet counts
         facet_counts = {
-            "categories": [],
+            "category": [],
             "features": []
         }
         if 'facet_counts' in response.raw_response:
             for field, counts in response.raw_response['facet_counts']['facet_fields'].items():
                 if field.startswith("group"):
                     # Use "categories" as the field name for group fields
-                    field = "categories"
+                    field = "category"
                     facet_counts[field] = [{'label': label, 'count': count, "url": f"{groups},{label.replace(' ', '-')}" if groups else label.replace(' ', '-')} for label, count in zip(counts[::2], counts[1::2])]
                 else:
                     # Extract the facet name from the field name for feature fields

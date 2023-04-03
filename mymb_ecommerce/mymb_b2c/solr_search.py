@@ -21,7 +21,7 @@ def catalogue(args=None):
     page = page - 1 if page > 0 else 0
     start = page*per_page
     text = frappe.local.request.args.get('search_term') or '*'
-    groups = frappe.local.request.args.get('categories') or None
+    groups = frappe.local.request.args.get('category') or None
 
    # Construct the Solr query to search for text and filter by non-empty "slugs" field
     query = f'text:{text} AND -slug:("")'
@@ -88,7 +88,7 @@ def catalogue(args=None):
     # Construct the response
     facet = solr_results.get('facet_counts')
     if facet:
-        categories = facet.get('categories')
+        category = facet.get('category')
     response =  {
         'totalCount': count,
         'current_page': page + 1,
@@ -100,7 +100,7 @@ def catalogue(args=None):
         'query': query,
         'min_price_all': int(min_price_all) if min_price_all is not None else None,
         'max_price_all': int(max_price_all) if max_price_all is not None else None,
-        "categories": categories
+        "category": category
     }
     return response
 
