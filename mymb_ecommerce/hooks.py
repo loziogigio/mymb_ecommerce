@@ -30,11 +30,7 @@ app_license = "MIT"
 
 # include js in doctype views
 doctype_js = {
-	"Shopify Settings": "public/js/mymb_b2c/old_settings.js",
-	"Sales Order": "public/js/unicommerce/sales_order.js",
-	"Sales Invoice": "public/js/unicommerce/sales_invoice.js",
-	"Item": "public/js/unicommerce/item.js",
-	"Stock Entry": "public/js/unicommerce/stock_entry.js",
+    "Item Feature": "public/js/item_feature_import_list.js"  
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

@@ -28,20 +28,36 @@ class Solr:
         if sort:
             params['sort'] = sort
         
+        # Add dynamic fields for faceting
+        # dynamic_facet_fields = ["*_feature_i", "*_feature_f", "*_feature_s", "*_feature_b"]
+        
+        #let's do some static features to have some results
+        dynamic_facet_fields = ["marca_feature_s","marca_feature_s","lunghezza_feature_i","altezza_feature_i","peso_feature_f","forma_feature_s",]
+
         if groups:
             group_list = groups.split(',')
 
             params['facet'] = 'on'
-            params['facet.field'] = f'group_{len(group_list)+1}'
             params['facet.mincount'] = 1
 
             fq_list = [f'group_{i+1}:"{group.replace("-", " ")}"' for i, group in enumerate(group_list)]
             params['fq'] = fq_list
+
+            # Combine the group facet fields with the dynamic facet fields
+            group_facet_fields = [f'group_{i+1}' for i in range(len(group_list) + 1)]
+            params['facet.field'] = group_facet_fields + dynamic_facet_fields
         else:
             params['facet'] = 'on'
-            params['facet.field'] = 'group_1'
+            params['facet.field'] = ['group_1'] + dynamic_facet_fields
             params['facet.mincount'] = 1
 
+        feature_filters = Solr.get_features(features)
+
+
+        # Add the feature filters to the fq parameter
+        if 'fq' not in params:
+            params['fq'] = []
+        params['fq'].extend(feature_filters)
 
         params.update(kwargs)
 
@@ -103,7 +119,7 @@ class Solr:
                         facet_results = [{"value": value, "count": count} for value, count in zip(counts[::2], counts[1::2])]
 
                         facet_counts["features"].append({
-                            "clean_field": clean_field,
+                            "key": clean_field,
                             "label_field": label_field,
                             "type": feature_type,
                             "facet_results": facet_results
@@ -129,10 +145,7 @@ class Solr:
         cleaned_name = feature_name.strip()
         
         # Replace any remaining whitespace with a single space
-        cleaned_name = re.sub(r'\s+', ' ', cleaned_name)
-        
-        # Replace any commas with a space
-        cleaned_name = cleaned_name.replace(",", " ")
+        cleaned_name = re.sub(r'\s+', '-', cleaned_name)
 
         # Escape any special characters for Solr
         cleaned_name = re.sub(r'([\[\]!"#$%&\'()*+,\-./:;<=>?@\^_`{|}~])', r'\\\1', cleaned_name)
@@ -153,5 +166,58 @@ class Solr:
             return '_feature_f'
         elif feature_type == 'string':
             return '_feature_s'
+        elif feature_type == 'boolean':
+            return '_feature_b'
         else:
             return None
+
+    # Parse the features argument
+    @staticmethod
+    def get_features(features):
+        """
+        Helper function to parse the features argument and build the list of filters.
+        :param features: str - The comma-separated list of features and their values (e.g. "lunghezza=488,marca=bestway").
+        :return: list - A list of feature filters for the Solr query.
+        """
+        if features:
+            feature_filters = []
+            feature_list = features.split(',')
+            for feature in feature_list:
+                field, value = feature.split('=')
+                field = field.strip()
+                # Get the feature type from the field
+                feature_type = Solr.detect_feature_type(value)
+
+                if feature_type:
+                    # Get the feature suffix based on the feature type
+                    feature_suffix = Solr.get_feature_suffix(feature_type)
+
+                    # Add the feature filter to the list
+                    field_with_suffix = f'{field}{feature_suffix}'
+                    feature_filters.append(f'{field_with_suffix}:"{value}"')
+                else:
+                    raise ValueError(f"Unable to detect feature type for field '{field}' with value '{value}'")
+
+            return feature_filters
+        else:
+            return None
+
+    @staticmethod
+    def detect_feature_type(value):
+        """
+        Helper function to detect the feature type based on the value.
+        :param value: str - The value of the feature.
+        :return: str - The detected feature type ('int', 'float', 'string', or 'boolean').
+        """
+        try:
+            int(value)
+            return 'int'
+        except ValueError:
+            try:
+                float(value)
+                return 'float'
+            except ValueError:
+                if value.lower() == 'true' or value.lower() == 'false':
+                    return 'boolean'
+                else:
+                    return 'string'

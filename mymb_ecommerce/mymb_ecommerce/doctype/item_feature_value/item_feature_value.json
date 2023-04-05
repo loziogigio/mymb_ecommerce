@@ -12,7 +12,8 @@
   "string_value",
   "int_value",
   "float_value",
-  "boolean_value"
+  "boolean_value",
+  "value"
  ],
  "fields": [
   {
@@ -46,12 +47,17 @@
    "fieldname": "boolean_value",
    "fieldtype": "Check",
    "label": "Boolean Value"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-04-02 14:51:04.621624",
+ "modified": "2023-04-03 20:54:43.705769",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Item Feature Value",

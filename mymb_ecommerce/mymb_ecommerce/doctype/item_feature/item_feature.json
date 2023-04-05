@@ -8,6 +8,9 @@
  "engine": "InnoDB",
  "field_order": [
   "item_feature",
+  "family_code",
+  "family_name",
+  "erp_family_name",
   "features"
  ],
  "fields": [
@@ -24,11 +27,26 @@
    "fieldtype": "Table",
    "label": "Features",
    "options": "Item Feature Value"
+  },
+  {
+   "fieldname": "family_code",
+   "fieldtype": "Data",
+   "label": "Family Code"
+  },
+  {
+   "fieldname": "family_name",
+   "fieldtype": "Data",
+   "label": "Family Name"
+  },
+  {
+   "fieldname": "erp_family_name",
+   "fieldtype": "Data",
+   "label": "Erp Family Name"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-04-02 14:51:15.397587",
+ "modified": "2023-04-03 15:00:58.822154",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Item Feature",
