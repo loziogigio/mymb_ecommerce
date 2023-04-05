@@ -32,7 +32,7 @@ class Solr:
         # dynamic_facet_fields = ["*_feature_i", "*_feature_f", "*_feature_s", "*_feature_b"]
         
         #let's do some static features to have some results
-        dynamic_facet_fields = ["marca_feature_s","marca_feature_s","lunghezza_feature_i","altezza_feature_i","peso_feature_f","forma_feature_s",]
+        dynamic_facet_fields = ["marca_feature_s","lunghezza_feature_i","altezza_feature_i","peso_feature_f","forma_feature_s",]
 
         if groups:
             group_list = groups.split(',')
@@ -51,13 +51,16 @@ class Solr:
             params['facet.field'] = ['group_1'] + dynamic_facet_fields
             params['facet.mincount'] = 1
 
+         # Initialize feature filters as an empty list
+
         feature_filters = Solr.get_features(features)
 
 
         # Add the feature filters to the fq parameter
         if 'fq' not in params:
             params['fq'] = []
-        params['fq'].extend(feature_filters)
+        if feature_filters is not None:
+            params['fq'].extend(feature_filters)
 
         params.update(kwargs)
 
