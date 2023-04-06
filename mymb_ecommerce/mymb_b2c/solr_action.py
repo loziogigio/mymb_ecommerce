@@ -12,7 +12,7 @@ config = Configurations()
 solr_instance = config.get_solr_instance()
 image_uri_instance = config.get_image_uri_instance()
 
-# Add the following imports at the beginning of your file
+# Add the following imports at the beginning of your filestatu
 
 
 # Update the update_categories function
