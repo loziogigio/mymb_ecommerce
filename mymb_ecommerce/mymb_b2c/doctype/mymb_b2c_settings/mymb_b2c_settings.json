@@ -15,6 +15,14 @@
   "mymb_b2c_payment_success_page",
   "mymb_b2c_payment_failed_page",
   "column_break_2",
+  "mymb__db_info_section",
+  "db_host",
+  "db_port",
+  "db_item_data",
+  "column_break_ge40",
+  "db_username",
+  "db_password",
+  "db_transactions",
   "username",
   "password",
   "client_id",
@@ -38,9 +46,6 @@
   "inventory_sync_settings_section",
   "enable_inventory_sync",
   "inventory_sync_frequency",
-  "grn_settings_section",
-  "use_stock_entry_for_grn",
-  "vendor_code",
   "sync_status_section",
   "last_order_sync",
   "column_break_20",
@@ -188,24 +193,6 @@
   },
   {
    "collapsible": 1,
-   "fieldname": "grn_settings_section",
-   "fieldtype": "Section Break",
-   "label": "GRN settings"
-  },
-  {
-   "default": "0",
-   "description": "Material Transfer entries can be used for transferring stock to Unicommerce using Auto GRN API",
-   "fieldname": "use_stock_entry_for_grn",
-   "fieldtype": "Check",
-   "label": "Use Stock Entry for GRN"
-  },
-  {
-   "fieldname": "vendor_code",
-   "fieldtype": "Data",
-   "label": "Vendor Code"
-  },
-  {
-   "collapsible": 1,
    "fieldname": "sync_status_section",
    "fieldtype": "Section Break",
    "label": "Sync Status"
@@ -270,12 +257,51 @@
    "fieldname": "mymb_b2c_payment_failed_page",
    "fieldtype": "Data",
    "label": "Failed payment page"
+  },
+  {
+   "fieldname": "mymb__db_info_section",
+   "fieldtype": "Section Break",
+   "label": "MyMb  db info"
+  },
+  {
+   "fieldname": "db_host",
+   "fieldtype": "Data",
+   "label": "db host"
+  },
+  {
+   "fieldname": "db_port",
+   "fieldtype": "Data",
+   "label": "db port"
+  },
+  {
+   "fieldname": "column_break_ge40",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "db_username",
+   "fieldtype": "Data",
+   "label": "db username"
+  },
+  {
+   "fieldname": "db_password",
+   "fieldtype": "Password",
+   "label": "db password"
+  },
+  {
+   "fieldname": "db_transactions",
+   "fieldtype": "Data",
+   "label": "db transactions"
+  },
+  {
+   "fieldname": "db_item_data",
+   "fieldtype": "Data",
+   "label": "db item data"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-03-21 20:26:17.643738",
+ "modified": "2023-04-06 14:18:17.079446",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
