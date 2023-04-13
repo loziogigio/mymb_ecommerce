@@ -112,9 +112,13 @@ def update_all_solr_category():
 
 
 @frappe.whitelist(allow_guest=True)
-def update_solr_item_features(item_code, features):
+def update_solr_item_features( features):
     solr = solr_instance.solr
 
+    family_code=features.family_code
+    family_name=features.family_name
+    item_code=features.item_feature
+    feature_array = features.features
     # Search for the item by item_code in Solr
     try:
         search_results = solr.search(f'carti:"{item_code}"')
@@ -131,10 +135,11 @@ def update_solr_item_features(item_code, features):
         "_version_": 0  # This forces a partial update
     }
 
-    for feature in features:
-        cleaned_feature_name = Solr.clean_feature_name(feature['feature_name'])
-        feature_suffix = Solr.get_feature_suffix(feature['feature_type'])
-
+    for feature in feature_array:
+        cleaned_feature_name = Solr.clean_feature_name(feature.feature_name)
+        feature_suffix = Solr.get_feature_suffix(feature.feature_type)
+        solr_doc['family_code'] = family_code
+        solr_doc['family_name'] = family_name.lower()
         if feature_suffix:
             solr_doc[f"{cleaned_feature_name}{feature_suffix}"] = {"set": feature.get('value', None)}
 

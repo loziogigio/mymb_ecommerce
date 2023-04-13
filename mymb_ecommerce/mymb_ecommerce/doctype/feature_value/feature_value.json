@@ -1,61 +1,50 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:item_feature",
- "creation": "2023-04-11 10:11:16.859822",
+ "creation": "2023-04-11 11:26:57.916089",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "item_feature",
+  "feature_name",
+  "value",
   "family_code",
-  "family_name",
-  "erp_family_name",
-  "features"
+  "family_name"
  ],
  "fields": [
   {
-   "fieldname": "item_feature",
+   "fieldname": "feature_name",
    "fieldtype": "Link",
-   "label": "Item Feature",
-   "options": "Item",
-   "reqd": 1,
-   "unique": 1
+   "label": "Feature Name",
+   "options": "Feature Name"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Value"
   },
   {
    "fieldname": "family_code",
    "fieldtype": "Data",
-   "in_filter": 1,
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Family Code"
   },
   {
    "fieldname": "family_name",
    "fieldtype": "Data",
-   "in_filter": 1,
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Family Name"
-  },
-  {
-   "fieldname": "erp_family_name",
-   "fieldtype": "Data",
-   "label": "Erp Family Name"
-  },
-  {
-   "fieldname": "features",
-   "fieldtype": "Table",
-   "label": "Features",
-   "options": "Item Feature Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-04-11 14:45:21.592134",
+ "modified": "2023-04-11 14:47:49.622850",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
- "name": "Item Feature",
- "naming_rule": "By fieldname",
+ "name": "Feature Value",
  "owner": "Administrator",
  "permissions": [
   {

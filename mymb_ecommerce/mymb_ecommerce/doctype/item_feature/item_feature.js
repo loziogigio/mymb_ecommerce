@@ -22,6 +22,9 @@ frappe.ui.form.on("Item Feature", {
                 const file = e.target.files[0];
                 const data = await file.text();
                 const rows = data.split('\n');
+
+                const totalRows = rows.length - 1;
+
                 for (let i = 1; i < rows.length; i++) {
                     const cells = rows[i].split(',');
 
@@ -33,6 +36,8 @@ frappe.ui.form.on("Item Feature", {
 
                     // Check if the item exists and link it to the Item Feature
                     frappe.db.get_value('Item', {item_code: item_feature.item_feature}, 'name').then(r => {
+                        
+
                         if (r.name) {
                             item_feature.item = r.name;
                         } else {
@@ -40,23 +45,26 @@ frappe.ui.form.on("Item Feature", {
                         }
 
                         for (let j = 4; j < cells.length; j++) {
-                            const feature_name = rows[0].split(',')[j].toLowerCase();
-                            const feature_type = detect_feature_type(cells[j]);
+                            const feature_name = rows[0].split(',')[j].toLowerCase().replace(/[\r\n\t]+/g, '');
+                            const feature_value  = cells[j].replace(/[\r\n\t]+/g, '');
+                            const feature_type = detect_feature_type(feature_value);
                             const item_feature_value = frappe.model.add_child(item_feature, 'Item Feature Value', 'features');
                             item_feature_value.feature_name = feature_name;
                             item_feature_value.feature_type = feature_type;
-                            item_feature_value.value = cells[j].toLowerCase();
+                            item_feature_value.value = feature_value.toLowerCase();
+                            
 
                             if (feature_type === 'string') {
-                                item_feature_value.string_value = cells[j].toLowerCase();
+                                item_feature_value.string_value = feature_value.toLowerCase();
                             } else if (feature_type === 'int') {
-                                item_feature_value.int_value = parseInt(cells[j], 10);
+                                item_feature_value.int_value = parseInt(feature_value, 10);
                             } else if (feature_type === 'float') {
-                                item_feature_value.float_value = parseFloat(cells[j]);
+                                item_feature_value.float_value = parseFloat(feature_value);
                             } else if (feature_type === 'boolean') {
-                                item_feature_value.boolean_value = cells[j].toLowerCase() === 'true';
+                                item_feature_value.boolean_value = feature_value.toLowerCase() === 'true';
                             }
                         }
+                        
 
                         frappe.call({
                             method: 'mymb_ecommerce.mymb_ecommerce.item_feature.add_feature',
@@ -65,11 +73,16 @@ frappe.ui.form.on("Item Feature", {
                             },
                             callback: function (response) {
                                 console.log(response.message);
+                                // Update progress
+                                frappe.show_progress(__('Importing Features'), i, totalRows);
                             }
                         });
+                        // debugger
                     });
-                    // debugger
+                   
                 }
+                // Hide progress when the loop is done
+                frappe.hide_progress();
             };
             input.click();
         });

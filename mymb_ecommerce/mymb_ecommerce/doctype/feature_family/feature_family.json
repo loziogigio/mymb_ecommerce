@@ -1,61 +1,53 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:item_feature",
- "creation": "2023-04-11 10:11:16.859822",
+ "creation": "2023-04-11 11:28:01.065615",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "item_feature",
-  "family_code",
+  "feature_name",
   "family_name",
-  "erp_family_name",
-  "features"
+  "family_code",
+  "family_uom"
  ],
  "fields": [
   {
-   "fieldname": "item_feature",
+   "fieldname": "feature_name",
    "fieldtype": "Link",
-   "label": "Item Feature",
-   "options": "Item",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
-   "fieldname": "family_code",
-   "fieldtype": "Data",
    "in_filter": 1,
    "in_list_view": 1,
-   "label": "Family Code"
+   "in_standard_filter": 1,
+   "label": "Feature Name",
+   "options": "Feature Name"
   },
   {
    "fieldname": "family_name",
    "fieldtype": "Data",
-   "in_filter": 1,
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Family Name"
   },
   {
-   "fieldname": "erp_family_name",
+   "fieldname": "family_code",
    "fieldtype": "Data",
-   "label": "Erp Family Name"
+   "label": "Family Code"
   },
   {
-   "fieldname": "features",
-   "fieldtype": "Table",
-   "label": "Features",
-   "options": "Item Feature Value"
+   "fieldname": "family_uom",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Family UOM",
+   "options": "UOM"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-04-11 14:45:21.592134",
+ "modified": "2023-04-11 11:56:50.731125",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
- "name": "Item Feature",
- "naming_rule": "By fieldname",
+ "name": "Feature Family",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1,6 +1,8 @@
 import pysolr
 from urllib.parse import quote
 import re
+import frappe
+
 
 class Solr:
     def __init__(self, url, **kwargs):
@@ -28,11 +30,6 @@ class Solr:
         if sort:
             params['sort'] = sort
         
-        # Add dynamic fields for faceting
-        # dynamic_facet_fields = ["*_feature_i", "*_feature_f", "*_feature_s", "*_feature_b"]
-        
-        #let's do some static features to have some results
-        dynamic_facet_fields = ["marca_feature_s","lunghezza_feature_i","altezza_feature_i","peso_feature_f","forma_feature_s",]
 
         if groups:
             group_list = groups.split(',')
@@ -43,18 +40,23 @@ class Solr:
             fq_list = [f'group_{i+1}:"{group.replace("-", " ")}"' for i, group in enumerate(group_list)]
             params['fq'] = fq_list
 
-            # Combine the group facet fields with the dynamic facet fields
             group_facet_fields = [f'group_{i+1}' for i in range(len(group_list) + 1)]
+            
+             # Fetch dynamic facet fields based on group faceting
+            last_group = group_list[-1]
+            if not self.has_subgroups(len(group_list),last_group):
+                dynamic_facet_fields = self.get_dynamic_facet_fields(last_group)
+            else:
+                dynamic_facet_fields = []
+
             params['facet.field'] = group_facet_fields + dynamic_facet_fields
         else:
             params['facet'] = 'on'
-            params['facet.field'] = ['group_1'] + dynamic_facet_fields
+            params['facet.field'] = ['group_1']
             params['facet.mincount'] = 1
 
-         # Initialize feature filters as an empty list
-
+        # Initialize feature filters as an empty list
         feature_filters = Solr.get_features(features)
-
 
         # Add the feature filters to the fq parameter
         if 'fq' not in params:
@@ -69,9 +71,8 @@ class Solr:
         # Get the search results
         results = [dict(result) for result in response]
 
-         # Get the facet counts
-        facet_counts = Solr.get_facet(response=response,groups=groups, features=features)
-
+        # Get the facet counts
+        facet_counts = Solr.get_facet(response=response, groups=groups, features=features)
 
         # Return the results and facet counts as a dictionary
         return {
@@ -80,7 +81,66 @@ class Solr:
             'hits': response.hits,
             'response': response
         }
+
+    def get_dynamic_facet_fields(self, group):
+        """
+        Search for Feature Families with the family_code equal to group.
+        :param group: str - The group value.
+        :return: list - The dynamic facet fields based on the group.
+        """
+        group = group.replace("-", " ").lower()
+        feature_families = {}
+
+        family_response = frappe.db.sql(
+            """SELECT * FROM `tabFeature Family` WHERE LOWER(family_name) = %s""",
+            (group,),
+            as_dict=True,
+        )
+        
+        feature_families[group] = []
+
+        for family in family_response:
+            feature_name_query = {
+                'doctype': 'Feature Name',
+                'filters': {'name': family['feature_name']},
+                'fields': ['name', 'feature_type', 'feature_label']
+            }
+             
+            feature_name_response = frappe.get_all(**feature_name_query)
+
+            for feature_name in feature_name_response:
+                feature_type = feature_name["feature_type"]
+                feature_label = feature_name["feature_label"]
+                feature_suffix = Solr.get_feature_suffix(feature_type)
+                feature_field = f'{Solr.clean_feature_name(feature_label)}{feature_suffix}'
+                feature_families[group].append(feature_field)
+
+        # Merge feature fields from all groups
+        merged_feature_fields = []
+        for fields in feature_families.values():
+            merged_feature_fields.extend(fields)
+
+        return merged_feature_fields
+
+
+
     
+    def has_subgroups(self, group_counter, group):
+        """
+        Check if a group has any subgroups.
+
+        :param group_counter: int - The current group counter.
+        :param group: str - The group value to check.
+        :return: bool - True if the group has subgroups, False otherwise.
+        """
+        group_query = f'group_{group_counter}:"{group.replace("-"," ")}"'
+        facet_field = f'group_{group_counter + 1}'
+        response = self.solr.search(q=group_query, rows=0, facet='on', facet_field=facet_field, facet_mincount=1)
+
+        facet_counts = response.raw_response['facet_counts']['facet_fields'].get(facet_field, [])
+        return len(facet_counts) > 0
+
+
     @staticmethod
     def get_feature_suffix(feature_type):
         """
@@ -123,7 +183,7 @@ class Solr:
 
                         facet_counts["features"].append({
                             "key": clean_field,
-                            "label_field": label_field,
+                            "label_field": Solr.unclean_feature_name(label_field),
                             "type": feature_type,
                             "facet_results": facet_results
                         })
@@ -155,6 +215,21 @@ class Solr:
 
         return cleaned_name
     
+    @staticmethod
+    def unclean_feature_name(escaped_name):
+        """
+        Helper function to reverse the changes applied by clean_feature_name.
+        Unescapes any special characters.
+        Replaces hyphens with spaces.
+        Returns the original feature name.
+        """
+        # Unescape any special characters
+        unescaped_name = re.sub(r'\\([\[\]!"#$%&\'()*+,\-./:;<=>?@\^_`{|}~])', r'\1', escaped_name)
+
+        # Replace hyphens with spaces
+        original_name = unescaped_name.replace('-', ' ')
+
+        return original_name
 
     @staticmethod
     def get_feature_suffix(feature_type):
