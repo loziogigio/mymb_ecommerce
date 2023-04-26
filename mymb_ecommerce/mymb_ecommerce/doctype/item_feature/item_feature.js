@@ -77,7 +77,7 @@ frappe.ui.form.on("Item Feature", {
                                 frappe.show_progress(__('Importing Features'), i, totalRows);
                             }
                         });
-                        // debugger
+                        debugger
                     });
                    
                 }

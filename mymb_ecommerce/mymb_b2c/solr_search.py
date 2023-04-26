@@ -266,9 +266,32 @@ def products():
     # Extract the product details from the Solr result
     product = map_solr_response_b2c([dict(solr_results['results'][0])])[0]
 
+    product["short_description"] = "short description text"
+    product["long_description"] = '<div><span style="font-family: inherit;">Piscina intex ultra frame 26326 con struttura progettata per massimizzare la stabilità e la robustezza grazie ai pratici tubi ovali e agli innovativi 3 strati di pvc antitaglio.</span><br></div><div>Il pool liner ultra frame della piscina intex 26326 è realizzato con pareti resistenti a 3 strati, 3 volte più resistenti delle piscine tradizionali ed è composto da uno strato retinato in poliestere contenuto tra due spessi strati di pvc antitaglio.</div><div>Per assicurare robustezza e solidità, la struttura è realizzata con tubi extra robusti che grazie alla propria forma ovale garantiscono al cliente finale un risultato senza paragoni in termini di stabilità ed affidabilità.</div><div>La piscina intex ultra frame 26326 ha al suo interno 2 raccordi da collegare alla pompa di filtrazione corredata con un diametro di 38mm.</div><div><br></div><div><b>Specifiche tecniche:</b></div><div><br></div><div><div>peso articolo: 90.6 chilogrammi</div><div>dimensioni 488 x 122 cm (diametro x altezza)</div><div><div><span style="font-family: inherit;">materiale: pvc triplice strato</span><br></div><div>materiale telaio: acciaio verniciato a polvere</div><div>colore: grigio scuro</div></div><div>capacità 19156 litri al 90%</div><div>tempo di montaggio 1 ora</div></div><div><br></div><div><b>Accessori inclusi nella piscina ultra frame intex 26326:</b></div><div><br></div><div>pompa di filtraggio intex 4 m3/h (26644)</div><div>scala di sicurezza</div><div>telo di copertura</div><div>tappeto sottopiscina</div><div><br></div><div><b>Marca:</b> Intex</div><div><b>Modello:</b> 26326</div>'
+
+    args = frappe._dict()
+    args.family_code = 1009
+    relatedProducts = catalogue(args)
+    features = {
+        "marca":"intex",
+        "materiale":"pvc",
+        "forma":"tonda",
+        "capacità al -90 %":19.156,
+        "colore":"grigio scuro",
+        "tipo di -pompa di filtraggi":"sabbia",
+        "capacità pompa di filtraggio":4.5,
+        "lunghezza":488,
+        "larghezza":488,
+        "altezza":122,
+        "peso":103.3,
+    }
+    product["features"] = features
+
     # Construct the response
     response =  {
         'product': product,
+        'relatedProducts': relatedProducts['products'],
+        'features':features
     }
 
     # Return the response with HTTP 200 status

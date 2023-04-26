@@ -27,9 +27,15 @@ def add_feature(doc):
             "item_feature": doc_dict['item_feature'],
             "family_code": family_code,
             "family_name": family_name,
-            "erp_family_name": doc_dict['erp_family_name'],
-            "features": []
+            "erp_family_name": doc_dict['erp_family_name']
         })
+
+    # Save the item_feature to the database
+    if item_feature_name:
+        item_feature.save()
+    else:
+        item_feature.insert(ignore_permissions=True)
+    frappe.db.commit()
 
     # loop through each feature in the request
     # if a feature with the same name exists in the document object, update its value
@@ -41,38 +47,39 @@ def add_feature(doc):
         feature_name_doc = add_feature_name(feature_name=feature_name, feature_type=feature['feature_type'], family_name =family_name, family_code = family_code, default_uom=feature.get('default_uom', None))
         add_feature_value(feature_name=feature_name_doc, feature_value= feature_value, family_name =family_name, family_code = family_code)
 
-        feature_exists = False
-        for i, feature_row in enumerate(item_feature.features):
-            # Call the add_feature_name and add_feature_value functions
-            
+        existing_feature_value = frappe.db.exists('Item Feature Value', {
+            'item_feature': item_feature.name,
+            'feature_name': feature_name
+        })
 
-            if feature_row.feature_name == feature_name:
-                feature_exists = True
-                item_feature.features[i].value = feature_value 
-                item_feature.features[i].string_value = feature.get('string_value', None)
-                item_feature.features[i].int_value = feature.get('int_value', None)
-                item_feature.features[i].float_value = feature.get('float_value', None)
-                item_feature.features[i].boolean_value = feature.get('boolean_value', None)
-                break
-
-        if not feature_exists:
-            item_feature.append('features', {
-                'feature_name': feature_name_doc,
-                'feature_label': feature_name,
-                'feature_type': feature['feature_type'],
-                'value': feature.get('value', None),
-                'string_value': feature.get('string_value', None),
-                'int_value': feature.get('int_value', None),
-                'float_value': feature.get('float_value', None),
-                'boolean_value': feature.get('boolean_value', None),
+        if existing_feature_value:
+            item_feature_value = frappe.get_doc('Item Feature Value', existing_feature_value)
+        else:
+            item_feature_value = frappe.get_doc({
+                "doctype": "Item Feature Value",
+                "item_feature": item_feature.name,
+                "feature_name": feature_name_doc,
+                "feature_label": feature_name,
+                "feature_type": feature['feature_type']
             })
 
-    # save the document object to the database
-    if item_feature_name:
-        item_feature.save()
-    else:
-        item_feature.insert(ignore_permissions=True)
-    frappe.db.commit()
+        item_feature_value.string_value = feature.get('string_value', None)
+        item_feature_value.int_value = feature.get('int_value', None)
+        item_feature_value.float_value = feature.get('float_value', None)
+        item_feature_value.boolean_value = feature.get('boolean_value', None)
+        item_feature_value.value = feature.get('value', None)
+        
+
+        if existing_feature_value:
+            item_feature_value.save()
+        else:
+            item_feature_value.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        # Append the item_feature_value object to the item_feature.features list
+        item_feature.append("features", item_feature_value)
+
+ 
 
     # Update the item features in Solr
     solr_update_result = update_solr_item_features(features=item_feature)
@@ -191,3 +198,41 @@ def add_feature_value(feature_name, feature_value , family_name, family_code):
 def is_valid_item_feature(item_feature):
     # Add your validation logic here. For example, if the item_feature should always start with 'IEX', you can do:
     return frappe.db.exists('Item', item_feature)
+
+@frappe.whitelist()
+def get_item_feature_by_name(item_feature_name):
+    # Check if the item feature exists in the database
+    item_feature_doc = frappe.get_doc("Item Feature", item_feature_name)
+    if not item_feature_doc:
+        return {'message': 'Item Feature not found.'}
+
+    # Get all features and their feature values for the given Item Feature
+    features = []
+    for feature in item_feature_doc.features:
+        feature_details = {
+            "feature_label": feature.feature_label,
+            "feature_type": feature.feature_type,
+            "string_value": feature.string_value,
+            "int_value": feature.int_value,
+            "float_value": feature.float_value,
+            "boolean_value": feature.boolean_value,
+            "value": feature.value
+        }
+        features.append(feature_details)
+
+    # Return the Item Feature and its features with values
+    return {
+        "item_feature": item_feature_name,
+        "family_code": item_feature_doc.family_code,
+        "family_name": item_feature_doc.family_name,
+        "erp_family_name": item_feature_doc.erp_family_name,
+        "features": features
+    }
+
+
+@frappe.whitelist()
+def get_features_by_item_name(item_name):
+    # Check if the item feature exists in the database
+    return item_name
+
+

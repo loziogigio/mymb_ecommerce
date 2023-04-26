@@ -118,7 +118,7 @@ def update_solr_item_features( features):
     family_code=features.family_code
     family_name=features.family_name
     item_code=features.item_feature
-    feature_array = features.features
+    feature_array = features.get('features', [])
     # Search for the item by item_code in Solr
     try:
         search_results = solr.search(f'carti:"{item_code}"')
