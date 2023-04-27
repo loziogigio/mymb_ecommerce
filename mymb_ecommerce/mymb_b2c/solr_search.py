@@ -1,6 +1,8 @@
 
 from mymb_ecommerce.mymb_b2c.settings.media import Media
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.mymb_ecommerce.item_feature import get_features_by_item_name
+from mymb_ecommerce.mymb_ecommerce.repository.DataRepository import DataRepository
 import frappe
 from frappe import _
 
@@ -272,29 +274,34 @@ def products():
     args = frappe._dict()
     args.family_code = 1009
     relatedProducts = catalogue(args)
-    features = {
-        "marca":"intex",
-        "materiale":"pvc",
-        "forma":"tonda",
-        "capacità al -90 %":19.156,
-        "colore":"grigio scuro",
-        "tipo di -pompa di filtraggi":"sabbia",
-        "capacità pompa di filtraggio":4.5,
-        "lunghezza":488,
-        "larghezza":488,
-        "altezza":122,
-        "peso":103.3,
-    }
-    product["features"] = features
+
+    product["features"] = get_features_by_item_name(product["sku"])
+    
+    data_repo = DataRepository()
+    data = data_repo.get_data_by_entity_code(product["id"])
+    # Convert data into a format suitable for your use case (e.g., a list of dictionaries)
+    product_data = {row.property_id: row.value for row in data}
+    product['product_data'] = product_data
+
+    product['long_description'] = product_data.get('long_description', '')
+    product['short_description'] = product_data.get('short_description', '')
+
+
 
     # Construct the response
     response =  {
         'product': product,
         'relatedProducts': relatedProducts['products'],
-        'features':features
+        'featuredProducts': relatedProducts['products'],
+        'bestSellingProducts': relatedProducts['products'],
+        'latestProducts': relatedProducts['products'],
+        'topRatedProducts': relatedProducts['products'],
     }
 
     # Return the response with HTTP 200 status
     return response
+
+
+
 
 

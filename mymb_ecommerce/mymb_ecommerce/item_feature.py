@@ -233,6 +233,27 @@ def get_item_feature_by_name(item_feature_name):
 @frappe.whitelist()
 def get_features_by_item_name(item_name):
     # Check if the item feature exists in the database
-    return item_name
-
-
+    features = {}
+    
+    results = frappe.db.get_all("Item Feature Value",
+        fields=["feature_label", "feature_type", "string_value", "int_value", "float_value", "boolean_value"],
+        filters={"item_feature": item_name}
+    )
+    
+    for result in results:
+        feature_label = result["feature_label"]
+        
+        if result["feature_type"] == "string":
+            value = result["string_value"]
+        elif result["feature_type"] == "int":
+            value = result["int_value"]
+        elif result["feature_type"] == "float":
+            value = result["float_value"]
+        elif result["feature_type"] == "boolean":
+            value = bool(result["boolean_value"])
+        else:
+            continue
+        
+        features[feature_label] = value
+    
+    return features
