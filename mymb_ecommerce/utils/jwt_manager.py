@@ -7,7 +7,8 @@ from frappe import _
 # Your JWT secret key - make sure to keep it secret!
 JWT_SECRET_KEY = "your_jwt_secret_key"
 # Token expiration time (e.g., 24 hours)
-JWT_EXPIRATION_DELTA = 240
+# Token expiration time (e.g., 240 minutes)
+JWT_EXPIRATION_DELTA = 240 * 60
 
 
 class JWTManager:
