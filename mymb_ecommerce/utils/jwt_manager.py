@@ -34,24 +34,26 @@ class JWTManager:
     def jwt_required(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
-            jwt_manager_instance = JWTManager(secret_key=JWT_SECRET_KEY)
-            try:
-                jwt_header = frappe.get_request_header("Authorization")
-                if not jwt_header:
-                    raise ValueError("Missing Authorization header")
-                
-                parts = jwt_header.split()
-                if len(parts) != 2 or parts[0].lower() != "bearer":
-                    raise ValueError("Invalid Authorization header format")
-
-                token = parts[1]
-                payload = jwt_manager_instance.decode(token)
-
-                frappe.local.jwt_payload = payload
-
-                return fn(*args, **kwargs)
-
-            except Exception as e:
-                frappe.throw(_("Invalid JWT token: {0}").format(str(e)))
-
+            JWTManager.verify_jwt_in_request()
+            return fn(*args, **kwargs)
         return wrapper
+    
+    @staticmethod
+    def verify_jwt_in_request():
+        jwt_manager_instance = JWTManager(secret_key=JWT_SECRET_KEY)
+        try:
+            jwt_header = frappe.get_request_header("Authorization")
+            if not jwt_header:
+                raise ValueError("Missing Authorization header")
+
+            parts = jwt_header.split()
+            if len(parts) != 2 or parts[0].lower() != "bearer":
+                raise ValueError("Invalid Authorization header format")
+
+            token = parts[1]
+            payload = jwt_manager_instance.decode(token)
+
+            frappe.local.jwt_payload = payload
+
+        except Exception as e:
+            frappe.throw(_("Invalid JWT token: {0}").format(str(e)))

@@ -2,9 +2,15 @@
 from mymb_ecommerce.mymb_b2c.settings.media import Media
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from mymb_ecommerce.mymb_ecommerce.item_feature import get_features_by_item_name
+from mymb_ecommerce.mymb_ecommerce.item_review import get_item_reviews
+from mymb_ecommerce.mymb_ecommerce.wishlist import get_from_wishlist
 from mymb_ecommerce.mymb_ecommerce.repository.DataRepository import DataRepository
 import frappe
 from frappe import _
+
+from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
+jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
+
 
 config = Configurations()
 solr_instance = config.get_solr_instance()
@@ -25,9 +31,20 @@ def catalogue(args=None):
     text = frappe.local.request.args.get('search_term') or '*'
     groups = frappe.local.request.args.get('category') or None
     features = frappe.local.request.args.get('features') or None
+    whishlist = frappe.local.request.args.get('whishlist') or None
 
-   # Construct the Solr query to search for text and filter by non-empty "slugs" field
-    query = f'text:{text} AND -slug:("")'
+    wishlist_items = []  # Initialize wishlist_items variable
+
+    #we just search for whishlist
+    if whishlist:
+        JWTManager.verify_jwt_in_request()
+        wishlist_items = get_from_wishlist(user=frappe.local.jwt_payload['email'])
+
+    if wishlist_items:
+        item_codes = [item['item_code'] for item in wishlist_items]
+        query = f'text:{text} AND ({" OR ".join([f"carti:{code}" for code in item_codes])})'
+    else:
+        query = f'text:{text}'
 
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
@@ -285,6 +302,7 @@ def products():
 
     product['long_description'] = product_data.get('long_description', '')
     product['short_description'] = product_data.get('short_description', '')
+    product['item_reviews'] = get_item_reviews(product["sku"])
 
 
 

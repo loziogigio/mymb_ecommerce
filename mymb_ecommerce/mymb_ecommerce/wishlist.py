@@ -58,14 +58,17 @@ def remove_from_wishlist(item_code):
 	if frappe.db.exists("Wishlist Item", {"item_code": item_code, "parent": user}):
 		frappe.db.delete("Wishlist Item", {"item_code": item_code, "parent": user})
 		frappe.db.commit()  # nosemgrep
-
 		wishlist_items = frappe.db.get_values("Wishlist Item", filters={"parent": user})
+		return {"status": "success"}
+	else:
+		return {"status": "error"}
 
 
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
-def get_from_wishlist(item_code=None, page=1, per_page=20):
-    user = frappe.local.jwt_payload['email']
+def get_from_wishlist(item_code=None, page=1, per_page=20 , user=None):
+    if not user:
+        user = frappe.local.jwt_payload['email']
 
     filters = {"parent": user}
     if item_code:
@@ -79,6 +82,7 @@ def get_from_wishlist(item_code=None, page=1, per_page=20):
     wishlist_items = frappe.get_list("Wishlist Item",
         filters=filters,
         start=start,
+		fields=['item_code'],
         page_length=per_page ,
 	    ignore_permissions=True
     )
