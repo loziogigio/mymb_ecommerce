@@ -72,7 +72,7 @@ def get_queried_reviews(item_code, start=0, end=10, data=None):
 	data.reviews = frappe.db.get_all(
 		"Item Review",
 		filters={"item": item_code},
-		fields=['name','item' , 'customer' ,'rating','review_title','comment'],
+		fields=['name','item' , 'customer' ,'rating','review_title as title','comment'],
 		limit_start=start,
 		limit_page_length=end,
 	)
@@ -127,6 +127,10 @@ def add_item_review(item_code, title, rating, comment=None):
 		doc.published_on = datetime.today().strftime("%d %B %Y")
 		doc.insert(ignore_permissions=True)
 
+		# Update cache after adding the review
+		reviews_dict = get_queried_reviews(item_code)
+		set_reviews_in_cache(item_code, reviews_dict)
+
 
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
@@ -139,6 +143,11 @@ def delete_item_review(item_code):
         doc = frappe.get_doc("Item Review", item_review)
         doc.delete(ignore_permissions=True)
         frappe.db.commit()
+
+        # Update cache after deleting the review
+        reviews_dict = get_queried_reviews(item_code)
+        set_reviews_in_cache(item_code, reviews_dict)
+
         return {"status": "success", "message": "Item review deleted successfully."}
     else:
         return {"status": "error", "message": "You do not have permission to delete this review."}
