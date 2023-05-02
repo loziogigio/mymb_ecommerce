@@ -31,7 +31,7 @@ def catalogue(args=None):
     text = frappe.local.request.args.get('search_term') or '*'
     groups = frappe.local.request.args.get('category') or None
     features = frappe.local.request.args.get('features') or None
-    whishlist = frappe.local.request.args.get('whishlist') or None
+    whishlist = frappe.local.request.args.get('wishlist') or None
 
     wishlist_items = []  # Initialize wishlist_items variable
 
