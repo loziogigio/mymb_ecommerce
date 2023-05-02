@@ -119,6 +119,7 @@ def add_item_review(item_code, title, rating, comment=None):
 				"user": user,
 				"customer": get_customer(user=user , silent=True),
 				"item": item_code,
+				"website_item": item_code,
 				"review_title": title,
 				"rating": rating,
 				"comment": comment,
