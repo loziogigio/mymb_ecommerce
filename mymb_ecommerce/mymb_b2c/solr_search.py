@@ -32,6 +32,7 @@ def catalogue(args=None):
     groups = frappe.local.request.args.get('category') or None
     features = frappe.local.request.args.get('features') or None
     whishlist = frappe.local.request.args.get('wishlist') or None
+    home = frappe.local.request.args.get('home') or None
 
     wishlist_items = []  # Initialize wishlist_items variable
 
@@ -45,6 +46,9 @@ def catalogue(args=None):
         query = f'text:{text} AND ({" OR ".join([f"carti:{code}" for code in item_codes])})'
     else:
         query = f'text:{text}'
+
+    if home:
+        query = f'text:piscina' 
 
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
