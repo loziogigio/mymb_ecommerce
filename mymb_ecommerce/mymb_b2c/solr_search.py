@@ -33,6 +33,7 @@ def catalogue(args=None):
     features = frappe.local.request.args.get('features') or None
     whishlist = frappe.local.request.args.get('wishlist') or None
     home = frappe.local.request.args.get('home') or None
+    category_detail = frappe.local.request.args.get('category_detail') or None
 
     wishlist_items = []  # Initialize wishlist_items variable
 
@@ -129,9 +130,30 @@ def catalogue(args=None):
         'min_price_all': int(min_price_all) if min_price_all is not None else None,
         'max_price_all': int(max_price_all) if max_price_all is not None else None,
         "category": category,
-        "features": features
+        "features": features,
+        "menu_category_detail": get_menu_category_detail(category_detail)
     }
     return response
+
+
+def get_menu_category_detail(category_detail):
+    try:
+        # This will fetch specific fields of the document where label matches `menu_category`
+        doc_dict = frappe.get_doc("B2C Menu", {"label": category_detail})
+        # Filter the doc_dict to include only the desired keys
+        filtered_dict = {
+            'name': doc_dict.get('name'),
+            'label': doc_dict.get('label'),
+            'url': doc_dict.get('url'),
+            'title': doc_dict.get('title'),
+            'description': doc_dict.get('description')
+        }
+
+        return filtered_dict
+
+    except frappe.DoesNotExistError:
+        # Handle the case where no document matches the provided `menu_category`
+        return None
 
 
 def map_solr_response_b2c(search_results ):
