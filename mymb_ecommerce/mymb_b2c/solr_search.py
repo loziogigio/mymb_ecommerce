@@ -5,6 +5,7 @@ from mymb_ecommerce.mymb_ecommerce.item_feature import get_features_by_item_name
 from mymb_ecommerce.mymb_ecommerce.item_review import get_item_reviews
 from mymb_ecommerce.mymb_ecommerce.wishlist import get_from_wishlist
 from mymb_ecommerce.mymb_ecommerce.repository.DataRepository import DataRepository
+from mymb_ecommerce.utils.media import get_website_domain
 import frappe
 from frappe import _
 
@@ -137,6 +138,7 @@ def catalogue(args=None):
 
 
 def get_menu_category_detail(category_detail):
+    web_site_domain = get_website_domain()
     try:
         # This will fetch specific fields of the document where label matches `menu_category`
         doc_dict = frappe.get_doc("B2C Menu", {"label": category_detail})
@@ -146,8 +148,11 @@ def get_menu_category_detail(category_detail):
             'label': doc_dict.get('label'),
             'url': doc_dict.get('url'),
             'title': doc_dict.get('title'),
-            'description': doc_dict.get('description')
+            'description': doc_dict.get('description'),
+            'category_menu_image': f'{web_site_domain}{doc_dict.get("category_menu_image")}' if doc_dict.get("category_menu_image") else None,
+            'category_banner_image': f'{web_site_domain}{doc_dict.get("category_banner_image")}' if doc_dict.get("category_banner_image") else None
         }
+        
 
         return filtered_dict
 
