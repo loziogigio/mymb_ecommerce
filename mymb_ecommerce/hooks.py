@@ -12,6 +12,11 @@ app_license = "MIT"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/ecommerce_integrations/css/mymb_ecommerce.css"
+# Include js files in header of desk.html
+app_include_js = [
+     "/assets/mymb_ecommerce/js/papaparse.min.5.3.0.js",
+    # Add other JS files if needed
+]
 # app_include_js = "/assets/ecommerce_integrations/js/mymb_ecommerce.js"
 
 # include js, css files in header of web template
@@ -29,9 +34,6 @@ app_license = "MIT"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {
-    "Item Feature": "public/js/item_feature_import_list.js"  
-}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}

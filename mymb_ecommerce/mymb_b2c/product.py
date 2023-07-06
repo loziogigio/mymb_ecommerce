@@ -10,6 +10,8 @@ from frappe import _
 from frappe.utils import get_url, now
 from frappe.utils.nestedset import get_root_of
 from stdnum.ean import is_valid as validate_barcode
+from typing import Any
+
 
 from multiprocessing import Pool
 
@@ -78,23 +80,40 @@ def import_all_products_from_mymb_b2c(batch_size: int = 100) -> str:
 
     return "Importing products from Mymb b2c is in progress"
 
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def import_mymb_b2c_multiple_products(sku_array: list = None):
+    # Check if SKU array is provided
+    if sku_array:
+        # Loop through each SKU in the array
+        for sku in sku_array:
+            # Process each SKU
+            import_mymb_b2c_single_product(sku)
+
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def import_mymb_b2c_single_product(sku: str = None , mymb_b2c_item : any = None):
+def import_mymb_b2c_single_product(sku: str = None , mymb_b2c_item: any = None):
     
-	if(mymb_b2c_item != None):
-		item = mymb_b2c_item
-	elif(sku!=None):
-		client = MymbB2cItem()
-		item = client.get_mymb_b2c_item(sku)
+    if mymb_b2c_item is not None:
+        item = mymb_b2c_item
+    elif sku is not None:
+        client = MymbB2cItem()
+        item = client.get_mymb_b2c_item(sku)
+    else:
+        return "No SKU or mymb_b2c_item provided"
+        
+    try:
+        import_product_from_mymb_b2c(item, sku) # Pass SKU here
+        
+        stock = item["disponibilita"]
+        if stock > 0:
+            stock_reconciliation_b2bc_product(item)
+    except Exception as e:
+        # Log the error or handle it gracefully
+        pass
 
-	import_product_from_mymb_b2c(item)
+    return "Import successful"
 
-	stock = item["disponibilita"]
-	if stock > 0:
-		stock_reconciliation_b2bc_product(item)
-	return "Import successful"
 
 def stock_reconciliation_b2bc_product(mymb_b2c_item):
 		item = mymb_b2c_item
@@ -155,36 +174,42 @@ def get_item_data(warehouse,row, qty, valuation_rate, current_qty, serial_no=Non
 
 
 def import_product_from_mymb_b2c(item: any) -> None:
-	"""Sync specified SKU from Mymb b2c."""
+    """Sync specified SKU from Mymb b2c."""
+    sku = None # Initialize sku to ensure it is defined
 
-	try:
-		if not item:
-			frappe.throw(_("Mymb b2c item not found"))
+    try:
+        if not item:
+            frappe.throw(_("Mymb b2c item not found"))
 
-		sku = item["carti"]
-		if _check_and_match_existing_item(item):
-			return
-		
-		item_dict = _create_item_dict(item)
+        sku = item.get("carti")  # Safely get the SKU value, if it doesn't exist it will remain None
+        if not sku:
+            raise ValueError("SKU not found in item data")
 
-		mymb_item.create_mymb_item(MODULE_NAME, integration_item_code=sku,sku=sku, oarti=item["id"], item_dict=item_dict)
-	except Exception as e:
-		create_mymb_b2c_log(
-			status="Failure",
-			message=f"Failed to import Item: {sku} from Mymb b2c",
-			response_data=item,
-			make_new=True,
-			exception=e,
-			rollback=True,
-		)
-		raise e
-	else:
-		create_mymb_b2c_log(
-			status="Success",
-			message=f"Successfully imported Item: {sku} from Mymb b2c",
-			response_data=item,
-			make_new=True,
-		)
+        if _check_and_match_existing_item(item):
+            return
+
+        item_dict = _create_item_dict(item)
+
+        mymb_item.create_mymb_item(MODULE_NAME, integration_item_code=sku, sku=sku, oarti=item["id"], item_dict=item_dict)
+
+    except Exception as e:
+        create_mymb_b2c_log(
+            status="Failure",
+            message=f"Failed to import Item: {sku} from Mymb b2c" if sku else "Failed to import Item from Mymb b2c",
+            response_data=item,
+            make_new=True,
+            exception=e,
+            rollback=True,
+        )
+        raise e  # This will re-raise the current exception. Be cautious where you catch this.
+    else:
+        create_mymb_b2c_log(
+            status="Success",
+            message=f"Successfully imported Item: {sku} from Mymb b2c",
+            response_data=item,
+            make_new=True,
+        )
+
 
 
 def _create_item_dict(mymb_b2c_item):
