@@ -271,13 +271,30 @@ def get_features_by_item_name(item_name):
     # Check if the item feature exists in the database
     features = {}
     
-    results = frappe.db.get_all("Item Feature Value",
-        fields=["feature_label", "feature_type", "string_value", "int_value", "float_value", "boolean_value"],
-        filters={"item_feature": item_name}
-    )
+    # Get item feature values along with feature metadata
+    results = frappe.db.sql("""
+        SELECT 
+            fn.feature_label,
+            fn.feature_type,
+            fn.default_uom,
+            ifv.string_value,
+            ifv.int_value,
+            ifv.float_value,
+            ifv.boolean_value
+        FROM 
+            `tabItem Feature Value` as ifv
+        JOIN
+            `tabFeature Name` as fn
+        ON
+            ifv.feature_label = fn.feature_name
+        WHERE
+            ifv.item_feature = %s
+    """, (item_name), as_dict=True)
     
+    # Process the results
     for result in results:
         feature_label = result["feature_label"]
+        default_uom = result["default_uom"]
         
         if result["feature_type"] == "string":
             value = result["string_value"]
@@ -290,6 +307,6 @@ def get_features_by_item_name(item_name):
         else:
             continue
         
-        features[feature_label] = value
+        features[feature_label] = {"value": value, "default_uom": default_uom}
     
     return features
