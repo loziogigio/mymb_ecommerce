@@ -1,5 +1,7 @@
 import frappe
 import requests
+import os
+
 
 class Media:
 
@@ -48,8 +50,12 @@ class Media:
             size_images = []
 
             for image in result['images']:
+                dir_name, file_name = os.path.split(image)
+                new_file_name = size_prefix + file_name
+                new_image_path = os.path.join(dir_name, new_file_name)
+
                 size_images.append({
-                    'url': self.image_uri + '/' + result['id'] + '/' + size_prefix + image,
+                    'url': self.image_uri + '/' + new_image_path,
                     'width': size_width,
                     'height': size_height
                 })

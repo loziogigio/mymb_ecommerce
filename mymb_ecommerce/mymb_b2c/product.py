@@ -1,7 +1,7 @@
 from typing import List, NewType
 from frappe.utils.data import nowtime, today
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
-from mymb_ecommerce.mymb_b2c.settings.media import Media
+from mymb_ecommerce.utils.Media import Media
 
 from mymb_ecommerce.mymb_b2c.api_product import MymbB2cItem
 
@@ -33,20 +33,10 @@ from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 
 ItemCode = NewType("ItemCode", str)
 
-
-@frappe.whitelist(allow_guest=True, methods=['GET'])
-def test(args=None):
-
-#     db = MysqlConnection(host="161.156.172.254", port=33077, user="root", password="z6GBW~s#", database="bricocasa")
-#     result = db.query("SELECT * FROM orders limit 10")
-#     print(result)
-#     # Call the catalogue function with the given arguments
-    return "test"
-
 # mymb_b2c product to ERPNext item mapping
 # reference: https://documentation.mymb_b2c.com/docs/itemtype-get.html
 MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING = {
-    "carti": "item_code",
+    "sku": "item_code",
     "name": "item_name",
     "description": "item_description",
     "prezzo": "standard_rate",
@@ -101,34 +91,34 @@ def import_mymb_b2c_single_product(sku: str = None , mymb_b2c_item: any = None):
         item = client.get_mymb_b2c_item(sku)
     else:
         return "No SKU or mymb_b2c_item provided"
-        
+
     try:
         import_product_from_mymb_b2c(item, sku) # Pass SKU here
-        
-        stock = item["disponibilita"]
+        update_main_image_item(item)
+        stock = item["availability"]
         if stock > 0:
-            stock_reconciliation_b2bc_product(item)
+            stock_reconciliation_b2c_product(sku , stock )
     except Exception as e:
-        # Log the error or handle it gracefully
-        pass
+        # Log the error
+        frappe.log_error(message=frappe.get_traceback(), title="Error while importing mymb_b2c item")
+        return f"Import failed due to error: {str(e)}"
+        
 
     return "Import successful"
 
 
-def stock_reconciliation_b2bc_product(mymb_b2c_item):
-		item = mymb_b2c_item
-		stock = mymb_b2c_item["disponibilita"]
-		item_code = item['carti']
-		item = frappe.get_doc('Item', item_code)
+def stock_reconciliation_b2c_product(sku , stock):
+		
+		item = frappe.get_doc('Item', sku)
 		item.disabled = 0
 		item.save()
-		update_main_image_item(mymb_b2c_item)
+		
 
 		# Update stock
 		warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
 
 		# Get current stock qty in the warehouse
-		current_qty = frappe.db.get_value('Bin', {'item_code': item_code, 'warehouse': warehouse}, 'actual_qty')
+		current_qty = frappe.db.get_value('Bin', {'item_code': sku, 'warehouse': warehouse}, 'actual_qty')
 
 		# Calculate the new qty to add to the warehouse
 		new_qty = stock
@@ -150,7 +140,7 @@ def stock_reconciliation_b2bc_product(mymb_b2c_item):
 
 def update_main_image_item(mymb_b2c_item):
 	item = mymb_b2c_item
-	item_code = item['carti']
+	item_code = item["sku"]
 	item = frappe.get_doc('Item', item_code)
 	if(mymb_b2c_item["images"]):
 		config = Configurations()
@@ -159,7 +149,7 @@ def update_main_image_item(mymb_b2c_item):
 		images = media.get_image_sizes(mymb_b2c_item)
 		if item.image != images["gallery_pictures"][0]["url"]:
 			item.image = images["gallery_pictures"][0]["url"]
-			item.save()
+			item.save(ignore_permissions=True)
 
 def get_item_data(warehouse,row, qty, valuation_rate, current_qty, serial_no=None):
 	return {
@@ -173,20 +163,16 @@ def get_item_data(warehouse,row, qty, valuation_rate, current_qty, serial_no=Non
 	}
 
 
-def import_product_from_mymb_b2c(item: any) -> None:
+def import_product_from_mymb_b2c(item: any , sku=None) -> None:
     """Sync specified SKU from Mymb b2c."""
-    sku = None # Initialize sku to ensure it is defined
 
     try:
         if not item:
             frappe.throw(_("Mymb b2c item not found"))
-
-        sku = item.get("carti")  # Safely get the SKU value, if it doesn't exist it will remain None
         if not sku:
             raise ValueError("SKU not found in item data")
 
-        if _check_and_match_existing_item(item):
-            return
+        _check_and_match_existing_item(item)
 
         item_dict = _create_item_dict(item)
 
@@ -230,7 +216,7 @@ def _create_item_dict(mymb_b2c_item):
 	item_dict["barcodes"] = _get_barcode_data(mymb_b2c_item)
 	item_dict["disabled"] = int(not mymb_b2c_item.get("enabled"))
 	item_dict["item_group"] = _get_item_group(mymb_b2c_item.get("categoryCode"))
-	item_dict["name"] = item_dict["item_code"]  # when naming is by item series
+	item_dict["name"] = mymb_b2c_item["sku"]  # when naming is by item series
 
 	#If i have images in the image array i am taking the gallery version
 	if(mymb_b2c_item["images"]):
@@ -264,7 +250,7 @@ def _check_and_match_existing_item(mymb_b2c_item):
 	Returns true if matched and linked.
 	"""
 
-	sku = mymb_b2c_item["carti"]
+	sku = mymb_b2c_item["sku"]
 	oarti = mymb_b2c_item["id"]
 	item_name = frappe.db.get_value("Item", {"item_code": sku})
 	if item_name:
@@ -282,8 +268,8 @@ def _check_and_match_existing_item(mymb_b2c_item):
 			)
 			mymb_item.insert(ignore_permissions=True)
 			return True
-		except Exception:
-			return False
+		except Exception as e:
+			return f"Import failed due to error: {str(e)}"
 
 
 def _validate_create_brand(brand):

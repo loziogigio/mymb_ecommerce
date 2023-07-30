@@ -2,6 +2,9 @@ import pysolr
 from urllib.parse import quote
 import re
 import frappe
+import xml.etree.ElementTree as ET
+import requests
+import json
 
 
 class Solr:
@@ -121,10 +124,7 @@ class Solr:
             merged_feature_fields.extend(fields)
 
         return merged_feature_fields
-
-
-
-    
+ 
     def has_subgroups(self, group_counter, group):
         """
         Check if a group has any subgroups.
@@ -140,6 +140,72 @@ class Solr:
         facet_counts = response.raw_response['facet_counts']['facet_fields'].get(facet_field, [])
         return len(facet_counts) > 0
 
+    def commit(self):
+        """
+        Commit changes in the Solr index.
+        :return: dict - A dictionary representing the Solr response.
+        """
+        try:
+            self.solr.commit()
+            # Return a JSON-compatible response
+            return {"status": "success"}
+        except pysolr.SolrError as e:
+            print(f"Commit failed: {e}")
+            return {"status": "failure", "reason": str(e)}
+
+    def add_documents(self, docs):
+        """
+        Add a list of documents to the Solr index.
+
+        :param docs: list - A list of dictionaries representing the documents to be added.
+        :return: dict - A dictionary representing the Solr response.
+        """
+        if not isinstance(docs, list):
+            raise ValueError("docs should be a list of dictionaries.")
+        try:
+            self.solr.add(docs)
+            # Return a JSON-compatible response
+            return {"status": "success", "documents_added": len(docs)}
+        except pysolr.SolrError as e:
+            print(f"Add documents failed: {e}")
+            return {"status": "failure", "reason": str(e)}
+
+    def update_document(self, doc):
+        """
+        Update a document in the Solr index. If the document does not exist, it will be created.
+
+        :param doc: dict - A dictionary representing the document to be updated.
+        :return: dict - A dictionary representing the Solr response.
+        """
+        if not isinstance(doc, dict):
+            raise ValueError("doc should be a dictionary.")
+            
+        # Prepare document for atomic update
+        atomic_doc = {"id": doc["id"]}
+        for field, value in doc.items():
+            if field != "id":
+                atomic_doc[field] = {"set": value}
+        
+        return self.add_documents([atomic_doc])  # leverage the add_documents method for updates
+
+
+    def delete_document(self, id):
+        """
+        Delete a document from the Solr index.
+
+        :param id: str - The unique identifier of the document to be deleted.
+        :return: dict - A dictionary representing the Solr response.
+        """
+        if not isinstance(id, str):
+            raise ValueError("id should be a string.")
+        try:
+            self.solr.delete(id=id)
+            # Return a JSON-compatible response
+            return {"status": "success", "id": id}
+        except pysolr.SolrError as e:
+            print(f"Request failed: {e}")
+            return {"status": "failure", "reason": str(e)}
+    
 
     @staticmethod
     def get_feature_suffix(feature_type):
@@ -180,6 +246,10 @@ class Solr:
                         feature_type = match.group(2)
 
                         facet_results = [{"value": value, "count": count} for value, count in zip(counts[::2], counts[1::2])]
+                        
+                        # Skip the feature if there are no facet results
+                        if not facet_results:
+                            continue
 
                         facet_counts["features"].append({
                             "key": clean_field,
@@ -192,6 +262,8 @@ class Solr:
                         pass
 
         return facet_counts
+
+    
 
     
     @staticmethod
@@ -299,3 +371,4 @@ class Solr:
                     return 'boolean'
                 else:
                     return 'string'
+                

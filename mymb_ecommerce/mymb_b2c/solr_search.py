@@ -1,15 +1,15 @@
 
-from mymb_ecommerce.mymb_b2c.settings.media import Media
+from mymb_ecommerce.utils.Media import Media
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
-from mymb_ecommerce.mymb_ecommerce.item_feature import get_features_by_item_name
+from mymb_ecommerce.mymb_ecommerce.item_feature import get_features_by_item_name, map_feature_with_uom_via_family_code
 from mymb_ecommerce.mymb_ecommerce.item_review import get_item_reviews
 from mymb_ecommerce.mymb_ecommerce.wishlist import get_from_wishlist
-from mymb_ecommerce.mymb_ecommerce.repository.DataRepository import DataRepository
+from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.utils.media import get_website_domain
 import frappe
 from frappe import _
 
-from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
+from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 
@@ -55,12 +55,32 @@ def catalogue(args=None):
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
     if min_price and float(min_price) > 0:
-        query += f'AND prezzo:[{min_price} TO *]'
+        query += f' AND net_price_with_vat:[{min_price} TO *]'
 
     # Check if max_price is provided in the query string and add it to the query if it is
     max_price = frappe.local.request.args.get('max_price')
     if max_price and float(max_price) > 0:
-        query += f'AND prezzo:[* TO {max_price}]'
+        query += f' AND net_price_with_vat:[* TO {max_price}]'
+
+    # Check if min_discount_value is provided in the query string and add it to the query if it is
+    min_discount_value = frappe.local.request.args.get('min_discount_value')
+    if min_discount_value and float(min_discount_value) > 0:
+        query += f' AND discount_value:[{min_discount_value} TO *]'
+
+    # Check if max_discount_value is provided in the query string and add it to the query if it is
+    max_discount_value= frappe.local.request.args.get('max_discount_value')
+    if max_discount_value and float(max_discount_value) > 0:
+        query += f' AND discount_value:[* TO {max_discount_value}]'
+
+    # Check if min_discount_percent is provided in the query string and add it to the query if it is
+    min_discount_percent = frappe.local.request.args.get('min_discount_percent')
+    if min_discount_percent and float(min_discount_percent) > 0:
+        query += f' AND discount_percent:[{min_discount_percent} TO *]'
+
+    # Check if max_discount_percent is provided in the query string and add it to the query if it is
+    max_discount_percent= frappe.local.request.args.get('max_discount_percent')
+    if max_discount_percent and float(max_discount_percent) > 0:
+        query += f' AND discount_percent:[* TO {max_discount_percent}]'
 
     order_by = frappe.local.request.args.get('order_by')
 
@@ -70,7 +90,7 @@ def catalogue(args=None):
         'start': start,
         'rows': per_page,
         'stats': 'true',
-        'stats.field': 'prezzo'
+        'stats.field': 'net_price_with_vat'
     }
 
     if groups:
@@ -81,9 +101,9 @@ def catalogue(args=None):
 
     # Sort the search results based on the value of the "order_by" parameter
     if order_by == 'price-asc':
-        search_params['sort'] = 'prezzo asc'
+        search_params['sort'] = 'net_price_with_vat asc'
     elif order_by == 'price-desc':
-        search_params['sort'] = 'prezzo desc'
+        search_params['sort'] = 'net_price_with_vat desc'
 
     # Get the Solr instance from the Configurations class
     solr = solr_instance
@@ -97,7 +117,7 @@ def catalogue(args=None):
     # Get the minimum and maximum prices of all products
     solr_full_response = solr_results.get('response')
     stats = solr_full_response.stats
-    price_stats = stats.get('stats_fields', {}).get('prezzo', {})
+    price_stats = stats.get('stats_fields', {}).get('net_price_with_vat', {})
     min_price_all = price_stats.get('min')
     max_price_all = price_stats.get('max')
 
@@ -119,6 +139,8 @@ def catalogue(args=None):
     if facet:
         category = facet.get('category')
         features = facet.get('features')
+        #We have map features with their uom
+        features = map_feature_with_uom_via_family_code(features , search_results_mapped)
     response =  {
         'totalCount': count,
         'current_page': page + 1,
@@ -135,7 +157,6 @@ def catalogue(args=None):
         "menu_category_detail": get_menu_category_detail(category_detail)
     }
     return response
-
 
 def get_menu_category_detail(category_detail):
     web_site_domain = get_website_domain()
@@ -165,17 +186,16 @@ def map_solr_response_b2c(search_results ):
     # Define the mapping between Solr and our response
     field_mapping = {
         'id': 'id',
-        'oarti': 'id',
-        'carti': 'carti',
-        'carti': 'sku',
+        'sku': 'sku',
         'name': 'name',
-        'prezzo': 'price',
-        'prezzo_iniziale': 'sale_price',
+        'gross_price_with_vat': 'price',
+        'net_price_with_vat': 'sale_price',
         'name_web':'short_description',
-        'promo':'is_sale',
-        'disponibilita':'stock',
-        'images': 'immagini',
-        'slug':'slug'
+        'is_promo':'is_sale',
+        'availability':'stock',
+        'images': 'images',
+        'slug':'slug',
+        'family_code':'family_code'
     }
 
 
@@ -197,10 +217,10 @@ def map_solr_response_b2c(search_results ):
             else:
                 mapped_result[response_field] = result[solr_field]
 
-        if mapped_result['sale_price'] > 0:
+        if mapped_result['sale_price'] > 0 and mapped_result['sale_price']!= mapped_result['price'] :
             # Swap price and sale_price if prezzo_iniziale exists and is greater than 0
-            mapped_result['price'] = result['prezzo_iniziale']
-            mapped_result['sale_price'] = result['prezzo']
+            mapped_result['price'] = result['gross_price_with_vat']
+            mapped_result['sale_price'] = result['net_price_with_vat']
         else:
             mapped_result['sale_price'] = None
 

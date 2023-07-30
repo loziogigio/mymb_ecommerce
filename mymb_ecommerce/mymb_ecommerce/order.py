@@ -1,6 +1,6 @@
 import frappe
 from payments.utils.utils import get_payment_gateway_controller
-from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
+from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 @frappe.whitelist(allow_guest=True)
@@ -23,6 +23,7 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
     else:
         full_name = contact_info.get('first_name')+" "+contact_info.get('last_name')
 
+    #TODO get the price from items price list
     # Create a new Quotation document
     quotation = frappe.get_doc({
         'doctype': 'Quotation',

@@ -21,17 +21,4 @@ class Data(Base):
     lastoperation = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
     def to_dict(self):
-        return {
-            'channel_id': self.channel_id,
-            'entity_id': self.entity_id,
-            'locale_id': self.locale_id,
-            'entity_code': self.entity_code,
-            'property_id': self.property_id,
-            'sorting': self.sorting,
-            'format': self.format,
-            'value': self.value,
-            'value_num': self.value_num,
-            'status': self.status,
-            'user_id': self.user_id,
-            'lastoperation': self.lastoperation
-        }
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

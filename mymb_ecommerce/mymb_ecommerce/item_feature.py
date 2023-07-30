@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from mymb_ecommerce.mymb_b2c.solr_action import update_solr_item_features
+from mymb_ecommerce.controllers.solr_action import update_solr_item_features
 
 @frappe.whitelist()
 def add_feature_list(docs):
@@ -280,13 +280,18 @@ def get_features_by_item_name(item_name):
             ifv.string_value,
             ifv.int_value,
             ifv.float_value,
-            ifv.boolean_value
+            ifv.boolean_value,
+            ff.family_uom
         FROM 
             `tabItem Feature Value` as ifv
         JOIN
             `tabFeature Name` as fn
         ON
             ifv.feature_label = fn.feature_name
+        LEFT JOIN
+            `tabFeature Family` as ff
+        ON
+            fn.feature_name = ff.feature_name
         WHERE
             ifv.item_feature = %s
     """, (item_name), as_dict=True)
@@ -294,19 +299,120 @@ def get_features_by_item_name(item_name):
     # Process the results
     for result in results:
         feature_label = result["feature_label"]
-        default_uom = result["default_uom"]
+        default_uom = result["family_uom"] if result["family_uom"] else result["default_uom"]
         
         if result["feature_type"] == "string":
             value = result["string_value"]
-        elif result["feature_type"] == "int":
-            value = result["int_value"]
-        elif result["feature_type"] == "float":
-            value = result["float_value"]
+            if value == "":
+                continue
+        elif result["feature_type"] == "int" or result["feature_type"] == "float":
+            value = result["int_value"] if result["feature_type"] == "int" else result["float_value"]
+            if value <= 0:
+                continue
         elif result["feature_type"] == "boolean":
             value = bool(result["boolean_value"])
+            if value == "":
+                continue
         else:
             continue
-        
+
+        # Add the feature to the dictionary
         features[feature_label] = {"value": value, "default_uom": default_uom}
     
     return features
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def get_features_by_family_code(family_code):
+    # Query the database to fetch the feature_name and default_uom for the given family_code
+    results = frappe.db.sql("""
+        SELECT
+            ff.feature_name,fn.feature_label,fn.feature_type,
+            IF(ff.family_uom IS NOT NULL AND ff.family_uom != '', ff.family_uom, fn.default_uom) AS default_uom
+        FROM
+            `tabFeature Family` AS ff
+        LEFT JOIN
+            `tabFeature Name` AS fn
+        ON
+            ff.feature_name = fn.feature_name
+        WHERE
+            ff.family_code = %s
+    """, (family_code), as_dict=True)
+
+    # Transform the result into a dictionary
+    features = {result["feature_name"]: {"feature_type": result["feature_type"],"feature_label": result["feature_label"],"default_uom": result["default_uom"]} for result in results}
+
+    return features
+
+
+# def map_feature_with_uom_via_family_code(features , items):
+#     #from search_results_mapped let's get the first family_code
+#     family_code = items[i]["family_code"]
+
+#     feature_for_family = get_features_by_family_code(family_code)
+
+#     #adding to the feature key f=float, s=string,i=integer,b=boolean
+#     #if feature_for_family['feature_name'] == features[index]['label_field'] and feature_for_family['feature_name']["type"] = family_code[index]
+#     #in this case we update the features[index] as follow
+#     #original
+#     {
+#                 "key": "materiale",
+#                 "label_field": "materiale",
+#                 "type": "s",
+#                 "facet_results": [
+#                     {
+#                         "value": "pvc",
+#                         "count": 21
+#                     }
+#                 ]
+#             },
+#     #updated
+#     {
+#                 "key": "materiale",
+#                 "label_field": "materiale",
+#                 "type": "s",
+#                 "uom": "{default_uom}",
+#                 "facet_results": [
+#                     {
+#                         "value": "pvc",
+#                         "count": 21,
+#                         "uom": "{default_uom}",
+#                     }
+#                 ]
+#             },
+def map_feature_with_uom_via_family_code(features, items):
+    # Type mapping dictionary
+    type_map = {"f": "float", "i": "int", "s": "string", "b": "boolean"}
+    
+    # Loop through items and stop at the first occurrence of family_code
+    family_code = None
+    for item in items:
+        if "family_code" in item and item["family_code"]:
+            family_code = item["family_code"]
+            break
+    
+    # If no family_code was found, return the original features
+    if not family_code:
+        return features
+    
+    feature_for_family = get_features_by_family_code(family_code)
+
+    # Loop through features and update them
+    for feature in features:
+        # Check if feature name and type both exist in feature_for_family
+        if feature['label_field'] in feature_for_family and type_map[feature['type']] == feature_for_family[feature['label_field']]['feature_type']:
+            default_uom = feature_for_family[feature['label_field']]['default_uom']
+
+            # Add 'uom' key to the features dictionary
+            feature['uom'] = default_uom
+
+            # Also add 'uom' to each facet result
+            for facet_result in feature['facet_results']:
+                facet_result['uom'] = default_uom
+
+    return features
+
+
+
+

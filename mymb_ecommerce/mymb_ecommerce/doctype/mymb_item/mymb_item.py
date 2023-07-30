@@ -155,11 +155,11 @@ def create_mymb_item(
 		"item_defaults": [{"company": get_default_company()}],
 	}
 
-	item.update(item_dict)
+	item.update(item_dict , ignore_permissions=True )
 
 	new_item = frappe.get_doc(item)
 	new_item.flags.from_integration = True
-	new_item.insert(ignore_permissions=True, ignore_mandatory=True)
+	new_item.insert(ignore_permissions=True)
 
 	mymb_item = frappe.get_doc(
 		{
@@ -176,6 +176,6 @@ def create_mymb_item(
 		}
 	)
 
-	mymb_item.insert()
+	mymb_item.insert(ignore_permissions=True)
 
 

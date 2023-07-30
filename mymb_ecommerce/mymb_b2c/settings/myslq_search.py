@@ -1,8 +1,8 @@
 
 
 import json
-from mymb_ecommerce.mymb_b2c.models.order import Order
-from mymb_ecommerce.utils.database import Database
+from mymb_ecommerce.mymb_b2c.model.order import Order
+from mymb_ecommerce.utils.Database import Database
 
 
 import frappe
@@ -22,7 +22,7 @@ def get_mysql_instance():
     db_config = {
     'drivername': 'mysql',
     'host': '161.156.172.254',
-    'port': '33077',
+    'port': '33077',    
     'username': 'root',
     'password': 'z6GBW~s#',
     'database': 'bricocasa'

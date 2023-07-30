@@ -1,0 +1,419 @@
+function looxb2c_response_gestpay()
+{
+    //    commerce_gestpay_continue();
+
+    $debug = 1; 
+    if ($debug) 
+    {
+        $day = date("Ymd");
+        $hour = date("His");
+        //$today = date("Ymd");
+        $today = $day . '_' . $hour;
+        $name = "looxb2c_response_gestpay_" . $today;
+        $log = SITE_PATH . "/log/" . $name;
+
+//        $post = print_r( $xml, true );
+//        file_put_contents($log, "xml: $post\n", FILE_APPEND);
+    }
+    // Get server type from global settings ('sandbox' or 'live')
+    $server = variable_get('commerce_gestpay_server', 'sandbox');
+
+    // Soap call
+    $client = new SoapClient(commerce_gestpay_wscryptdecrypt_url($server));
+
+    // Get parameters
+    if( !isset( $params ) ) 
+        $params = new stdClass();
+//    $params = null;
+    $params->shopLogin = $_GET["a"];
+    $params->CryptedString = $_GET["b"];
+
+    // Decrypt parameters
+    $objectresult = $client->Decrypt($params);
+    $simpleresult = $objectresult->DecryptResult;
+
+    // Load XML result
+    $xml = simplexml_load_string($simpleresult->any);
+
+    // Load data from XML
+    $xml_result = (string)$xml->TransactionResult;
+    $xml_order_id = (string)$xml->ShopTransactionID;
+    $xml_amount = ltrim(str_replace('.', '', (string)$xml->Amount), '0');
+    $xml_currency = (string)$xml->Currency;
+
+    if ($debug) 
+    {
+        $post = print_r( $xml, true );
+        file_put_contents($log, "xml: $post\n", FILE_APPEND);
+    }  
+    
+	$saved = false;
+    //if( $xml_result != 'KO' )
+    if( $xml_result == 'OK' )
+    {    
+        $query = "SELECT  min( transaction_id ) as trans_id FROM commerce_payment_transaction WHERE order_id=" . $xml_order_id;
+        $transaction_id = db_query( $query )->fetchField();
+    //    $num_results = $results->rowCount();
+
+        if( !empty( $transaction_id ) )
+        {
+            //Controllo che non ci sia il record corrispondente all'ordine nella "orders"
+            $query = "SELECT * FROM orders WHERE external_ref='" . $xml_order_id . "'";
+            $results = db_query( $query );
+            $num_results = $results->rowCount();
+
+            if( $num_results == 0 )
+            {
+                //Nelle tabelle di drupal è già presente il record con i dati della transazione gestpay, resta solo aggiornare le tabelle di sincronizzazione con time
+                looxb2c_save_orders_custom_tables( $xml_order_id );
+				$saved = true;
+				
+            }
+        }    
+        else
+        {    
+            // Create commerce payment transaction
+            $transaction = commerce_payment_transaction_new('commerce_gestpay', $xml_order_id);
+            $transaction->instance_id = 'commerce_gestpay|commerce_payment_commerce_gestpay'; // $payment_method['instance_id'];
+            $transaction->amount = $xml_amount;
+            $transaction->currency_code = _commerce_gestpay_get_currency($xml_currency);
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            $transaction->message = 'Transaction @order_id completed.';
+            $transaction->message_variables = array('@order_id' => $xml_order_id);
+
+            // Save the transaction
+            commerce_payment_transaction_save($transaction);
+
+            looxb2c_save_orders_custom_tables( $xml_order_id );
+			$saved = true;
+        }
+    if( $debug )
+    {    
+
+        file_put_contents($log, "saved: *$saved*\n", FILE_APPEND);
+    }
+		if( $saved )
+		{	
+			if( looxb2c_send_order_mail( $xml_order_id  ) )
+			{
+    if( $debug )
+    {    
+
+        file_put_contents($log, "dopo looxb2c_send_order_mail\n", FILE_APPEND);
+    }
+				//Aggiorniamo la tabella orders segnando che la mail è stata inviata
+				$query = "UPDATE orders SET mail_sent=1 WHERE external_ref='" . $xml_order_id . "'";
+				
+				if( $debug )
+				{
+					$datetime = date('y-m-d h:i:s');
+					file_put_contents($log, "query mail sent - $datetime: $query\n", FILE_APPEND);
+				}    
+				$result = db_query( $query );
+				
+				if( $debug )
+				{
+					file_put_contents($log, "result query mail sent: $result\n", FILE_APPEND);
+				}    
+			}
+        }
+		
+        // Load commerce order
+        $order = commerce_order_load($xml_order_id);
+
+        // Proceed to the next pane page
+        commerce_payment_redirect_pane_next_page($order);
+
+        // Load the final page
+        drupal_goto(commerce_checkout_order_uri($order));
+    }
+    else
+    {
+        $debug = 1; 
+        if ($debug) 
+        {
+            file_put_contents($log, "Xml_Result KO\n", FILE_APPEND);
+        }
+        drupal_goto('/');
+    }
+}
+function looxb2c_response_gestpay_server_to_server()
+{
+    //    commerce_gestpay_continue();
+
+    $debug = 1; 
+    if ($debug) 
+    {
+        $day = date("Ymd");
+        $hour = date("His");
+        //$today = date("Ymd");
+        $today = $day . '_' . $hour;
+        $name = "looxb2c_response_gestpay_server_to_server_" . $today;
+        $log = SITE_PATH . "/log/" . $name;
+
+//        $post = print_r( $xml, true );
+//        file_put_contents($log, "xml: $post\n", FILE_APPEND);
+    }
+    // Get server type from global settings ('sandbox' or 'live')
+    $server = variable_get('commerce_gestpay_server', 'sandbox');
+
+    // Soap call
+    $client = new SoapClient(commerce_gestpay_wscryptdecrypt_url($server));
+
+    // Get parameters
+    if( !isset( $params ) ) 
+        $params = new stdClass();
+//    $params = null;
+    $params->shopLogin = $_GET["a"];
+    $params->CryptedString = $_GET["b"];
+
+    // Decrypt parameters
+    $objectresult = $client->Decrypt($params);
+    $simpleresult = $objectresult->DecryptResult;
+
+    // Load XML result
+    $xml = simplexml_load_string($simpleresult->any);
+
+    // Load data from XML
+    $xml_result = (string)$xml->TransactionResult;
+    $xml_order_id = (string)$xml->ShopTransactionID;
+    $xml_amount = ltrim(str_replace('.', '', (string)$xml->Amount), '0');
+    $xml_currency = (string)$xml->Currency;
+
+    if ($debug) 
+    {
+        $post = print_r( $xml, true );
+        file_put_contents($log, "xml: $post\n", FILE_APPEND);
+    }  
+    
+    $saved = false;
+    //if( $xml_result != 'KO' )
+    if( $xml_result == 'OK' )
+    {    
+        $query = "SELECT  min( transaction_id ) as trans_id FROM commerce_payment_transaction WHERE order_id=" . $xml_order_id;
+        $transaction_id = db_query( $query )->fetchField();
+    //    $num_results = $results->rowCount();
+
+        if( !empty( $transaction_id ) )
+        {
+            //Controllo che non ci sia il record corrispondente all'ordine nella "orders"
+            $query = "SELECT * FROM orders WHERE external_ref='" . $xml_order_id . "'";
+            $results = db_query( $query );
+            $num_results = $results->rowCount();
+
+            if( $num_results == 0 )
+            {
+                //Nelle tabelle di drupal è già presente il record con i dati della transazione gestpay, resta solo aggiornare le tabelle di sincronizzazione con time
+                looxb2c_save_orders_custom_tables( $xml_order_id );
+                $saved = true;
+            }
+        }    
+        else
+        {    
+            // Create commerce payment transaction
+            $transaction = commerce_payment_transaction_new('commerce_gestpay', $xml_order_id);
+            $transaction->instance_id = 'commerce_gestpay|commerce_payment_commerce_gestpay'; // $payment_method['instance_id'];
+            $transaction->amount = $xml_amount;
+            $transaction->currency_code = _commerce_gestpay_get_currency($xml_currency);
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            $transaction->message = 'Transaction @order_id completed.';
+            $transaction->message_variables = array('@order_id' => $xml_order_id);
+
+            // Save the transaction
+            commerce_payment_transaction_save($transaction);
+
+            looxb2c_save_orders_custom_tables( $xml_order_id );
+            $saved = true;
+        }
+        if( $debug )
+        {    
+            file_put_contents($log, "saved: *$saved*\n", FILE_APPEND);
+        }
+        if( $saved )
+        {
+            if( looxb2c_send_order_mail( $xml_order_id  ) )
+            {
+                if( $debug )
+                {    
+                    file_put_contents($log, "dopo looxb2c_send_order_mail\n", FILE_APPEND);
+                }
+                //Aggiorniamo la tabella orders segnando che la mail è stata inviata
+                $query = "UPDATE orders SET mail_sent=1 WHERE external_ref='" . $xml_order_id . "'";
+
+                if( $debug )
+                {
+                    $datetime = date('y-m-d h:i:s');
+                    file_put_contents($log, "query mail sent - $datetime: $query\n", FILE_APPEND);
+                }    
+                $result = db_query( $query );
+                if( $debug )
+                {
+                    file_put_contents($log, "result query mail sent: $result\n", FILE_APPEND);
+                }    
+            }
+        }
+    }
+    else
+    {
+        $debug = 1; 
+        if ($debug) 
+        {
+            file_put_contents($log, "Xml_Result KO\n", FILE_APPEND);
+        }
+    }
+}
+
+/**
+ * Returns the URL with the WSCryptDecrypt WebService
+ */
+function commerce_gestpay_wscryptdecrypt_url($server) {
+  switch ($server) {
+    case 'sandbox':
+      return 'https://testecomm.sella.it/gestpay/gestpayws/WSCryptDecrypt.asmx?WSDL';
+    case 'live':
+      return 'https://ecomms2s.sella.it/gestpay/gestpayws/WSCryptDecrypt.asmx?WSDL';
+  }
+}
+
+
+/**
+ * Returns the URL to the specified Gestpay server.
+ *
+ * @param $server
+ *   Either sandbox or live indicating which server to get the URL for.
+ *
+ * @return
+ *   The URL to use to submit requests to the Gestpay server.
+ */
+function commerce_gestpay_server_url($server) {
+  switch ($server) {
+    case 'sandbox':
+      return 'https://testecomm.sella.it/pagam/pagam.aspx';
+    case 'live':
+      return 'https://ecomm.sella.it/pagam/pagam.aspx';
+  }
+}
+
+/**
+ * Returns an array of all possible currency codes.
+ */
+function commerce_gestpay_currencies() {
+  return array(
+    '242' => t('Euro'),
+    '1' => t('US dollar'),
+    '2' => t('GB pound'),
+    '3' => t('Swiss franc'),
+    '7' => t('Danish krone'),
+    '8' => t('Norwegian krone'),
+    '9' => t('Swedish krona'),
+    '12' => t('Canadian dollar'),
+//     '18' => t('Italian lira'), // not supported by Drupal Commerce
+    '71' => t('Japanese yen'),
+    '103' => t('Hong Kong dollar'),
+    '234' => t('Brazilian real'),
+  );
+}
+
+function _commerce_gestpay_get_currency($gp_currency) {
+  $dc_gp_currencies = array(
+    '242' => 'EUR',
+    '1' => 'USD',
+    '2' => 'GBP',
+    '3' => 'CHF',
+    '7' => 'DKK',
+    '8' => 'NOK',
+    '9' => 'SEK',
+    '12' => 'CAD',
+    '71' => 'JPY',
+    '103' => 'HKD',
+    '234' => 'BRL',
+  );
+  if (array_key_exists($gp_currency, $dc_gp_currencies)){
+    return $dc_gp_currencies[$gp_currency];
+  } else {
+    return FALSE;
+  }
+}
+
+
+function commerce_gestpay_error() {
+  // Get server type from global settings ('sandbox' or 'live')
+  $server = variable_get('commerce_gestpay_server', 'sandbox');
+    $debug = 1; 
+    if ($debug) {
+      $today = date("Ymd");
+      $name = "coomerce_error_gestpay" . $today;
+      $log = "/www-data/bricocasa/sites/all/themes/looxb2c/log/" . $name;
+      $get = print_r( $_GET, true );
+      file_put_contents($log, "GET commerce error gestpay$get\n", FILE_APPEND);
+    }
+  // Soap call
+  $client = new SoapClient(commerce_gestpay_wscryptdecrypt_url($server));
+
+  $params->shopLogin = $_GET["a"];
+  $params->CryptedString = $_GET["b"];
+
+  $objectresult = $client->Decrypt($params);
+  $simpleresult = $objectresult->DecryptResult;
+
+  $xml = simplexml_load_string($simpleresult->any);
+
+  // Load commerce order
+  $order = commerce_order_load((int)$xml->ShopTransactionID);
+
+  // Proceed to the next pane page
+  commerce_payment_redirect_pane_previous_page($order);
+
+  // Set error message
+  drupal_set_message(t('Warning: an error has occured during the payment process.'), 'warning');
+
+  // Load the final page
+  drupal_goto(commerce_checkout_order_uri($order));
+}
+
+
+function commerce_gestpay_continue() {
+  // Get server type from global settings ('sandbox' or 'live')
+  $server = variable_get('commerce_gestpay_server', 'sandbox');
+
+  // Soap call
+  $client = new SoapClient(commerce_gestpay_wscryptdecrypt_url($server));
+
+  // Get parameters
+  $params->shopLogin = $_GET["a"];
+  $params->CryptedString = $_GET["b"];
+
+  // Decrypt parameters
+  $objectresult = $client->Decrypt($params);
+  $simpleresult = $objectresult->DecryptResult;
+
+  // Load XML result
+  $xml = simplexml_load_string($simpleresult->any);
+
+  // Load data from XML
+  $xml_result = (string)$xml->TransactionResult;
+  $xml_order_id = (string)$xml->ShopTransactionID;
+  $xml_amount = ltrim(str_replace('.', '', (string)$xml->Amount), '0');
+  $xml_currency = (string)$xml->Currency;
+
+  // Create commerce payment transaction
+  $transaction = commerce_payment_transaction_new('commerce_gestpay', $xml_order_id);
+  $transaction->instance_id = 'commerce_gestpay|commerce_payment_commerce_gestpay'; // $payment_method['instance_id'];
+  $transaction->amount = $xml_amount;
+  $transaction->currency_code = _commerce_gestpay_get_currency($xml_currency);
+  $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+  $transaction->message = 'Transaction @order_id completed.';
+  $transaction->message_variables = array('@order_id' => $xml_order_id);
+
+  // Save the transaction
+  commerce_payment_transaction_save($transaction);
+
+  // Load commerce order
+  $order = commerce_order_load($xml_order_id);
+
+  // Proceed to the next pane page
+  commerce_payment_redirect_pane_next_page($order);
+
+  // Load the final page
+  drupal_goto(commerce_checkout_order_uri($order));
+}

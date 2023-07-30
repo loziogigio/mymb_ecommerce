@@ -1,23 +1,21 @@
 {
  "actions": [],
  "beta": 1,
- "creation": "2023-02-27 05:19:23.113785",
+ "creation": "2023-07-28 10:10:12.048570",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "enable_mymb_b2c",
+  "enable_mymb",
   "solr_url",
   "image_uri",
   "column_break_79ic",
-  "customer_code",
-  "customer_address_code",
-  "mymb_b2c_site",
-  "mymb_b2c_payment_success_page",
-  "mymb_b2c_payment_failed_page",
+  "mymb_site",
+  "mymb_payment_success_page",
+  "mymb_payment_failed_page",
   "column_break_2",
-  "mymb__db_info_section",
+  "mymb_db_info_section",
   "db_host",
   "db_port",
   "db_item_data",
@@ -59,8 +57,56 @@
  ],
  "fields": [
   {
+   "fieldname": "solr_url",
+   "fieldtype": "Data",
+   "label": "Solr url"
+  },
+  {
+   "fieldname": "image_uri",
+   "fieldtype": "Data",
+   "label": "Image uri"
+  },
+  {
+   "fieldname": "column_break_79ic",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "db_host",
+   "fieldtype": "Data",
+   "label": "db host"
+  },
+  {
+   "fieldname": "db_port",
+   "fieldtype": "Data",
+   "label": "db port"
+  },
+  {
+   "fieldname": "db_item_data",
+   "fieldtype": "Data",
+   "label": "db item data"
+  },
+  {
+   "fieldname": "column_break_ge40",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "db_username",
+   "fieldtype": "Data",
+   "label": "db username"
+  },
+  {
+   "fieldname": "db_password",
+   "fieldtype": "Password",
+   "label": "db password"
+  },
+  {
+   "fieldname": "db_transactions",
+   "fieldtype": "Data",
+   "label": "db transactions"
   },
   {
    "depends_on": "enable_unicommerce",
@@ -126,6 +172,13 @@
    "label": "Item Sync Settings"
   },
   {
+   "default": "0",
+   "description": "If enabled, any new item with \"sync with Unicommerce\" checked will be uploaded to Unicommerce on an hourly basis.",
+   "fieldname": "upload_item_to_mymb_b2c",
+   "fieldtype": "Check",
+   "label": "Upload new items to Mymb b2c"
+  },
+  {
    "fieldname": "default_item_group",
    "fieldtype": "Link",
    "label": "Default Item Group",
@@ -154,8 +207,7 @@
    "fieldname": "default_customer_group",
    "fieldtype": "Link",
    "label": "Default Customer Group",
-   "options": "Customer Group",
-   "reqd": 1
+   "options": "Customer Group"
   },
   {
    "fieldname": "column_break_19",
@@ -176,8 +228,7 @@
    "description": "Status of orders updated in specified days will be synced",
    "fieldname": "order_status_days",
    "fieldtype": "Int",
-   "label": "Sync Order Status Days ",
-   "reqd": 1
+   "label": "Sync Order Status Days "
   },
   {
    "fieldname": "inventory_sync_settings_section",
@@ -220,90 +271,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "solr_url",
-   "fieldtype": "Data",
-   "label": "Solr url"
-  },
-  {
-   "fieldname": "image_uri",
-   "fieldtype": "Data",
-   "label": "Image uri"
-  },
-  {
-   "fieldname": "column_break_79ic",
-   "fieldtype": "Section Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "enable_mymb_b2c",
-   "fieldtype": "Check",
-   "label": "Enable Mymb b2c"
-  },
-  {
-   "depends_on": "enable_mymb_b2c",
-   "description": "E.g. frappe.mymbb2c.com",
-   "fieldname": "mymb_b2c_site",
-   "fieldtype": "Data",
-   "label": "Mymb b2c Site",
-   "mandatory_depends_on": "enable_mymb_b2c"
-  },
-  {
-   "default": "0",
-   "description": "If enabled, any new item with \"sync with Unicommerce\" checked will be uploaded to Unicommerce on an hourly basis.",
-   "fieldname": "upload_item_to_mymb_b2c",
-   "fieldtype": "Check",
-   "label": "Upload new items to Mymb b2c"
-  },
-  {
-   "fieldname": "mymb_b2c_payment_success_page",
-   "fieldtype": "Data",
-   "label": "Success payment page"
-  },
-  {
-   "fieldname": "mymb_b2c_payment_failed_page",
-   "fieldtype": "Data",
-   "label": "Failed payment page"
-  },
-  {
-   "fieldname": "mymb__db_info_section",
-   "fieldtype": "Section Break",
-   "label": "MyMb  db info"
-  },
-  {
-   "fieldname": "db_host",
-   "fieldtype": "Data",
-   "label": "db host"
-  },
-  {
-   "fieldname": "db_port",
-   "fieldtype": "Data",
-   "label": "db port"
-  },
-  {
-   "fieldname": "column_break_ge40",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "db_username",
-   "fieldtype": "Data",
-   "label": "db username"
-  },
-  {
-   "fieldname": "db_password",
-   "fieldtype": "Password",
-   "label": "db password"
-  },
-  {
-   "fieldname": "db_transactions",
-   "fieldtype": "Data",
-   "label": "db transactions"
-  },
-  {
-   "fieldname": "db_item_data",
-   "fieldtype": "Data",
-   "label": "db item data"
-  },
-  {
    "fieldname": "mymb_api_info_section",
    "fieldtype": "Section Break",
    "label": "Mymb API info"
@@ -324,23 +291,42 @@
    "label": "Mymb api password"
   },
   {
-   "fieldname": "customer_code",
-   "fieldtype": "Data",
-   "label": "Mymb B2C customer code"
+   "default": "0",
+   "fieldname": "enable_mymb",
+   "fieldtype": "Check",
+   "label": "Enable Mymb"
   },
   {
-   "fieldname": "customer_address_code",
+   "depends_on": "enable_mymb_b2c",
+   "description": "E.g. frappe.mymbb2c.com",
+   "fieldname": "mymb_site",
    "fieldtype": "Data",
-   "label": "Mymb B2C customer address code"
+   "label": "Mymb  Site",
+   "mandatory_depends_on": "enable_mymb_b2c"
+  },
+  {
+   "fieldname": "mymb_payment_success_page",
+   "fieldtype": "Data",
+   "label": "Success payment page"
+  },
+  {
+   "fieldname": "mymb_payment_failed_page",
+   "fieldtype": "Data",
+   "label": "Failed payment page"
+  },
+  {
+   "fieldname": "mymb_db_info_section",
+   "fieldtype": "Section Break",
+   "label": "MyMb db info"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-07-28 14:24:40.950399",
+ "modified": "2023-07-28 10:10:12.048570",
  "modified_by": "Administrator",
- "module": "mymb b2c",
- "name": "Mymb b2c Settings",
+ "module": "Mymb Ecommerce",
+ "name": "Mymb Settings",
  "owner": "Administrator",
  "permissions": [
   {

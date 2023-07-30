@@ -8,8 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "feature_name",
-  "family_name",
   "family_code",
+  "family_name",
   "family_uom"
  ],
  "fields": [
@@ -32,6 +32,8 @@
   {
    "fieldname": "family_code",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Family Code"
   },
   {
@@ -44,7 +46,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-04-11 11:56:50.731125",
+ "modified": "2023-07-30 10:43:18.900764",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Feature Family",

@@ -15,7 +15,7 @@ from erpnext.e_commerce.doctype.e_commerce_settings.e_commerce_settings import (
 	get_shopping_cart_settings,
 )
 
-from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY
+from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 class UnverifiedReviewer(frappe.ValidationError):

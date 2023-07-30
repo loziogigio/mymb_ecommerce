@@ -8,7 +8,7 @@ from frappe import _, msgprint
 
 
 
-from mymb_ecommerce.utils.jwt_manager import JWTManager, JWT_SECRET_KEY, JWT_EXPIRATION_DELTA
+from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY, JWT_EXPIRATION_DELTA
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 @frappe.whitelist()

@@ -20,16 +20,16 @@ class MymbB2cItem:
 
     def get_mymb_b2c_item(self, sku: str, log_error=True) -> Optional[JsonDict]:
         """Get MymbAPIClient item data for specified SKU code. """
-        item, status = self._get_item_by_carti(sku)
+        item, status = self._get_item_by_sku(sku)
         if status:
             return item
 
-    def _get_item_by_carti(self, carti: str) -> Tuple[Optional[JsonDict], bool]:
-        """Get MymbAPIClient item data by its 'carti' code (SKU).
+    def _get_item_by_sku(self, sku: str) -> Tuple[Optional[JsonDict], bool]:
+        """Get MymbAPIClient item data by its 'sku' code (SKU).
 
 		"""
-		# Construct the Solr query to search for the product based on its SKU (carti)
-        query = f'carti:"{carti}"'
+		# Construct the Solr query to search for the product based on its SKU (sku)
+        query = f'sku:"{sku}"'
 
 		# Construct the Solr search parameters
         search_params = {
