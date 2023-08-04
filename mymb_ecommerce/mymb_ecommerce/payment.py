@@ -446,7 +446,7 @@ def _confirm_sales_order(payment_request_id, status, payment_code=None):
     so.transaction_date = frappe.utils.now_datetime()
     so.paid = 'YES' if status == "Success" else 'NO'
     so.payment_code = payment_code
-    so.save()
+    so.save(ignore_permissions=True)
     frappe.db.commit()
     so.submit()
     frappe.db.commit()
