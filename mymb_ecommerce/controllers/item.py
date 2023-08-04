@@ -1,4 +1,3 @@
-import phpserialize
 import frappe
 from mymb_ecommerce.repository.BcartmagRepository import BcartmagRepository
 from mymb_ecommerce.repository.DataRepository import DataRepository
