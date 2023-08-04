@@ -131,13 +131,24 @@ class MymbAPIClient:
 			'ListaQuantita': quantity_list
 		}
 
-		# Making a POST request to the /GetPrezzaturaMultipla endpoint with the above parameters
-		prices, status = self.request(
-			endpoint="/GetPrezzaturaMultipla",
-			method="POST",
-			body=params,
-			log_error=log_error
-		)
+		
+
+		#
+		# Check if item_codes is not empty
+		if item_codes:
+			# Making a POST request to the /GetPrezzaturaMultipla endpoint with the above parameters
+			prices, status = self.request(
+				endpoint="/GetPrezzaturaMultipla",
+				method="POST",
+				body=params,
+				log_error=log_error
+			)
+		else:
+			# Handle the case when item_codes is empty (return an error message, throw an exception, etc.)
+			return {
+					"error": "GetPrezzaturaMultiplaResult no items given",
+					"params": params
+				}, False
 
 		# If the status of the API call is True, then process the received prices
 		if status:
@@ -162,9 +173,10 @@ class MymbAPIClient:
 					product_data['gross_price'] = price['Prezzo']
 					product_data['availability'] = price['QtaDisponibile']
 					product_data['gross_price_with_vat'] = round(product_data['gross_price']* (1 + (product_data['vat_percent'] / 100)),4)
+					riga_promozione_migliorativa = price.get('RigaPromozioneMigliorativa', {})
 
 					# Check if an improving promotional offer exists based on same quantity request for the product and assign the corresponding values
-					if 'RigaPromozioneMigliorativa' in price  and 'CodicePromozione' in price['RigaPromozioneMigliorativa'] and price['RigaPromozioneMigliorativa']['CodicePromozione'] is not None:
+					if riga_promozione_migliorativa and riga_promozione_migliorativa.get('CodicePromozione') is not None:
 						# Assign all the details related to the improving promotional offer
 						product_data['net_price'] = price['RigaPromozioneMigliorativa']['PrezzoNettoListinoDiRiferimento']
 						product_data['net_price_with_vat'] = round(product_data['net_price'] * (1 + (product_data['vat_percent'] / 100)),4)

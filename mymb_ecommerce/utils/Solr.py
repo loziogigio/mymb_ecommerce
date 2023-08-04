@@ -206,6 +206,20 @@ class Solr:
             print(f"Request failed: {e}")
             return {"status": "failure", "reason": str(e)}
     
+    def delete_all_documents(self):
+        """
+        Delete all documents from the Solr index.
+
+        :return: dict - A dictionary representing the Solr response.
+        """
+        try:
+            self.solr.delete(q='*:*')  # Delete all documents
+            return {"status": "success", "message": "All documents deleted"}
+        except pysolr.SolrError as e:
+            print(f"Request failed: {e}")
+            return {"status": "failure", "reason": str(e)}
+
+    
 
     @staticmethod
     def get_feature_suffix(feature_type):

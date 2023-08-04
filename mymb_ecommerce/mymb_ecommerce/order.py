@@ -2,6 +2,7 @@ import frappe
 from payments.utils.utils import get_payment_gateway_controller
 from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
+from bs4 import BeautifulSoup
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C"):
@@ -175,6 +176,7 @@ def disable_addresses_for_current_customer(address_name):
         return {"error": "Address not found or not associated with the current user"}
 
 
+
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
 def get_sales_orders_for_current_customer(page_num, page_size):
@@ -201,7 +203,7 @@ def get_sales_orders_for_current_customer(page_num, page_size):
         LIMIT %s OFFSET %s
     """, (customer, page_size, offset), as_dict=True)
 
-        # Fetch the details for each item associated with each sales order
+    # Fetch the details for each item associated with each sales order
     for order in sales_orders:
         order_items = frappe.db.sql("""
             SELECT item_code, item_name, qty, rate, image
@@ -210,7 +212,19 @@ def get_sales_orders_for_current_customer(page_num, page_size):
         """, order['name'], as_dict=True)
         order['items'] = order_items
 
+        # Clean the address field
+        soup_shipping = BeautifulSoup(order['shipping_address'], "html.parser")
+        order['shipping_address'] = soup_shipping.prettify().replace("<br/>", " ")
+        soup_shipping = BeautifulSoup(order['shipping_address'], "html.parser")
+        order['shipping_address'] = soup_shipping.get_text()
+
+        soup_billing = BeautifulSoup(order['billing_address'], "html.parser")
+        order['billing_address'] = soup_billing.prettify().replace("<br/>", " ")
+        soup_billing = BeautifulSoup(order['shipping_address'], "html.parser")
+        order['billing_address'] = soup_billing.get_text()
+
     return sales_orders
+
 
 
 @frappe.whitelist(allow_guest=True)

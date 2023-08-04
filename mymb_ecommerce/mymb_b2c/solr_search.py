@@ -188,8 +188,9 @@ def map_solr_response_b2c(search_results ):
         'id': 'id',
         'sku': 'sku',
         'name': 'name',
-        'gross_price_with_vat': 'price',
-        'net_price_with_vat': 'sale_price',
+        'gross_price_with_vat': 'gross_price',
+        'net_price_with_vat': 'net_price',
+        'promo_price_with_vat': 'promo_price',
         'name_web':'short_description',
         'is_promo':'is_sale',
         'availability':'stock',
@@ -217,12 +218,13 @@ def map_solr_response_b2c(search_results ):
             else:
                 mapped_result[response_field] = result[solr_field]
 
-        if mapped_result['sale_price'] > 0 and mapped_result['sale_price']!= mapped_result['price'] :
+        if mapped_result['is_sale']  and mapped_result['promo_price'] > 0 :
             # Swap price and sale_price if prezzo_iniziale exists and is greater than 0
             mapped_result['price'] = result['gross_price_with_vat']
-            mapped_result['sale_price'] = result['net_price_with_vat']
+            mapped_result['sale_price'] = result['promo_price_with_vat']
         else:
             mapped_result['sale_price'] = None
+            mapped_result['price'] = result['net_price_with_vat']
 
         # Map additional fields
         if 'id_group' in result:

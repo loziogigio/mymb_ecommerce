@@ -73,3 +73,22 @@ def update_document_in_solr(args=None):
 
     # Return the response
     return response
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def delete_all_solr_docs():
+    """
+    Delete all documents from the Solr index.
+
+    :return: dict - A dictionary representing the Solr response.
+    """
+
+    # Get the Solr instance from the Configurations class
+    solr = solr_instance
+
+    # Delete all documents from Solr
+    response = solr.delete_all_documents()
+    solr.commit()
+
+    # Return the response
+    return response
+

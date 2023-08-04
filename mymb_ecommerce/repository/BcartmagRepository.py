@@ -27,23 +27,29 @@ class BcartmagRepository:
     def __del__(self):
         self.session.close()
 
-    def get_all_records(self, limit=None, time_laps=None, to_dict=False, filters=None):
+    def get_all_records(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None):
         query = self.session.query(Bcartmag)
-        
+
         if time_laps is not None:
             time_laps = int(time_laps)
             time_threshold = datetime.now() - timedelta(minutes=time_laps)
             query = query.filter(Bcartmag.created_at >= time_threshold)
-        
+
         # Apply the filters
         if filters is not None:
             for key, value in filters.items():
                 # Make sure the attribute exists in the Bcartmag model
                 if hasattr(Bcartmag, key):
                     query = query.filter(getattr(Bcartmag, key) == value)
+
+        # Order by dinse_ianag in descending order
+        query = query.order_by(desc(Bcartmag.dinse_ianag))
         
+        # Apply limit and offset for pagination
         if limit is not None:
             query = query.limit(limit)
+            if page is not None and page > 1:
+                query = query.offset((page - 1) * limit)
 
         results = query.all()
 

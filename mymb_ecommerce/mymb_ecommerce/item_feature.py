@@ -345,42 +345,6 @@ def get_features_by_family_code(family_code):
 
     return features
 
-
-# def map_feature_with_uom_via_family_code(features , items):
-#     #from search_results_mapped let's get the first family_code
-#     family_code = items[i]["family_code"]
-
-#     feature_for_family = get_features_by_family_code(family_code)
-
-#     #adding to the feature key f=float, s=string,i=integer,b=boolean
-#     #if feature_for_family['feature_name'] == features[index]['label_field'] and feature_for_family['feature_name']["type"] = family_code[index]
-#     #in this case we update the features[index] as follow
-#     #original
-#     {
-#                 "key": "materiale",
-#                 "label_field": "materiale",
-#                 "type": "s",
-#                 "facet_results": [
-#                     {
-#                         "value": "pvc",
-#                         "count": 21
-#                     }
-#                 ]
-#             },
-#     #updated
-#     {
-#                 "key": "materiale",
-#                 "label_field": "materiale",
-#                 "type": "s",
-#                 "uom": "{default_uom}",
-#                 "facet_results": [
-#                     {
-#                         "value": "pvc",
-#                         "count": 21,
-#                         "uom": "{default_uom}",
-#                     }
-#                 ]
-#             },
 def map_feature_with_uom_via_family_code(features, items):
     # Type mapping dictionary
     type_map = {"f": "float", "i": "int", "s": "string", "b": "boolean"}
