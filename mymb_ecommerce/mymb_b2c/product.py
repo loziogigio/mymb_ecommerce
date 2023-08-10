@@ -38,8 +38,8 @@ ItemCode = NewType("ItemCode", str)
 MYMB_B2C_TO_ERPNEXT_ITEM_MAPPING = {
     "sku": "item_code",
     "name": "item_name",
-    "description": "item_description",
-    "prezzo": "standard_rate",
+    "description": "description",
+    "net_price_with_vat": "standard_rate",
     "slug": "website_link",
     "brand": "brand"
 }
@@ -95,9 +95,6 @@ def import_mymb_b2c_single_product(sku: str = None , mymb_b2c_item: any = None):
     try:
         import_product_from_mymb_b2c(item, sku) # Pass SKU here
         update_main_image_item(item)
-        stock = item["availability"]
-        if stock > 0:
-            stock_reconciliation_b2c_product(sku , stock )
     except Exception as e:
         # Log the error
         frappe.log_error(message=frappe.get_traceback(), title="Error while importing mymb_b2c item")
@@ -130,7 +127,7 @@ def stock_reconciliation_b2c_product(sku , stock):
 			# Create a stock reconciliation for the item
 			stock_recon = frappe.get_doc({
 				'doctype': 'Stock Reconciliation',
-				'title': f"Stock Update for {item.item_name}",
+				'title': f"Stock Update for {item.name}",
 				'purpose': 'Stock Reconciliation',
 				'warehouse': warehouse,
 				'items': [item_data]
@@ -173,10 +170,9 @@ def import_product_from_mymb_b2c(item: any , sku=None) -> None:
             raise ValueError("SKU not found in item data")
 
         _check_and_match_existing_item(item)
-
+		
         item_dict = _create_item_dict(item)
-
-        mymb_item.create_mymb_item(MODULE_NAME, integration_item_code=sku, sku=sku, oarti=item["id"], item_dict=item_dict)
+        mymb_item.create_or_update_mymb_item(MODULE_NAME, integration_item_code=sku, sku=sku, oarti=item["id"], item_dict=item_dict , qty=item.get("availability", 0) )
 
     except Exception as e:
         create_mymb_b2c_log(
@@ -245,31 +241,43 @@ def _get_barcode_data(mymb_b2c_item):
 
 
 def _check_and_match_existing_item(mymb_b2c_item):
-	"""Tries to match new item with existing item using SKU == item_code.
+    """Tries to match new item with existing item using SKU == item_code.
 
-	Returns true if matched and linked.
-	"""
+    Returns true if matched and linked.
+    """
 
-	sku = mymb_b2c_item["sku"]
-	oarti = mymb_b2c_item["id"]
-	item_name = frappe.db.get_value("Item", {"item_code": sku})
-	if item_name:
-		try:
-			mymb_item = frappe.get_doc(
-				{
-					"doctype": "Mymb Item",
-					"integration": MODULE_NAME,
-					"erpnext_item_code": item_name,
-					"integration_item_code": sku,
-					"has_variants": 0,
-					"sku": sku,
-					"oarti":oarti
-				}
-			)
-			mymb_item.insert(ignore_permissions=True)
-			return True
-		except Exception as e:
-			return f"Import failed due to error: {str(e)}"
+    sku = mymb_b2c_item["sku"]
+    id = mymb_b2c_item["id"]
+
+    # Include integration module in the filter
+    item_filter = {"integration_item_code": sku, "integration": MODULE_NAME}
+    mymb_item_name = frappe.db.get_value("Mymb Item", item_filter)
+
+    if mymb_item_name:
+        # Update existing Mymb Item
+        return True
+    else:
+        # Insert new Mymb Item
+        item_name = frappe.db.get_value("Item", {"item_code": sku})
+        if item_name:
+            try:
+                mymb_item = frappe.get_doc(
+                    {
+                        "doctype": "Mymb Item",
+                        "integration": MODULE_NAME,
+                        "erpnext_item_code": item_name,
+                        "integration_item_code": sku,
+                        "has_variants": 0,
+                        "sku": sku,
+                        "oarti": id
+                    }
+                )
+                mymb_item.insert(ignore_permissions=True)
+                return True
+            except Exception as e:
+                return f"Import failed due to error: {str(e)}"
+
+    return False
 
 
 def _validate_create_brand(brand):

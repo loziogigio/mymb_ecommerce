@@ -64,7 +64,7 @@ def is_synced(
 
 	sku is optional. Use SKU alone with integration to check if it's synced.
 	E.g.
-	        integration: shopify,
+	        integration: mymb b2c,
 	        integration_item_code: TSHIRT
 	"""
 
@@ -125,7 +125,7 @@ def get_erpnext_item(
 		return frappe.get_doc("Item", item_code)
 
 
-def create_mymb_item(
+def create_or_update_mymb_item(
 	integration: str,
 	integration_item_code: str,
 	item_dict: Dict,
@@ -134,11 +134,8 @@ def create_mymb_item(
 	oarti: Optional[str] = None,
 	variant_of: Optional[str] = None,
 	has_variants=0,
+	qty=0
 ) -> None:
-	"""Create Item in erpnext and link it with Mymb Item doctype.
-
-	item_dict contains fields necessary to populate Item doctype.
-	"""
 
 	# SKU not allowed for template items
 	sku = cstr(sku) if not has_variants else None
@@ -146,36 +143,77 @@ def create_mymb_item(
 	if is_synced(integration, integration_item_code, variant_id, sku):
 		return
 
-	# crete default item
-	item = {
-		"doctype": "Item",
-		"is_stock_item": 1,
-		"is_sales_item": 1,
-		"include_item_in_manufacturing": 0,
-		"item_defaults": [{"company": get_default_company()}],
+	# Check if the item already exists by a unique identifier, such as SKU
+	existing_item = frappe.db.get_value("Item", {"name": sku}) if sku else None
+
+	# Update existing item if found
+	if existing_item:
+		item = frappe.get_doc("Item", existing_item)
+		item.update(item_dict)
+		item.flags.from_integration = True
+		item.save(ignore_permissions=True)
+	else:
+		# Create a new item if not found
+		item_data = {
+			"doctype": "Item",
+			"is_stock_item": 1,
+			"is_sales_item": 1,
+			"include_item_in_manufacturing": 0,
+			"item_defaults": [{"company": get_default_company()}],
+		}
+		if qty > 0:
+			item_dict['disabled'] =  0  # Enabme the item
+		item_data.update(item_dict)  # Updating the item_data with the values from item_dict
+		new_item = frappe.get_doc(item_data)
+		new_item.flags.from_integration = True
+		new_item.insert(ignore_permissions=True)
+		create_stock_entry(new_item, qty)  # U
+
+	# Create or update the corresponding Mymb Item doctype
+	mymb_item_data = {
+		"doctype": "Mymb Item",
+		"integration": integration,
+		"erpnext_item_code": existing_item or new_item.name,
+		"integration_item_code": integration_item_code,
+		"has_variants": has_variants,
+		"variant_id": cstr(variant_id),
+		"variant_of": cstr(variant_of),
+		"sku": sku,
+		"oarti": oarti,
+		"item_synced_on": now(),
 	}
 
-	item.update(item_dict , ignore_permissions=True )
+	# Check if the Mymb Item already exists
+	existing_mymb_item = frappe.db.get_value("Mymb Item", {"integration_item_code": integration_item_code , "integration": integration})
 
-	new_item = frappe.get_doc(item)
-	new_item.flags.from_integration = True
-	new_item.insert(ignore_permissions=True)
-
-	mymb_item = frappe.get_doc(
-		{
-			"doctype": "Mymb Item",
-			"integration": integration,
-			"erpnext_item_code": new_item.name,
-			"integration_item_code": integration_item_code,
-			"has_variants": has_variants,
-			"variant_id": cstr(variant_id),
-			"variant_of": cstr(variant_of),
-			"sku": sku,
-			"oarti": oarti,
-			"item_synced_on": now(),
-		}
-	)
-
-	mymb_item.insert(ignore_permissions=True)
+	if existing_mymb_item:
+		mymb_item = frappe.get_doc("Mymb Item", existing_mymb_item)
+		mymb_item.update(mymb_item_data)
+		mymb_item.save(ignore_permissions=True)
+	else:
+		mymb_item = frappe.get_doc(mymb_item_data)
+		mymb_item.insert(ignore_permissions=True)
 
 
+def create_stock_entry(item, qty):
+    warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+    
+    stock_entry = frappe.get_doc({
+        "doctype": "Stock Entry",
+        "purpose": "Material Receipt", # Or another purpose depending on your use case
+        "stock_entry_type": "Material Receipt", # This may vary based on your requirements
+        "from_warehouse": "", # May not be required if this is an initial receipt
+        "to_warehouse": warehouse, # The warehouse where the stock will be received
+        "items": [
+            {
+                "item_code": item.get("item_code"),
+                "qty": qty, # Add the quantity of items
+                "uom": item.get("uom"), # Add the unit of measure
+                "t_warehouse": warehouse # The target warehouse for this item
+            }
+        ]
+    })
+
+    stock_entry.insert(ignore_permissions=True)
+    stock_entry.submit()
+    frappe.db.commit() # Commit the transaction to ensure it's saved

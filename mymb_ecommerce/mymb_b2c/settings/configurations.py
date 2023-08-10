@@ -59,15 +59,17 @@ class Configurations:
     
     
 
-    def get_mysql_connection(self):
+    def get_mysql_connection(self , is_db_transaction=False):
         """Get the MySQL connection from the Mymb b2c Settings DocType"""
         if not hasattr(self, 'mysql_connection'):
             username = self.doc.get('db_username')
             db_password = get_decrypted_password("Mymb b2c Settings", self.doc.name, 'db_password')  # Decrypt the password
             db_host = self.doc.get('db_host')
             db_port = self.doc.get('db_port')
-            db_item_data = self.doc.get('db_item_data')
-
+            if is_db_transaction:
+                db_name = self.doc.get('db_transactions')
+            else:
+                db_name = self.doc.get('db_item_data')
 
             db_config = {
                 'drivername': 'mysql',
@@ -75,7 +77,7 @@ class Configurations:
                 'password': db_password,
                 'host': db_host,
                 'port': db_port,
-                'database': db_item_data
+                'database': db_name
             }
             self.mysql_connection = Database(db_config)
 

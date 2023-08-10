@@ -106,11 +106,11 @@ def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fe
     for item in items["data"]:
         solr_document = transform_to_solr_document(item)
 
-        # If solr_document is None, the document was skipped
-        if solr_document is None:
+        # Skip if solr_document is None, or if item['properties'] or item['medias'] is empty or missing
+        if solr_document is None or not item.get('properties') or not item.get('medias'):
             sku = item.get('carti', "No code available")
             skipped_items.append(sku)
-            frappe.log_error( f"Error: Skipped Item SKU: {sku} to Solr", f"Skipped document with SKU: {sku} due to missing slug or prices.")
+            frappe.log_error(f"Warning: Skipped Item in solr  SKU: {sku} , D: {solr_document['id']}  to Solr", f"Skipped document with SKU: {sku} due to missing slug or prices or properties or medias. {solr_document}")
             continue
 
         result = add_document_to_solr(solr_document)
@@ -118,7 +118,7 @@ def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fe
             success_items.append(solr_document['sku'])
         else:
             failure_items.append(solr_document['sku'])
-            frappe.log_error(f"Error: Import Item SKU: {solr_document['sku']} to Solr",f"Failed to add document with SKU: {solr_document['sku']} to Solr. Reason: {result['reason']}" )
+            frappe.log_error(title=f"Error: Import Item in solr SKU: {solr_document['sku']} ID: {solr_document['id']} ", message=f"Failed to add document with SKU: {solr_document['sku']} to Solr. Reason: {result['reason']}" )
 
     return {
         "data": {
