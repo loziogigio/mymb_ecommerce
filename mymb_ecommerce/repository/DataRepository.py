@@ -2,8 +2,6 @@ from sqlalchemy import and_, text
 from sqlalchemy.orm import sessionmaker
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from mymb_ecommerce.model.Data import Data
-from sqlalchemy import case
-
 class DataRepository:
 
     def __init__(self):
@@ -25,16 +23,7 @@ class DataRepository:
                 Data.entity_code.in_(entity_codes),
                 Data.channel_id.in_(["B2C", "DEFAULT"])
             )
-        ).order_by(
-            case(
-                [
-                    (Data.channel_id == "B2C", 1),
-                    (Data.channel_id == "DEFAULT", 2)
-                ],
-                else_=3
-            ),
-            Data.sorting
-        ).all()
+        ).order_by(Data.sorting).all()
 
 
     def get_data_by_entity_code(self, entity_code, last_operation=None):
@@ -44,16 +33,7 @@ class DataRepository:
                 Data.channel_id.in_(["B2C", "DEFAULT"]),
                 (Data.lastoperation > last_operation) if last_operation else True
             )
-        ).order_by(
-            case(
-                [
-                    (Data.channel_id == "B2C", 1),
-                    (Data.channel_id == "DEFAULT", 2)
-                ],
-                else_=3
-            ),
-            Data.sorting
-        )
+        ).order_by(Data.sorting)
         return query.all()
 
     def count_data_by_entity_code(self, entity_code, last_operation=None):
