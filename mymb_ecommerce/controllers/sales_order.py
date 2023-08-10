@@ -42,6 +42,12 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
     # Iterate through Sales Orders to export to new schema
     for sales_order in sales_orders:
+
+         # Check if a B2COrder with this external_ref already exists
+        existing_order = b2c_order_repo.session.query(B2COrder).filter_by(external_ref=sales_order['name']).first()
+        if existing_order:
+            continue
+            
         billing_address_details = vars(sales_order.get('billing_address_details', None))
         shipping_address_details = vars(sales_order.get('shipping_address_details', None))
         order_rows =sales_order['items']
@@ -59,16 +65,21 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             creation_date=datetime.now(), # You may need to adjust this based on your data
 
             
-            billing_country=billing_address_details.get('country','IT'),
-            billing_prov=billing_address_details.get('state','IT'),
+            #To make it dynamic
+            # billing_country=billing_address_details.get('country','IT'),
+            # billing_prov=billing_address_details.get('state','IT'),
+            billing_country='IT',
+            billing_prov='VC',
             billing_city=billing_address_details.get('city',''),
             billing_address=billing_address_details.get('address_line1','')+' '+billing_address_details.get('address_line2',''),
             billing_postalcode=billing_address_details['pincode'],
             billing_name=billing_address_details['name'],
             billing_phone=billing_address_details['phone'],
 
-            shipping_country=shipping_address_details.get('country','IT'),
-            shipping_prov=shipping_address_details.get('state','IT'),
+            # shipping_country=shipping_address_details.get('country','IT'),
+            # shipping_prov=shipping_address_details.get('state','IT'),
+            shipping_country='IT',
+            shipping_prov='VC',
             shipping_city=shipping_address_details.get('city',''),
             shipping_address=shipping_address_details.get('address_line1','')+' '+shipping_address_details.get('address_line2',''),
             shipping_postalcode=shipping_address_details['pincode'],
@@ -77,7 +88,21 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
             channel_id=sales_order['channel']
         )
-        
+        #If is billing 
+        if sales_order['invoice_requested']:
+            b2c_order.billing_name = sales_order['recipient_full_name']
+            if sales_order['customer_type']=='Company':
+                b2c_order.invoice_required = True
+                b2c_order.billing_company = sales_order['company_name']
+                b2c_order.billing_vat = sales_order['vat_number']
+                b2c_order.billing_pec = sales_order['pec']
+                b2c_order.billing_sdi = sales_order['recipient_code']
+            else:
+                b2c_order.private_invoice = True
+                b2c_order.codfisc = sales_order['tax_code']
+
+
+
         # Save the B2COrder
         b2c_order_repo.session.add(b2c_order)
         b2c_order_repo.session.commit()
@@ -136,12 +161,12 @@ def export_order_transactions(b2c_order, order_transaction):
     transaction = B2COrderTransaction(
         transaction_id=order_transaction['name'],
         order_id= b2c_order.order_id ,
-        status='PAID',
+        status=b2c_order.status,
         currency=b2c_order.currency,
         amount=order_transaction['grand_total'],
         transaction_date=order_transaction['creation'],
         modify_date=order_transaction['modified'], # Make sure this is a valid datetime object
-        remote_status='PAID',
+        remote_status=b2c_order.status,
         payload=payload
     )
 
