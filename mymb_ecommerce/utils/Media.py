@@ -1,5 +1,3 @@
-import frappe
-import requests
 import os
 
 
@@ -9,7 +7,7 @@ class Media:
         self.image_uri = image_uri
 
 
-    def get_image_sizes(self, result):
+    def get_image_sizes(self, result , prefix_thumb='thumb_',prefix_gallery='gallery_' ,prefix_main='main_' ):
         """
         Get image URLs for different sizes from Solr result
         """
@@ -26,17 +24,17 @@ class Media:
                 'height': '1000'
             },
             'small_pictures': {
-                'prefix': 'thumb_',
+                'prefix': prefix_thumb,
                 'width': '150',
                 'height': '150'
             },
             'gallery_pictures': {
-                'prefix': 'gallery_',
+                'prefix': prefix_gallery,
                 'width': '350',
                 'height': '350'
             },
             'main_pictures': {
-                'prefix': 'main_',
+                'prefix': prefix_main,
                 'width': '800',
                 'height': '800'
             }
@@ -54,8 +52,12 @@ class Media:
                 new_file_name = size_prefix + file_name
                 new_image_path = os.path.join(dir_name, new_file_name)
 
+                base_path=''
+                if self.image_uri:
+                    base_path = self.image_uri + '/'
+
                 size_images.append({
-                    'url': self.image_uri + '/' + new_image_path,
+                    'url': base_path + new_image_path,
                     'width': size_width,
                     'height': size_height
                 })
