@@ -6,7 +6,7 @@ from frappe.utils import add_days, today, getdate
 from datetime import date
 import requests
 import json
-
+from frappe.utils.password import get_decrypted_password
 
 from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
@@ -66,8 +66,13 @@ def payment_request(quotation_name, payment_gateway="paypal"):
     doc = make_payment_request(dn=sales_order.name, dt="Sales Order", order_type="Shopping Cart", submit_doc=1)
 
     # Check the payment gateway and determine the appropriate URL
-    wired_transfer_data = ""
-    if payment_gateway == "paypal":
+    wired_transfer_data = None
+    clientSecret= None
+    payment_url = None
+
+    if payment_gateway == "stripe":
+        clientSecret = get_stripe_secret(doc)
+    elif payment_gateway == "paypal":
         payment_url = doc.get_payment_url()
     elif payment_gateway == "gestpay":
         payment_url = get_gestpay_url(doc)
@@ -80,7 +85,8 @@ def payment_request(quotation_name, payment_gateway="paypal"):
     return {
         "payment_request": doc,
         "payment_url": payment_url,
-        "wired_transfer_data" : wired_transfer_data
+        "wired_transfer_data" : wired_transfer_data,
+        "clientSecret":clientSecret
     }
 
 def _create_sales_order(quotation ):
@@ -313,8 +319,11 @@ def get_paypal_url(payment_entry, paypal_settings):
     # return paypal_url + "?" + urllib.parse.urlencode(paypal_params)
 
 def get_gestpay_url(doc):
-    testEnv = True
-    shopLogin = "GESPAY95439"
+
+    gestpay_settings = frappe.get_single('GestPay Settings')
+
+    testEnv = gestpay_settings.test_environment
+    shopLogin = gestpay_settings.shop_login
     transactionId = f"{doc.name}"
     item = f"brico-casa order {doc.reference_name}"
     amount = doc.grand_total
@@ -346,7 +355,50 @@ def get_gestpay_url(doc):
         frappe.log_error(message=f"An error occurred while getting the Gestpay URL: {response.text}", title=f"Get Gestpay URL Error transactionID:{transactionId}")
         return None
 
+def get_stripe_secret(doc):
 
+    transactionId = f"{doc.name}"
+    item = f"order {doc.reference_name}"
+    # stripe_key = 'sk_test_51NfwNVFoxMa9Ie1fdcT5BI2H5Ivqv7uzoOahzBbvpfT6jgvnY7HtlXrfcSxu0xrFWsL3if8281mQ9NL55cenTJbO00QvH2k3J2'
+    amount = doc.grand_total
+
+    # Fetch the stripe_key from Stripe Settings in ERPNext
+    stripe_settings = frappe.get_all('Stripe Settings', limit_page_length=1)
+    if stripe_settings:
+        first_stripe_setting = frappe.get_doc('Stripe Settings', stripe_settings[0].name)
+        # You can now use first_stripe_setting to access the fields
+        publishable_key = first_stripe_setting.publishable_key
+        stripe_key_encrypetd = first_stripe_setting.secret_key
+        stripe_key = stripe_key = get_decrypted_password("Stripe Settings", first_stripe_setting.name, 'secret_key') # Decrypt the password
+
+
+    # db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
+    
+
+    # Define the API endpoint
+    api_url = "https://crowdechain.com/stripe/create-payment-intent"
+
+    # Define the headers for the API request
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    # Define the payload for the API request
+    payload = {
+        "amount": amount*100, #amount in cent
+        "transactionId": transactionId,
+        "stripe_key":stripe_key
+    }
+
+    # Make the POST request and get the response
+    response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+
+    # If the request was successful, return the URL
+    if response.status_code == 200:
+        return response.json()['clientSecret']  # Assuming the URL is returned in the 'clientSecret' key of the JSON response
+    else:
+        frappe.log_error(message=f"An error occurred while getting the Gestpay URL: {response.text}", title=f"Get Gestpay URL Error transactionID:{transactionId}")
+        return None
 
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
@@ -462,7 +514,7 @@ def gestpay_transaction_result():
     
     
     # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/server/response"
+    api_url = "https://crowdechain.com/gestpay/response"
     
     # Get the parameters from the original request
     parameters = frappe.request.args
@@ -477,7 +529,7 @@ def gestpay_transaction_result():
 	 # Parse the response as json and transform it into a dictionary
     response_dict = frappe._dict(response.json())
     # Fetch 'data' from response_dict
-    data = frappe._dict(response_dict.get('data', {}))
+    data = frappe._dict(response_dict.get('result', {}))
     
     # Get the ShopTransactionID and remove the 'brico-casa_' prefix
     payment_request_id = data.get("ShopTransactionID")
@@ -519,7 +571,7 @@ def gestpay_transaction_result():
 def gestpay_check_response():
     
     # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/server/response"
+    api_url = "https://crowdechain.com/gestpay/response"
     
     # Get the parameters from the original request
     parameters = frappe.request.args
