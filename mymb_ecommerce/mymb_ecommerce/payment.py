@@ -86,7 +86,8 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         "payment_request": doc,
         "payment_url": payment_url,
         "wired_transfer_data" : wired_transfer_data,
-        "clientSecret":clientSecret
+        "clientSecret":clientSecret,
+        "quotation":quotation
     }
 
 def _create_sales_order(quotation ):
@@ -130,7 +131,32 @@ def _create_sales_order(quotation ):
         "party_name": quotation.customer_name,
         "delivery_date":  None,
 		"order_type":"Shopping Cart",
-        "discounts": 0
+        "selling_price_list": quotation.selling_price_list,
+        "price_list_currency": quotation.price_list_currency,
+        "plc_conversion_rate": quotation.plc_conversion_rate,
+        "ignore_pricing_rule": quotation.ignore_pricing_rule,
+        "total_qty": quotation.total_qty,
+        "total_net_weight": quotation.total_net_weight,
+        "base_total": quotation.base_total,
+        "base_net_total": quotation.base_net_total,
+        "total": quotation.total,
+        "net_total": quotation.net_total,
+        "tax_category": quotation.tax_category,
+        "base_total_taxes_and_charges": quotation.base_total_taxes_and_charges,
+        "total_taxes_and_charges": quotation.total_taxes_and_charges,
+        "base_grand_total": quotation.base_grand_total,
+        "base_rounding_adjustment": quotation.base_rounding_adjustment,
+        "base_rounded_total": quotation.base_rounded_total,
+        "base_in_words": quotation.base_in_words,
+        "grand_total": quotation.grand_total,
+        "rounding_adjustment": quotation.rounding_adjustment,
+        "rounded_total": quotation.rounded_total,
+        "in_words": quotation.in_words,
+        "apply_discount_on": quotation.apply_discount_on,
+        "base_discount_amount": quotation.base_discount_amount,
+        "coupon_code": quotation.coupon_code,
+        "additional_discount_percentage": quotation.additional_discount_percentage,
+        "discount_amount": quotation.discount_amount,
     })
 
 	# Update custom form field from quotation
@@ -325,7 +351,7 @@ def get_gestpay_url(doc):
     testEnv = gestpay_settings.test_environment
     shopLogin = gestpay_settings.shop_login
     transactionId = f"{doc.name}"
-    item = f"brico-casa order {doc.reference_name}"
+    item = f"N. Ord: {doc.reference_name}"
     amount = doc.grand_total
 
     # Define the API endpoint
