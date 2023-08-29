@@ -8,6 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "enable_mymb_b2c",
+  "b2c_url",
+  "column_break_uxxs",
   "solr_url",
   "image_uri",
   "column_break_79ic",
@@ -332,12 +334,21 @@
    "fieldname": "customer_address_code",
    "fieldtype": "Data",
    "label": "Mymb B2C customer address code"
+  },
+  {
+   "fieldname": "b2c_url",
+   "fieldtype": "Data",
+   "label": "B2C Url"
+  },
+  {
+   "fieldname": "column_break_uxxs",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-07-28 14:24:40.950399",
+ "modified": "2023-08-28 14:27:56.878774",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
