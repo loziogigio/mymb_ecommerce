@@ -25,11 +25,18 @@ class JWTManager:
     def decode(self, token):
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            print("payload", payload)
             return payload
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as e:
+            print("JWT Error:", str(e))
             return None
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            print("JWT InvalidTokenError:", str(e))
             return None
+        except Exception as e:  # Catch any other exceptions
+            print("Unknown JWT error:", str(e))
+            return None
+
     @staticmethod
     def jwt_required(fn):
         @functools.wraps(fn)

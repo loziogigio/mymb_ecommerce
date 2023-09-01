@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import frappe
 from frappe.utils.password import update_password
 from frappe.utils import now_datetime, add_to_date
@@ -72,7 +72,7 @@ def create_jwt(user):
         'sub': user.name,
         'email': user.email,
         'roles': [role.role for role in user.get("roles")],
-        'iat': now_datetime(),
+        'iat': datetime.utcnow() - timedelta(days=1)
     }
     token = jwt_manager.encode(payload, expiration_minutes=JWT_EXPIRATION_DELTA * 60)
     return token
