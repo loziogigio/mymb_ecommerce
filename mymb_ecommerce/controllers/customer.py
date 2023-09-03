@@ -1,77 +1,92 @@
 # from typing import Dict
 
-# import frappe
-# from frappe import _
+import frappe
+from frappe import _
 # from frappe.utils.nestedset import get_root_of
 
 
-# class MymbCustomer:
-# 	def __init__(self, customer_id: str, customer_id_field: str, integration: str):
-# 		self.customer_id = customer_id
-# 		self.customer_id_field = customer_id_field
-# 		self.integration = integration
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def set_search_settings(customer_code=None, customer_address_code=None, disable_gross_price_view=None):
+    # Ensure the required parameters are provided
 
-# 	def is_synced(self) -> bool:
-# 		"""Check if customer on Ecommerce site is synced with ERPNext"""
+    if not customer_code or not customer_address_code or disable_gross_price_view not in [True, False]:
+        return {
+            "data": _("Customer code, Customer address code, and disable gross price view are mandatory.")
+        }
 
-# 		return bool(frappe.db.exists("Customer", {self.customer_id_field: self.customer_id}))
 
-# 	def get_customer_doc(self):
-# 		"""Get ERPNext customer document."""
-# 		if self.is_synced():
-# 			return frappe.get_last_doc("Customer", {self.customer_id_field: self.customer_id})
-# 		else:
-# 			raise frappe.DoesNotExistError()
+    # Fetch the existing record, if any
+    existing_record = frappe.get_value("Customer Search Settings",
+                                       {"customer_code": customer_code, "customer_address_code": customer_address_code},
+                                       ['name', 'customer_code','customer_address_code','disable_gross_price_view','admin_disable_gross_price_view'],
+                                       as_dict=True)
 
-# 	def sync_customer(self, customer_name: str, customer_group: str) -> None:
-# 		"""Create customer in ERPNext if one does not exist already."""
-# 		customer = frappe.get_doc(
-# 			{
-# 				"doctype": "Customer",
-# 				"name": self.customer_id,
-# 				self.customer_id_field: self.customer_id,
-# 				"customer_name": customer_name,
-# 				"customer_group": customer_group,
-# 				"territory": get_root_of("Territory"),
-# 				"customer_type": _("Individual"),
-# 			}
-# 		)
+    # If the record doesn't exist, create a new one
+    if not existing_record:
+        new_record = frappe.get_doc({
+            "doctype": "Customer Search Settings",
+            "customer_code": customer_code,
+            "customer_address_code": customer_address_code,
+            "disable_gross_price_view": disable_gross_price_view
+        })
+        new_record.insert(ignore_permissions=True)
+        frappe.db.commit()
+        data = _("New settings created successfully!")
 
-# 		customer.flags.ignore_mandatory = True
-# 		customer.insert(ignore_permissions=True)
+    # If the record exists and admin_disable_gross_price_view is not True, update it
+    else:
+        if not existing_record.admin_disable_gross_price_view:
+            frappe.db.set_value("Customer Search Settings", existing_record.name, "disable_gross_price_view", disable_gross_price_view)
+            frappe.db.commit()
+            data = _("Settings updated successfully!")
+        else:
+            data = _("Settings cannot be updated as admin has disabled gross price view.")
 
-# 	def get_customer_address_doc(self, address_type: str):
-# 		try:
-# 			customer = self.get_customer_doc().name
-# 			addresses = frappe.get_all("Address", {"link_name": customer, "address_type": address_type})
-# 			if addresses:
-# 				address = frappe.get_last_doc("Address", {"name": addresses[0].name})
-# 				return address
-# 		except frappe.DoesNotExistError:
-# 			return None
+    return {
+        "data": data
+    }
 
-# 	def create_customer_address(self, address: Dict[str, str]) -> None:
-# 		"""Create address from dictionary containing fields used in Address doctype of ERPNext."""
 
-# 		customer_doc = self.get_customer_doc()
 
-# 		frappe.get_doc(
-# 			{
-# 				"doctype": "Address",
-# 				**address,
-# 				"links": [{"link_doctype": "Customer", "link_name": customer_doc.name}],
-# 			}
-# 		).insert(ignore_mandatory=True)
 
-# 	def create_customer_contact(self, contact: Dict[str, str]) -> None:
-# 		"""Create contact from dictionary containing fields used in Address doctype of ERPNext."""
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def get_search_settings(customer_code, customer_address_code):
+    if not customer_code or not customer_address_code:
+        return {
+            "data": {
+                "error": _("Customer code and Customer address code are mandatory.")
+            }
+        }
 
-# 		customer_doc = self.get_customer_doc()
+    # Fetch the existing record
+    existing_record = frappe.get_value("Customer Search Settings",
+                                       {"customer_code": customer_code, "customer_address_code": customer_address_code},
+                                       ['name', 'customer_code','customer_address_code','disable_gross_price_view','admin_disable_gross_price_view'],
+                                       as_dict=True)
+    
+    # Return the existing record if found, or default values
+    if existing_record:
+        admin_disable_gross_price_view = bool(existing_record.get("admin_disable_gross_price_view", False))
+        disable_gross_price_view = True if admin_disable_gross_price_view else bool(existing_record.get("disable_gross_price_view", False))
+        return {
+            "data": {
+                "name": existing_record.get("name"),
+                "customer_code": customer_code,  # Use provided input value
+                "customer_address_code": customer_address_code,  # Use provided input value
+                "disable_gross_price_view": disable_gross_price_view,
+                "admin_disable_gross_price_view": admin_disable_gross_price_view
+            }
+        }
+    else:
+        default_values = {
+            "customer_code": customer_code,
+            "customer_address_code": customer_address_code,
+            "disable_gross_price_view": False,
+            "admin_disable_gross_price_view": False
+        }
+        return {
+            "message": {
+                "data": default_values
+            }
+        }
 
-# 		frappe.get_doc(
-# 			{
-# 				"doctype": "Contact",
-# 				**contact,
-# 				"links": [{"link_doctype": "Customer", "link_name": customer_doc.name}],
-# 			}
-# 		).insert(ignore_mandatory=True)

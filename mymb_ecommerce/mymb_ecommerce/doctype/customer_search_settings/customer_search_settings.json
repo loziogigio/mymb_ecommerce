@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-09-03 11:02:01.069508",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_code",
+  "customer_address_code",
+  "disable_gross_price_view",
+  "admin_disable_gross_price_view"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer code",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "customer_address_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer address code",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_gross_price_view",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Disable gross price view"
+  },
+  {
+   "default": "0",
+   "fieldname": "admin_disable_gross_price_view",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Admin disable gross price view"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-09-03 11:57:05.505670",
+ "modified_by": "Administrator",
+ "module": "Mymb Ecommerce",
+ "name": "Customer Search Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
