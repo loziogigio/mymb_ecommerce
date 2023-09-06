@@ -78,7 +78,7 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         payment_url = get_gestpay_url(doc)
     elif payment_gateway == "transfer":
         payment_url = "/pages/payment-success?paymentgateway=transfer"
-        wired_transfer_data = "<p><strong>Si prega di effettuare il pagamento a:</strong><br>Intestatario: DEODATO S.R.L.<br>IBAN: IT27U0306904013100000011770<br>Banca: Intesa Sanpaolo<br>Filiale: Via Abate Gimma, 101, 70122 Bari BA<br><br>Inserire nella causale il numero d'ordine</p>"
+        wired_transfer_data = config.get_mymb_b2c_wire_transfer()
     else:
         payment_url = doc.get_default_url()  # Define this function to provide a default URL
 

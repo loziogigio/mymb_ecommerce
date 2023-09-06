@@ -15,6 +15,7 @@ class Configurations:
         self.customer_address_code = self.doc.get('customer_address_code')
         self.mymb_b2c_payment_success_page =  self.doc.get('mymb_b2c_payment_success_page')
         self.mymb_b2c_payment_failed_page=  self.doc.get('mymb_b2c_payment_failed_page')
+        self.mymb_b2c_wire_transfer =   self.doc.get('wire_transfer')
         self.solr = None
         
         #mysql section
@@ -28,6 +29,12 @@ class Configurations:
             self.solr = Solr(self.solr_url)
 
         return self.solr
+
+
+    def get_mymb_b2c_wire_transfer(self):
+        """Get the MyMb b2c transfer"""
+
+        return self.mymb_b2c_wire_transfer
 
    
 

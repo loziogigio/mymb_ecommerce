@@ -19,6 +19,7 @@
   "mymb_b2c_payment_success_page",
   "mymb_b2c_payment_failed_page",
   "column_break_2",
+  "wire_transfer",
   "mymb__db_info_section",
   "db_host",
   "db_port",
@@ -62,7 +63,8 @@
  "fields": [
   {
    "fieldname": "column_break_2",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": "MyMb Transfer"
   },
   {
    "depends_on": "enable_unicommerce",
@@ -343,12 +345,17 @@
   {
    "fieldname": "column_break_uxxs",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wire_transfer",
+   "fieldtype": "HTML Editor",
+   "label": "Wire Transfer"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-08-28 14:27:56.878774",
+ "modified": "2023-09-06 10:37:48.288029",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
