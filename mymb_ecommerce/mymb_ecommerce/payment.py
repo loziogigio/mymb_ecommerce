@@ -12,6 +12,7 @@ from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
 from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import get_redirect_uri, setup_redirect,update_integration_request_status,make_post_request,get_paypal_and_transaction_details
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from omnicommerce.controllers.email import send_sales_order_confirmation_email
 
 config = Configurations()
 mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
@@ -528,12 +529,9 @@ def _confirm_sales_order(payment_request_id, status, payment_code=None):
     frappe.db.commit()
     so.submit()
     frappe.db.commit()
-    # frappe.db.commit()
-    # frappe.db.commit()  # Commit the transaction
-
-    # Debugging step
-    # updated_status = frappe.db.get_value("Sales Order", sales_order_doc, "order_status")  # Fetch the updated status
-    # frappe.log_error(message=f"Updated order_status: {updated_status}", title="Debug Log")  
+    # Send email if Sales Order is confirmed
+    if status == "Success":
+        send_sales_order_confirmation_email(so)
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def gestpay_transaction_result():
@@ -629,3 +627,6 @@ def gestpay_check_response():
         error_msg = f"Failed: {payment_request_id} gest pay"
         frappe.log_error(message=data, title=error_msg)
         return {"status": "Failed"}
+    
+
+

@@ -58,7 +58,9 @@
   "mymb_api_info_section",
   "mymb_base_api_url",
   "mymb_api_username",
-  "mymb_api_password"
+  "mymb_api_password",
+  "footer_section",
+  "footer_b2c_html"
  ],
  "fields": [
   {
@@ -350,12 +352,22 @@
    "fieldname": "wire_transfer",
    "fieldtype": "HTML Editor",
    "label": "Wire Transfer"
+  },
+  {
+   "fieldname": "footer_section",
+   "fieldtype": "Section Break",
+   "label": "FOOTER"
+  },
+  {
+   "fieldname": "footer_b2c_html",
+   "fieldtype": "HTML Editor",
+   "label": "B2C FOOTER HTML"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-06 10:37:48.288029",
+ "modified": "2023-09-07 12:45:09.212686",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
