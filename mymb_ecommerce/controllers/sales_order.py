@@ -30,7 +30,8 @@ def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
     }
 
 
-
+def safe_concat(*args):
+    return ' '.join([str(a) for a in args if a])
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
@@ -71,7 +72,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             billing_country='IT',
             billing_prov='VC',
             billing_city=billing_address_details.get('city',''),
-            billing_address=billing_address_details.get('address_line1','')+' '+billing_address_details.get('address_line2',''),
+            billing_address=safe_concat(billing_address_details.get('address_line1',''), billing_address_details.get('address_line2','')),
             billing_postalcode=billing_address_details['pincode'],
             billing_name=billing_address_details['name'],
             billing_phone=billing_address_details['phone'],
@@ -81,7 +82,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             shipping_country='IT',
             shipping_prov='VC',
             shipping_city=shipping_address_details.get('city',''),
-            shipping_address=shipping_address_details.get('address_line1','')+' '+shipping_address_details.get('address_line2',''),
+            shipping_address=safe_concat(shipping_address_details.get('address_line1',''), shipping_address_details.get('address_line2','')),
             shipping_postalcode=shipping_address_details['pincode'],
             shipping_name=shipping_address_details['name'],
             shipping_phone=shipping_address_details['phone'],

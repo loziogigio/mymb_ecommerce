@@ -3,6 +3,8 @@ from payments.utils.utils import get_payment_gateway_controller
 from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 from bs4 import BeautifulSoup
+import pdfkit
+import os
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C"):
@@ -249,3 +251,88 @@ def get_sales_order_details(order_id):
         "total": sales_order.total,
         "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
     }
+
+
+@frappe.whitelist(allow_guest=True)
+@JWTManager.jwt_required
+def get_sales_order_invoice(order_id):
+     # Fetch the Sales Order using the provided order ID
+    sales_order = frappe.get_doc("Sales Order", order_id)
+    # Return an error message if the Sales Order is not found
+    if not sales_order:
+        return {"error": f"No Sales Order found with ID {order_id}"}
+    
+    user = frappe.local.jwt_payload['email']
+    # Verify that the current user is the owner of the Sales Order
+    if not user == sales_order.customer:
+        return {"error": "You do not have permission to access this Sales Order"}
+
+    # Example usage
+    doctype = "Sales Order"
+    docname = sales_order.name
+    print_format = "Standard"
+    pdf_data = generate_pdf(doctype, docname, print_format)
+
+    # Extract the relevant fields from the Sales Order document and return them as a dictionary
+    return {
+        "name": sales_order.name,
+        "url": pdf_data,
+        "status": sales_order.status,
+        "total": sales_order.total,
+        "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
+    }
+
+
+
+
+import os
+
+def generate_pdf(doctype, docname, print_format):
+    """
+    Generate PDF for a given doctype, docname, and print format.
+    
+    :param doctype: The name of the DocType.
+    :param docname: The name of the document.
+    :param print_format: The name of the print format.
+    :return: URL of the generated PDF
+    """
+
+    # Get the HTML representation of the document using the print format
+    html = frappe.get_print(doctype, docname, print_format)
+
+    # Create temporary paths for HTML and PDF files
+    temp_html_path = "/tmp/{0}.html".format(docname)
+    temp_file_path = "/tmp/{0}.pdf".format(docname)
+
+    # Write HTML to the temporary HTML file
+    with open(temp_html_path, 'w') as f:
+        f.write(html)
+
+    # Convert the temporary HTML file to PDF using pdfkit
+    options = {
+        'no-stop-slow-scripts': '',
+        'load-error-handling': 'ignore',
+        'no-load-images': '',
+        'disable-javascript': ''
+    }
+    pdfkit.from_file(temp_html_path, temp_file_path, options=options)
+
+    # Attach the PDF to the given document
+    with open(temp_file_path, 'rb') as f:
+        attached_file = frappe.get_doc({
+            "doctype": "File",
+            "file_name": "{0}.pdf".format(docname),
+            "attached_to_doctype": doctype,
+            "attached_to_name": docname,
+            "is_private": 1,
+            "content": f.read()
+        }).insert()
+
+    # Cleanup: Remove the temporary files
+    os.remove(temp_file_path)
+    os.remove(temp_html_path)
+
+    # Return the URL of the attached file
+    return attached_file.file_url
+
+
