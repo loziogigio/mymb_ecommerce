@@ -45,7 +45,7 @@ def catalogue(args=None):
 
     if wishlist_items:
         item_codes = [item['item_code'] for item in wishlist_items]
-        query = f'text:{text} AND ({" OR ".join([f"carti:{code}" for code in item_codes])})'
+        query = f'text:{text} AND ({" OR ".join([f"sku:{code}" for code in item_codes])})'
     else:
         query = f'text:{text}'
 
