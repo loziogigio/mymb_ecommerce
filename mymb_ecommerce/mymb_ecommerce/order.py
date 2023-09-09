@@ -1,12 +1,9 @@
 import frappe
-from payments.utils.utils import get_payment_gateway_controller
 from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 from bs4 import BeautifulSoup
-import pdfkit
-import os
+from frappe import _
 
-from omnicommerce.controllers.pdf import attach_pdf
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C"):
@@ -229,8 +226,6 @@ def get_sales_orders_for_current_customer(page_num, page_size):
 
     return sales_orders
 
-
-
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required
 def get_sales_order_details(order_id):
@@ -253,44 +248,3 @@ def get_sales_order_details(order_id):
         "total": sales_order.total,
         "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
     }
-
-
-@frappe.whitelist(allow_guest=True)
-@JWTManager.jwt_required
-def get_sales_order_invoice(order_id):
-     # Fetch the Sales Order using the provided order ID
-    sales_order = frappe.get_doc("Sales Order", order_id)
-    # Return an error message if the Sales Order is not found
-    if not sales_order:
-        return {"error": f"No Sales Order found with ID {order_id}"}
-    
-    # user = frappe.local.jwt_payload['email']
-    # # Verify that the current user is the owner of the Sales Order
-    # if not user == sales_order.customer:
-    #     return {"error": "You do not have permission to access this Sales Order"}
-
-    # Example usage
-    doctype = "Sales Order"
-    docname = sales_order.name
-    print_format = "Standard"
-    file = attach_pdf(doctype=doctype, name=docname, title="invoice",print_format=print_format, letterhead=get_default_letterhead())
-        
-
-    # Extract the relevant fields from the Sales Order document and return them as a dictionary
-    return {
-        "name": sales_order.name,
-        "file": file,
-        "status": sales_order.status,
-        "total": sales_order.total,
-        "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
-    }
-
-
-
-def get_default_letterhead():
-    # Fetch the default Letter Head
-    default_letterhead = frappe.db.get_value('Letter Head', {'is_default': 1}, 'name')
-    if not default_letterhead:
-        frappe.throw(_("Please set a default Letter Head in Letter Head master."))
-    return default_letterhead
-
