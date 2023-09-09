@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import pdfkit
 import os
 
+from omnicommerce.controllers.pdf import attach_pdf
+
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C"):
 
@@ -235,7 +237,7 @@ def get_sales_order_details(order_id):
     # Fetch the Sales Order using the provided order ID
     sales_order = frappe.get_doc("Sales Order", order_id)
     # Return an error message if the Sales Order is not found
-    if not sales_order:
+    if not sales_order or 1==1:
         return {"error": f"No Sales Order found with ID {order_id}"}
 
     user = frappe.local.jwt_payload['email']
@@ -262,34 +264,27 @@ def get_sales_order_invoice(order_id):
     if not sales_order:
         return {"error": f"No Sales Order found with ID {order_id}"}
     
-    user = frappe.local.jwt_payload['email']
-    # Verify that the current user is the owner of the Sales Order
-    if not user == sales_order.customer:
-        return {"error": "You do not have permission to access this Sales Order"}
+    # user = frappe.local.jwt_payload['email']
+    # # Verify that the current user is the owner of the Sales Order
+    # if not user == sales_order.customer:
+    #     return {"error": "You do not have permission to access this Sales Order"}
 
     # Example usage
     doctype = "Sales Order"
     docname = sales_order.name
     print_format = "Standard"
-    pdf_data = get_pdf_data(doctype, docname, print_format)
+    file = attach_pdf(doctype=doctype, name=docname, title="invoice",print_format=print_format, letterhead=get_default_letterhead())
+        
 
     # Extract the relevant fields from the Sales Order document and return them as a dictionary
     return {
         "name": sales_order.name,
-        "url": pdf_data,
+        "file": file,
         "status": sales_order.status,
         "total": sales_order.total,
         "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
     }
 
-def get_pdf_data(doctype, name, print_format=None, letterhead=None):
-    """Document -> HTML -> PDF."""
-    if not letterhead:
-        # Fetch default letterhead
-        letterhead = get_default_letterhead()
-
-    html = frappe.get_print(doctype, name, print_format, letterhead=letterhead)
-    return frappe.utils.pdf.get_pdf(html)
 
 
 def get_default_letterhead():
