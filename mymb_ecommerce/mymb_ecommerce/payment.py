@@ -530,8 +530,8 @@ def _confirm_sales_order(payment_request_id, status, payment_code=None):
     so.submit()
     frappe.db.commit()
     # Send email if Sales Order is confirmed
-    if status == "Success":
-        send_sales_order_confirmation_email(so)
+    # if status == "Success":
+    #     send_sales_order_confirmation_email(so)
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def gestpay_transaction_result():

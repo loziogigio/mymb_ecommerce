@@ -271,7 +271,7 @@ def get_sales_order_invoice(order_id):
     doctype = "Sales Order"
     docname = sales_order.name
     print_format = "Standard"
-    pdf_data = generate_pdf(doctype, docname, print_format)
+    pdf_data = get_pdf_data(doctype, docname, print_format)
 
     # Extract the relevant fields from the Sales Order document and return them as a dictionary
     return {
@@ -282,57 +282,20 @@ def get_sales_order_invoice(order_id):
         "items": [{"item_code": item.item_code,"item_name": item.item_name, "qty": item.qty, "rate": item.rate , "image": item.image } for item in sales_order.items]
     }
 
+def get_pdf_data(doctype, name, print_format=None, letterhead=None):
+    """Document -> HTML -> PDF."""
+    if not letterhead:
+        # Fetch default letterhead
+        letterhead = get_default_letterhead()
+
+    html = frappe.get_print(doctype, name, print_format, letterhead=letterhead)
+    return frappe.utils.pdf.get_pdf(html)
 
 
-
-import os
-
-def generate_pdf(doctype, docname, print_format):
-    """
-    Generate PDF for a given doctype, docname, and print format.
-    
-    :param doctype: The name of the DocType.
-    :param docname: The name of the document.
-    :param print_format: The name of the print format.
-    :return: URL of the generated PDF
-    """
-
-    # Get the HTML representation of the document using the print format
-    html = frappe.get_print(doctype, docname, print_format)
-
-    # Create temporary paths for HTML and PDF files
-    temp_html_path = "/tmp/{0}.html".format(docname)
-    temp_file_path = "/tmp/{0}.pdf".format(docname)
-
-    # Write HTML to the temporary HTML file
-    with open(temp_html_path, 'w') as f:
-        f.write(html)
-
-    # Convert the temporary HTML file to PDF using pdfkit
-    options = {
-        'no-stop-slow-scripts': '',
-        'load-error-handling': 'ignore',
-        'no-load-images': '',
-        'disable-javascript': ''
-    }
-    pdfkit.from_file(temp_html_path, temp_file_path, options=options)
-
-    # Attach the PDF to the given document
-    with open(temp_file_path, 'rb') as f:
-        attached_file = frappe.get_doc({
-            "doctype": "File",
-            "file_name": "{0}.pdf".format(docname),
-            "attached_to_doctype": doctype,
-            "attached_to_name": docname,
-            "is_private": 1,
-            "content": f.read()
-        }).insert()
-
-    # Cleanup: Remove the temporary files
-    os.remove(temp_file_path)
-    os.remove(temp_html_path)
-
-    # Return the URL of the attached file
-    return attached_file.file_url
-
+def get_default_letterhead():
+    # Fetch the default Letter Head
+    default_letterhead = frappe.db.get_value('Letter Head', {'is_default': 1}, 'name')
+    if not default_letterhead:
+        frappe.throw(_("Please set a default Letter Head in Letter Head master."))
+    return default_letterhead
 
