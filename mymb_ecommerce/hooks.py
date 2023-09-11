@@ -194,4 +194,11 @@ override_whitelisted_methods = {
 # 		"doctype": "{doctype_4}"
 # 	}
 # ]
-
+fixtures = [
+    {
+        "doctype": "Email Template",
+        "filters": {
+            "name": ["in", ["transfer-confirm-sales-order", "confirm-sales-order"]]
+        }
+    }
+]

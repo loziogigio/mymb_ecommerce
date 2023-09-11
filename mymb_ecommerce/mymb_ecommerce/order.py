@@ -23,7 +23,9 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
     if(contact_info.get('name')):
         full_name=contact_info.get('name')
     else:
-        full_name = contact_info.get('first_name')+" "+contact_info.get('last_name')
+        first_name = contact_info.get('first_name') or ""
+        last_name = contact_info.get('last_name') or ""
+        full_name = " ".join([name for name in [first_name, last_name] if name])
 
     #TODO get the price from items price list
     # Create a new Quotation document

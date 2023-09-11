@@ -62,7 +62,7 @@ def payment_request(quotation_name, payment_gateway="paypal"):
     if not quotation.grand_total:
         frappe.throw("Cannot create payment for a quotation with zero grand total.")
 
-    sales_order = _create_sales_order(quotation)
+    sales_order = _create_sales_order(quotation , payment_gateway)
 
     doc = make_payment_request(dn=sales_order.name, dt="Sales Order", order_type="Shopping Cart", submit_doc=1)
 
@@ -79,7 +79,9 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         payment_url = get_gestpay_url(doc)
     elif payment_gateway == "transfer":
         payment_url = "/pages/payment-success?paymentgateway=transfer"
-        wired_transfer_data = config.get_mymb_b2c_wire_transfer()
+        submit_sales_order(sales_order.name)
+        send_sales_order_confirmation_email(sales_order=sales_order , email_template="transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
+        wired_transfer_data = f"{config.get_mymb_b2c_wire_transfer()}<h2>{sales_order.name}</h2>"
     else:
         payment_url = doc.get_default_url()  # Define this function to provide a default URL
 
@@ -91,29 +93,56 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         "quotation":quotation
     }
 
-def _create_sales_order(quotation ):
+
+@frappe.whitelist()
+def submit_sales_order(sales_order_name):
+    # Fetch the sales order by name or ID
+    sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    
+    # Bypass permissions
+    sales_order.flags.ignore_permissions = True
+
+    # Check if the sales order is in a state that allows submission
+    if sales_order.docstatus == 0: # 0 means "Draft"
+        sales_order.submit()
+    else:
+        frappe.throw(f"Sales Order {sales_order_name} is not in a 'Draft' state and cannot be submitted.")
+
+
+
+
+
+
+
+def _create_sales_order(quotation, payment_gateway):
     # if quotation.status != "Draft":
     #     frappe.throw("Cannot create Sales Order for non-draft quotation.")
 
-    
-	items = []
+    items = []
 
-	for quotation_item in quotation.items:
-		item_dict = {
-			"item_code": quotation_item.item_code,
-			"item_name": quotation_item.item_name,
-			"description": quotation_item.description,
-			"qty": quotation_item.qty,
-			"uom": quotation_item.uom,
-			"rate": quotation_item.rate,
-			"amount": quotation_item.amount,
-			"price_list_rate": quotation_item.price_list_rate,
-			# Add any other properties that you want to copy from the quotation item
-		}
-		items.append(item_dict)
+    for quotation_item in quotation.items:
+        item_dict = {
+            "item_code": quotation_item.item_code,
+            "item_name": quotation_item.item_name,
+            "description": quotation_item.description,
+            "qty": quotation_item.qty,
+            "uom": quotation_item.uom,
+            "rate": quotation_item.rate,
+            "amount": quotation_item.amount,
+            "price_list_rate": quotation_item.price_list_rate,
+            # Add any other properties that you want to copy from the quotation item
+        }
+        items.append(item_dict)
 
-	customer_address_name, customer_address, shipping_address_name, shipping_address = get_quotation_addresses(quotation.name)
-	order = frappe.get_doc({ 
+    # Convert the payment gateway string to uppercase and check if it's in the allowed list
+    payment_mode = payment_gateway.upper()
+    allowed_payment_modes = ["PAYPAL", "TRANSFER", "STRIPE", "GESTPAY"]
+    if payment_mode not in allowed_payment_modes:
+        payment_mode="PAYPAL"
+        frappe.throw(f"The payment mode {payment_mode} is not allowed. Please choose from {', '.join(allowed_payment_modes)}.")
+
+    customer_address_name, customer_address, shipping_address_name, shipping_address = get_quotation_addresses(quotation.name)
+    order = frappe.get_doc({ 
         "doctype": "Sales Order",
         "naming_series": frappe.db.get_value("Selling Settings", None, "so_naming_series"),
         "customer": quotation.customer_name,
@@ -124,14 +153,14 @@ def _create_sales_order(quotation ):
         "terms": quotation.terms,
         "shipping_address_name": shipping_address_name,
         "shipping_address": shipping_address,
-		"customer_address_name": customer_address_name,
+        "customer_address_name": customer_address_name,
         "customer_address": customer_address,
         "contact_person": quotation.contact_person,
         "contact_email": quotation.contact_email,
         "contact_mobile": quotation.contact_mobile,
         "party_name": quotation.customer_name,
         "delivery_date":  None,
-		"order_type":"Shopping Cart",
+        "order_type":"Shopping Cart",
         "selling_price_list": quotation.selling_price_list,
         "price_list_currency": quotation.price_list_currency,
         "plc_conversion_rate": quotation.plc_conversion_rate,
@@ -158,33 +187,34 @@ def _create_sales_order(quotation ):
         "coupon_code": quotation.coupon_code,
         "additional_discount_percentage": quotation.additional_discount_percentage,
         "discount_amount": quotation.discount_amount,
+        "payment_mode":payment_mode
     })
 
-	# Update custom form field from quotation
-	order.update({
-		"quotation_name": quotation.name,
-		"recipient_full_name": quotation.recipient_full_name,
-		"recipient_email": quotation.recipient_email,
-		"invoice_requested": quotation.invoice_requested,
-		"channel": quotation.channel,
-		"customer_type": quotation.customer_type
-	});
+    # Update custom form field from quotation
+    order.update({
+        "quotation_name": quotation.name,
+        "recipient_full_name": quotation.recipient_full_name,
+        "recipient_email": quotation.recipient_email,
+        "invoice_requested": quotation.invoice_requested,
+        "channel": quotation.channel,
+        "customer_type": quotation.customer_type
+    });
 
-	# Update custom form field from quotation based on customer type
-	if quotation.customer_type == "Individual" and quotation.invoice_requested == "YES":
-		order.update({"tax_code": quotation.tax_code})
-	elif quotation.customer_type == "Company" and quotation.invoice_requested == "YES":
-		order.update({
-			"vat_number": quotation.vat_number,
-			"company_name": quotation.company_name,
-			"pec": quotation.pec,
-			"client_id": quotation.client_id,
-			"recipient_code": quotation.recipient_code
-		})
+    # Update custom form field from quotation based on customer type
+    if quotation.customer_type == "Individual" and quotation.invoice_requested == "YES":
+        order.update({"tax_code": quotation.tax_code})
+    elif quotation.customer_type == "Company" and quotation.invoice_requested == "YES":
+        order.update({
+            "vat_number": quotation.vat_number,
+            "company_name": quotation.company_name,
+            "pec": quotation.pec,
+            "client_id": quotation.client_id,
+            "recipient_code": quotation.recipient_code
+        })
 
-	order.insert(ignore_permissions=True)
-	# order.submit()
-	return order
+    order.insert(ignore_permissions=True)
+    # order.submit()
+    return order
 
 def get_quotation_addresses(quotation_name):
     # Retrieve the Quotation document
@@ -577,6 +607,45 @@ def gestpay_transaction_result():
         frappe.db.commit()  # Commit the transaction
         updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
 
+@frappe.whitelist(allow_guest=True, xss_safe=True)
+def gestpay_transaction_result():
+    
+    
+    # Define the API endpoint
+    api_url = "https://crowdechain.com/gestpay/response"
+    
+    # Get the parameters from the original request
+    parameters = frappe.request.args
+
+    # Send GET request to api_url with parameters
+    response = requests.get(api_url, params=parameters)
+
+    # If the response is not successful, return
+    if response.status_code != 200:
+        return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
+    
+	 # Parse the response as json and transform it into a dictionary
+    response_dict = frappe._dict(response.json())
+    # Fetch 'data' from response_dict
+    data = frappe._dict(response_dict.get('result', {}))
+    
+    # Get the ShopTransactionID and remove the 'brico-casa_' prefix
+    payment_request_id = data.get("ShopTransactionID")
+
+    # Fetch the related Payment Request Document
+    payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+
+    # If the status is 'Requested', proceed to update the Payment Request
+    if payment_request_doc.status == 'Requested' or 'Paid':
+        # Check the TransactionResult to determine the status
+        status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
+
+        # Update Payment Request
+        new_status = 'Paid' if status == "Success" else 'Failed'
+        frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
+        frappe.db.commit()  # Commit the transaction
+        updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+
         # If payment was successful, confirm the sales order
         if updated_payment_request_doc.status == 'Paid':
             try:
@@ -633,5 +702,54 @@ def gestpay_check_response():
         frappe.log_error(message=data, title=error_msg)
         return {"status": "Failed"}
     
+  
+
+# @frappe.whitelist(allow_guest=True, xss_safe=True)
+# def stripe_transaction_result(event):
+    
+#     # Fetch the stripe_key from Stripe Settings in ERPNext
+#     stripe_settings = frappe.get_all('Stripe Settings', limit_page_length=1)
+#     if stripe_settings:
+#         first_stripe_setting = frappe.get_doc('Stripe Settings', stripe_settings[0].name)
+#         # You can now use first_stripe_setting to access the fields
+#         publishable_key = first_stripe_setting.publishable_key
+#         stripe_key_encrypetd = first_stripe_setting.secret_key
+#         stripe_key = stripe_key = get_decrypted_password("Stripe Settings", first_stripe_setting.name, 'secret_key') # Decrypt the password
 
 
+    
+    
+
+#     payment_request_id = data.get("ShopTransactionID")
+
+#     # Fetch the related Payment Request Document
+#     payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+
+#     # If the status is 'Requested', proceed to update the Payment Request
+#     if payment_request_doc.status == 'Requested' or 'Paid':
+#         # Check the TransactionResult to determine the status
+#         status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
+
+#         # Update Payment Request
+#         new_status = 'Paid' if status == "Success" else 'Failed'
+#         frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
+#         frappe.db.commit()  # Commit the transaction
+#         updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+
+#         # If payment was successful, confirm the sales order
+#         if updated_payment_request_doc.status == 'Paid':
+#             try:
+#                 _confirm_sales_order(payment_request_id=payment_request_id, status=status, payment_code=payment_request_id)
+#                 return {"status": "Success"}
+
+#             except Exception:
+#                 frappe.log_error(frappe.get_traceback())
+#                 return {"status": "Failed"}
+#         # If payment was unsuccessful, log the error
+#         else:
+#             error_msg = f"Failed: {payment_request_id} gest pay"
+#             frappe.log_error(message=data, title=error_msg)
+#             return {"status": "Failed"}
+#     else:
+#         # If the status is not 'Requested', do not make any changes and return a message
+#         return {"status": "Failed", "message": f"Payment Request status already updated'. No updates were made."}

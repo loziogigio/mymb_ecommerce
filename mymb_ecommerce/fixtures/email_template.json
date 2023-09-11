@@ -1,0 +1,22 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2023-09-11 05:41:16.293666",
+  "name": "confirm-sales-order",
+  "response": "<div class=\"ql-editor read-mode\"><p>Order Confirmation - <strong>{{ name }}</strong></p><p><br></p><p>Dear {{ recipient_full_name }},</p><p><br></p><p>Thank you for your order. Below are the details of your purchase:</p><p><br></p><p>Order Number: {{ name }}</p><p>Order Date: {{ transaction_date }}</p><p>Total Amount: {{ grand_total }} {{ currency }}</p><p><br></p><p><br></p><p>We are proceeding with the processing and shipping of your order. Thank you for choosing us!</p><p><br></p><p>Best regards,</p></div>",
+  "response_html": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Order Confirmation</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n        }\n        .container {\n            max-width: 600px;\n            margin: auto;\n            padding: 20px;\n            border: 1px solid #ccc;\n            background-color: #f9f9f9;\n        }\n        .heading {\n            font-size: 24px;\n            margin-bottom: 20px;\n        }\n        .instruction {\n            font-size: 18px;\n            margin-top: 10px;\n        }\n        .details {\n            font-size: 16px;\n            margin-top: 20px;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"heading\">Order Confirmation - {{ sales_order.name }}</div>\n        <p>Dear {{ sales_order.customer_name }},</p>\n        <p>Thank you for your order. Below are the details of your purchase:</p>\n        <div class=\"details\">\n            <strong>Order Number:</strong> {{ sales_order.name }}<br>\n            <strong>Order Date:</strong> {{ sales_order.transaction_date }}<br>\n            <strong>Total Amount:</strong> {{ sales_order.grand_total }} {{ sales_order.currency }}\n        </div>\n        <div class=\"instruction\">\n            <p>To complete your purchase, please make a wire transfer payment using the details provided below:</p>\n            <p>{{wire_info}}</p>\n            <strong>Reference:</strong> Please use your Order Number ({{ sales_order.name }}) as the payment reference.\n        </div>\n        <p>Once we confirm receipt of your payment, we will proceed with the processing and shipping of your order. Thank you for choosing us!</p>\n        <p>Best regards,<br>Your Company Name</p>\n    </div>\n</body>\n</html>\n",
+  "subject": "Confirm - Sales order  {{name}}",
+  "use_html": 0
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2023-09-11 05:41:03.469588",
+  "name": "transfer-confirm-sales-order",
+  "response": "<div class=\"ql-editor read-mode\"><p>Order Confirmation - <strong>{{ name }}</strong></p><p><br></p><p>Dear {{ recipient_full_name }},</p><p><br></p><p>Thank you for your order. Below are the details of your purchase:</p><p><br></p><p>Order Number: {{ name }}</p><p>Order Date: {{ transaction_date }}</p><p>Total Amount: {{ grand_total }} {{ currency }}</p><p><br></p><p>To complete your purchase, please make a wire transfer payment using the details provided below:</p><p>{{wire_info}}</p><p>Reference: Please use your Order Number ({{ name }}) as the payment reference.</p><p><br></p><p>Once we confirm receipt of your payment, we will proceed with the processing and shipping of your order. Thank you for choosing us!</p><p><br></p><p>Best regards,</p></div>",
+  "response_html": "",
+  "subject": "Transfer Confirm Order {{name}}",
+  "use_html": 0
+ }
+]
