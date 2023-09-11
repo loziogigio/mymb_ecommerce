@@ -202,6 +202,7 @@ def get_sales_orders_for_current_customer(page_num, page_size):
             `tabSales Order`
         WHERE
             `tabSales Order`.`customer` = %s
+            AND `tabSales Order`.`docstatus` = 1
         ORDER BY `tabSales Order`.`creation` DESC
         LIMIT %s OFFSET %s
     """, (customer, page_size, offset), as_dict=True)
