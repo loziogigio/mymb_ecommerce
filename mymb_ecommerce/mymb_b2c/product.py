@@ -16,7 +16,7 @@ from typing import Any
 from multiprocessing import Pool
 
 from mymb_ecommerce.mymb_ecommerce.doctype.mymb_item import mymb_item
-from mymb_ecommerce.mymb_b2c.api_client import JsonDict, MymbAPIClient
+from mymb_ecommerce.controllers.api_client import JsonDict, MymbAPIClient
 from mymb_ecommerce.mymb_b2c.constants import (
 	DEFAULT_WEIGHT_UOM,
 	ITEM_BATCH_GROUP_FIELD,

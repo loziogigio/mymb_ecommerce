@@ -21,23 +21,28 @@ class MymbAPIClient:
 	"""
 
 	def __init__(
-		self, url: Optional[str] = None, access_token: Optional[str] = None,
+		self, 
+		url: Optional[str] = None, 
+		access_token: Optional[str] = None,
+		api_username: Optional[str] = None,
+		api_password: Optional[str] = None,
+		settings_doctype: Optional[str] = SETTINGS_DOCTYPE,
 	):
-		self.settings = frappe.get_doc(SETTINGS_DOCTYPE)
+		self.settings = frappe.get_doc(settings_doctype)
 		self.base_url = url or self.settings.mymb_base_api_url
 		self.access_token = access_token
+
+		# Set the API username and password either from the parameters or from the settings
+		self.api_username = api_username or self.settings.mymb_api_username
+		self.api_password = api_password or get_decrypted_password(settings_doctype, self.settings.name, "mymb_api_password")
+		
 		self.__initialize_auth()
 
 	def __initialize_auth(self):
 		"""Initialize and setup authentication details"""
-		# if not self.access_token:
-		# 	self.settings.renew_tokens()
-		# 	self.access_token = self.settings.get_password("access_token")
-		# fetch the actual value of password field
-		mymb_api_password = get_decrypted_password(SETTINGS_DOCTYPE, self.settings.name, "mymb_api_password")
-		
-		encoded_credentials = base64.b64encode(f'{self.settings.mymb_api_username}:{mymb_api_password}'.encode('utf-8')).decode('utf-8')
+		encoded_credentials = base64.b64encode(f'{self.api_username}:{self.api_password}'.encode('utf-8')).decode('utf-8')
 		self._auth_headers = {"Authorization": f"Basic {encoded_credentials}"}
+
 	
 	def request(
 		self,

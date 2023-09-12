@@ -16,8 +16,13 @@ JsonDict = Dict[str, Any]
 
 @frappe.whitelist(allow_guest=True)
 def get_customer_by_code(customer_code):
+    doctype_name = "Mymb Settings"
+    settings = frappe.get_doc(doctype_name)
+    base_url = settings.mymb_base_api_url
+    api_username =  settings.mymb_api_username
+    api_password = settings.mymb_api_username
     try:
-        client = MymbAPIClient()
+        client = MymbAPIClient(api_password=api_password, api_username=api_username,settings_doctype=doctype_name, base_url=base_url)
         customer = client.get_customer(customer_code)
         if customer:
             return customer

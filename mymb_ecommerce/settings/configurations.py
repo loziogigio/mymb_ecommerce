@@ -24,9 +24,13 @@ class Configurations:
 
         return self.solr
 
+    def get_api_drupal(self):
+        """Get the Solr image instance from the Mymb b2c Settings DocType"""
+        api_drupal = self.doc.get('api_drupal')
+        return self.image_uri
+    
     def get_image_uri_instance(self):
         """Get the Solr image instance from the Mymb b2c Settings DocType"""
-
         return self.image_uri
     
     def get_mymb_b2c_payment_success_page(self):

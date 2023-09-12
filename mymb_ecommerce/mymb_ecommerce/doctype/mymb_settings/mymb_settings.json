@@ -50,6 +50,8 @@
   "last_order_sync",
   "column_break_20",
   "last_inventory_sync",
+  "b2b_drupal_api_section",
+  "api_drupal",
   "mymb_api_info_section",
   "mymb_base_api_url",
   "mymb_api_username",
@@ -329,12 +331,22 @@
    "fieldname": "footer_b2b_html",
    "fieldtype": "HTML Editor",
    "label": "FOOTER  B2B HTML"
+  },
+  {
+   "fieldname": "b2b_drupal_api_section",
+   "fieldtype": "Section Break",
+   "label": "B2B drupal api"
+  },
+  {
+   "fieldname": "api_drupal",
+   "fieldtype": "Data",
+   "label": "Api Drupal"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-07 12:55:17.351451",
+ "modified": "2023-09-12 12:18:02.351624",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",
