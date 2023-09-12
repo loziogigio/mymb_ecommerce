@@ -30,7 +30,7 @@ def login(**kwargs):
     if response is None:
         return {
             'success': False,
-            'message': 'API request failed!'
+            'message': _('API request failed!')
         }, 500
 
     result, success = response
@@ -40,5 +40,5 @@ def login(**kwargs):
     else:
         return {
             'success': False,
-            'message': 'Authentication Failed!'
+            'message': _('Authentication Failed!')
         }, 422

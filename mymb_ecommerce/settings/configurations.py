@@ -27,7 +27,7 @@ class Configurations:
     def get_api_drupal(self):
         """Get the Solr image instance from the Mymb b2c Settings DocType"""
         api_drupal = self.doc.get('api_drupal')
-        return self.image_uri
+        return api_drupal
     
     def get_image_uri_instance(self):
         """Get the Solr image instance from the Mymb b2c Settings DocType"""
