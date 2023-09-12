@@ -12,7 +12,7 @@ from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.APIClient import APIClient
 from frappe.utils.password import get_decrypted_password
 from mymb_ecommerce.utils.email_lib import sendmail
-from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list
+from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, wrap_product_detail
 
 JsonDict = Dict[str, Any]
 
@@ -138,3 +138,40 @@ def child_list(**kwargs):
     )
 
     return result
+
+# Get Item
+@frappe.whitelist(allow_guest=True)
+def get_item(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'get-item{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
+    res = wrap_product_detail(result)
+
+    return {
+        'data': res,
+        'relatedProducts': [res],
+        'featuredProducts': [res],
+        'bestSellingProducts': [res],
+        'latestProducts': [res],
+        'topRatedProducts': [res],
+        'prevProduct': None,
+        'nextProduct': None,
+        'extra_info': result
+    }

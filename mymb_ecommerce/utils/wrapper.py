@@ -104,3 +104,56 @@ def build_filter_list(erp_data):
       'facets_check_results': erp_data.get('facets_check_results ',[]),
    }
    return result
+
+
+def wrap_product_detail(data):
+    result = {
+        'developer': None,
+        'game_mode': None,
+        'id': data['product']['id'],
+        'is_hot': False,
+        'is_new': None,
+        'is_out_of_stock': None,
+        'is_sale': data['prices'].get('promo', False),
+        'large_pictures': build_picture_array(data['product']['images'], 800, 800),
+        'name': data['product']['title'],
+        'pictures': build_picture_array(data['product']['images'], 300, 300),
+        'price': data['product']['default_price'],
+        'product_brands': data['product']['brand'],
+        'product_categories': [],
+        'product_tags': [],
+        'publisher': None,
+        'rated': None,
+        'ratings': 0,
+        'release_date': None,
+        'reviews': "0",
+        'sale_count': 0,
+        'sale_price': data['product']['default_price'],
+        'short_description': data['product']['short_descr'],
+        'sku': data['product']['carti'],
+        'codice_figura': data['product']['codice_figura'],
+        'id_father': data['product']['id_father'],
+        'slug': data['product']['id'],
+        'small_pictures': build_picture_array(data['product']['images'], 150, 150),
+        'stock': 54,
+        'until': None,
+        'variants': [],
+        'price_info': data['prices'].get(data['product']['id'], None),
+        'promo_list': data['promo'],
+        'extra_info': data,
+        'listino_type': data.get('listino_type', None),
+        'listino_code': data.get('listino_code', None),
+    }
+
+    return result
+
+
+def build_picture_array(image_array, width, height):
+    result_array = []
+    for url in image_array:
+        result_array.append({
+            'width': width,
+            'height': height,
+            'url': url,
+        })
+    return result_array
