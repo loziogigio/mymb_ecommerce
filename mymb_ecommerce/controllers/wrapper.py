@@ -12,6 +12,7 @@ from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.APIClient import APIClient
 from frappe.utils.password import get_decrypted_password
 from mymb_ecommerce.utils.email_lib import sendmail
+from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list
 
 JsonDict = Dict[str, Any]
 
@@ -78,3 +79,44 @@ def register(**kwargs):
             'success': False,
             'message': str(e)
         }
+
+
+
+@frappe.whitelist(allow_guest=True)
+def product_list(**kwargs):
+    
+    per_page = kwargs.get('per_page')
+    page = kwargs.get('page')
+    text = kwargs.get('text')
+    query_args = {key: value for key, value in kwargs.items() if key not in ('per_page', 'page', 'ext_call', 'address_code', 'client_id', 'cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+    result = APIClient.request(
+        endpoint=f'catalogo{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    if 'response' in result and result['response'] == 'no result':
+        return {
+            'success': False
+        }
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
+    build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
+    filter_list = build_filter_list(result)
+    build_tab_list = result['tabs']
+
+    return {
+        'success': True,
+        'product_list': build_result,
+        'filters': filter_list,
+        'tab_list': build_tab_list
+    }
