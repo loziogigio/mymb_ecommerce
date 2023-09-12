@@ -231,9 +231,24 @@ def add_to_cart(**kwargs):
         base_url=config.get_api_drupal()
     )
 
-    # if isinstance(result, tuple):
-    #     result = result[0]
-    # else:
-    #     result = result
+    return result
+
+# Add To Cart Promo
+@frappe.whitelist(allow_guest=True)
+def add_to_cart_promo(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = ''
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'add_to_cart_promo?ext_call=true{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
 
     return result
