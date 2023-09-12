@@ -5,14 +5,14 @@ import frappe
 import requests
 from frappe import _
 from frappe.utils import cint, cstr, get_datetime, now_datetime
+from frappe.utils.password import get_decrypted_password
 from pytz import timezone
 
 from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.APIClient import APIClient
-from frappe.utils.password import get_decrypted_password
 from mymb_ecommerce.utils.email_lib import sendmail
-from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, wrap_product_detail
+from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, wrap_product_detail, wrap_child_product_detail
 
 JsonDict = Dict[str, Any]
 
@@ -163,6 +163,43 @@ def get_item(**kwargs):
         result = result
 
     res = wrap_product_detail(result)
+
+    return {
+        'data': res,
+        'relatedProducts': [res],
+        'featuredProducts': [res],
+        'bestSellingProducts': [res],
+        'latestProducts': [res],
+        'topRatedProducts': [res],
+        'prevProduct': None,
+        'nextProduct': None,
+        'extra_info': result
+    }
+
+# Get Child Item
+@frappe.whitelist(allow_guest=True)
+def get_item_child(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'get-item-child{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
+    res = wrap_child_product_detail(result)
 
     return {
         'data': res,

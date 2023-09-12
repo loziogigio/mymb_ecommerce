@@ -147,6 +147,47 @@ def wrap_product_detail(data):
 
     return result
 
+def wrap_child_product_detail(data):
+    result = {
+        'developer': None,
+        'game_mode': None,
+        'id': data['data']['id'],
+        'codice_figura': data['data']['codice_figura'],
+        'id_father': data['data']['father_id'],
+        'is_hot': False,
+        'is_new': None,
+        'is_out_of_stock': None,
+        'is_sale': data['prices'].get('promo', False),
+        'large_pictures': build_picture_array(data['data']['images'], 800, 800),
+        'name': data['data']['title'],
+        'pictures': build_picture_array(data['data']['images'], 300, 300),
+        'price': data['prices'].get('price', None),
+        'product_brands': [],
+        'product_categories': [],
+        'product_tags': [],
+        'publisher': None,
+        'rated': None,
+        'ratings': 0,
+        'release_date': None,
+        'reviews': "0",
+        'sale_count': 0,
+        'sale_price': data['prices'].get('price_discount', None),
+        'short_description': data['data']['long_descr'],
+        'sku': data['data']['carti'],
+        'slug': data['data']['id'],
+        'small_pictures': build_picture_array(data['data']['images'], 150, 150),
+        'stock': 54,
+        'until': None,
+        'variants': [],
+        'price_info': data['prices'] if 'prices' in data else None,
+        'listino_type': data.get('listino_type', None),
+        'listino_code': data.get('listino_code', None),
+        'promo_list': data['promo'],
+        'extra_info': data,
+    }
+
+    return result
+
 
 def build_picture_array(image_array, width, height):
     result_array = []
