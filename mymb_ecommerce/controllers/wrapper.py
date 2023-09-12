@@ -81,7 +81,7 @@ def register(**kwargs):
         }
 
 
-
+# Get Product List
 @frappe.whitelist(allow_guest=True)
 def product_list(**kwargs):
     
@@ -120,3 +120,21 @@ def product_list(**kwargs):
         'filters': filter_list,
         'tab_list': build_tab_list
     }
+
+# Get Child List
+@frappe.whitelist(allow_guest=True)
+def child_list(**kwargs):
+    
+    query_string = "?"  # Initialize the query string if needed
+    
+    if kwargs:
+        query_string += "&".join([f"{key}={value}" for key, value in kwargs.items()]) + '&'
+
+    result = APIClient.request(
+        endpoint=f'load_childs_prices{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
