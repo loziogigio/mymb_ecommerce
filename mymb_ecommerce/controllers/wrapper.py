@@ -312,3 +312,23 @@ def remove_cart_item(**kwargs):
     )
 
     return result
+
+# Prepare Order
+@frappe.whitelist(allow_guest=True)
+def prepare_order(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'cassa{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
