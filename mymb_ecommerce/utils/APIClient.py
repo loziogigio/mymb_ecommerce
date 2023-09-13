@@ -46,7 +46,7 @@ class APIClient:
                 url=url, method=method, headers=headers, json=body, params=params, files=files
             )
             # mymb_b2c gives useful info in response text, show it in error logs
-            if not isinstance(response.text, dict):
+            if response.text.strip() == '1' or response.text.strip() == 'false':
                 return response.text
             response.reason = cstr(response.reason) + cstr(response.text)
             response.raise_for_status()

@@ -352,3 +352,28 @@ def send_order(**kwargs):
     )
 
     return result
+
+# Send Order
+@frappe.whitelist(allow_guest=True)
+def get_order_detail(**kwargs):
+    numero_doc_definitivo = kwargs.get('NumeroDocDefinitivo')
+    causale_doc_definitivo = kwargs.get('CausaleDocDefinitivo')
+    anno_doc_definitivo = kwargs.get('AnnoDocDefinitivo')
+
+    endpoint = f'tracking_ordine/{numero_doc_definitivo}/{causale_doc_definitivo}/{anno_doc_definitivo}'
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('NumeroDocDefinitivo', 'CausaleDocDefinitivo', 'AnnoDocDefinitivo', 'cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'{endpoint}{query_string}',
+        method='get',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
