@@ -345,7 +345,7 @@ def send_order(**kwargs):
 
 
     result = APIClient.request(
-        endpoint=f'send_order{query_string}',
+        endpoint=f'send_order',
         method='POST',
         body=kwargs,
         base_url=config.get_api_drupal()
