@@ -337,13 +337,6 @@ def prepare_order(**kwargs):
 @frappe.whitelist(allow_guest=True)
 def send_order(**kwargs):
     
-    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
-    query_string = '?'
-
-    if query_args:
-        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
-
-
     result = APIClient.request(
         endpoint=f'send_order',
         method='POST',
@@ -353,7 +346,7 @@ def send_order(**kwargs):
 
     return result
 
-# Send Order
+# Get Order Detail
 @frappe.whitelist(allow_guest=True)
 def get_order_detail(**kwargs):
     numero_doc_definitivo = kwargs.get('NumeroDocDefinitivo')
@@ -377,3 +370,37 @@ def get_order_detail(**kwargs):
     )
 
     return result
+
+# Get Autocomplete Items
+@frappe.whitelist(allow_guest=True)
+def autocomplete(**kwargs):
+
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+    result = APIClient.request(
+        endpoint=f'autocomplete.php{query_string}',
+        method='get',
+        base_url=config.get_api_drupal()
+    )
+
+    if result is None:
+        return {
+            'success': False,
+            'message': _('API request failed!')
+        }, 500
+
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
+   
+    return {
+        'result': result.get('response', {}).get('docs', [])
+    }
+    
