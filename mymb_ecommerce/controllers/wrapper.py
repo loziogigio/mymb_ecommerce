@@ -272,3 +272,23 @@ def get_cart_items(**kwargs):
     )
 
     return result
+
+# Update Cart
+@frappe.whitelist(allow_guest=True)
+def update_cart(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'update_cart{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
