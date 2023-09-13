@@ -252,3 +252,23 @@ def add_to_cart_promo(**kwargs):
     )
 
     return result
+
+# Get Cart Items
+@frappe.whitelist(allow_guest=True)
+def get_cart_items(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'carrello{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
