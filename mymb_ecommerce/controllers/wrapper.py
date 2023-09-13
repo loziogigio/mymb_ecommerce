@@ -292,3 +292,23 @@ def update_cart(**kwargs):
     )
 
     return result
+
+# Remove Cart Item
+@frappe.whitelist(allow_guest=True)
+def remove_cart_item(**kwargs):
+    
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = '?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+
+    result = APIClient.request(
+        endpoint=f'delete_riga{query_string}',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
