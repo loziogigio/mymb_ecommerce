@@ -403,4 +403,28 @@ def autocomplete(**kwargs):
     return {
         'result': result.get('response', {}).get('docs', [])
     }
-    
+
+# Get Account Info
+@frappe.whitelist(allow_guest=True)
+def account(**kwargs):
+
+    query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
+    query_string = f'?'
+
+    if query_args:
+        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+
+    result = APIClient.request(
+        endpoint=f'pipe.php{query_string}',
+        method='get',
+        base_url=config.get_api_drupal()
+    )
+
+    if result is None:
+        return {
+            'success': False,
+            'message': _('API request failed!')
+        }, 500
+
+
+    return result
