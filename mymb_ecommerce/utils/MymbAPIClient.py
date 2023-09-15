@@ -10,6 +10,7 @@ from pytz import timezone
 from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 from frappe.utils.password import get_decrypted_password
+from datetime import datetime
 
 JsonDict = Dict[str, Any]
 
@@ -27,6 +28,7 @@ class MymbAPIClient:
 		api_username: Optional[str] = None,
 		api_password: Optional[str] = None,
 		settings_doctype: Optional[str] = SETTINGS_DOCTYPE,
+		
 	):
 		self.settings = frappe.get_doc(settings_doctype)
 		self.base_url = url or self.settings.mymb_base_api_url
@@ -78,20 +80,35 @@ class MymbAPIClient:
 		if method == "GET" and "application/json" not in response.headers.get("content-type"):
 			return response.content, True
 
-		data = frappe._dict(response.json())
-		status = data.successful if data.successful is not None else True
+		# Parse the response content
+		data = response.json()
 
-		if not status:
-			req = response.request
-			url = f"URL: {req.url}"
-			body = f"body:  {req.body.decode('utf-8')}"
-			request_data = "\n\n".join([url, body])
-			message = ", ".join(cstr(error["message"]) for error in data.errors)
-			create_mymb_b2c_log(
-				status="Error", response_data=data, request_data=request_data, message=message, make_new=True
-			)
+		# Get the key of the main result object. This assumes that your response 
+		# always has a single key at the top level.
+		result_key = list(data.keys())[0] if data and isinstance(data, dict) else None
 
-		return data, status
+		# Check if ReturnCode is not 0 in the response and log the error
+		if result_key and data.get(result_key, {}).get('ReturnCode') != 0:
+			error_message = data[result_key].get('Message', '')
+    
+			# Capturing request details
+			request_info = {
+				"URL": url,
+				"Method": method,
+				"Headers": headers,
+				"Body": body,
+				"Params": params,
+				"Files": files,
+				"Response": data
+			}
+
+			detailed_message = f"Error in API response: {error_message}\n\nRequest Info: {request_info}"
+
+			frappe.log_error(message=detailed_message, title=f"Request Error {result_key}")
+			return data, False
+
+		return data, True
+
 
 	def get_customer(self, customer_code: str, log_error=True) -> Optional[JsonDict]:
 		"""Get MymbAPIClient customer data for specified customer code.
@@ -232,7 +249,130 @@ class MymbAPIClient:
 					"params": params
 				}, False
 
+	def get_orders(self, args: Dict[str, Any]) -> Optional[JsonDict]:
+		"""Get order headers with delivery information."""
+		
+		# Extract parameters from args
+		cod_cliente = args.get('client_id')
+		type = args.get('type', 'T')  # 'T' as default
+		address_code = args.get('address_code')
+		date_from = args.get('date_from')
+		date_to = args.get('date_to')
+		rif_cliente = args.get('rif_cliente', '0')  # '0' as default
+		
+		# Handling the type 'T' case to determine date_from and date_to
+		if type == 'T':
+			current_date = datetime.now().strftime('%d%m%Y')
+			date_from = current_date
+			date_to = current_date
 
+		endpoint = f"/GetTestateConInfoConsegna?CodiceInternoCliente={cod_cliente}&TipoEstrazione={type}&CodiceIndirizzo={address_code}"
 
-			
-	
+		# Adding the date parameters if they're present
+		if date_from and date_to:
+			endpoint += f"&DataRegistrazioneIniziale={date_from}&DataRegistrazioneFinale={date_to}"
+
+		# Add the IdRiferimentoCliente parameter
+		endpoint += f"&IdRiferimentoCliente={rif_cliente}"
+
+		data, status = self.request(endpoint=endpoint, method="GET", log_error=True)
+
+		if status:
+			order_data = data.get("GetTestateConInfoConsegnaResult", {}).get("ListaTestateConInfoConsegna", None)
+			return order_data
+
+		return None
+
+	def get_ddt(self, args: Dict[str, Any]) -> Optional[JsonDict]:
+		"""Get the delivery note (DDT) details."""
+
+		# Extract parameters from args
+		cod_cliente = args.get('client_id')
+		type = args.get('type', '')  # empty string as default if not provided
+		address_code = args.get('address_code', '')  # empty string as default
+		date_from = args.get('date_from')
+		date_to = args.get('date_to')
+
+		# Construct the service URL
+		endpoint = (f"/GetTestateFATTConInfo?CodiceInternoCliente={cod_cliente}"
+					f"&TipoEstrazione={type}&CodiceIndirizzo={address_code}")
+
+		# Adding the date parameters if they're present
+		if date_from and date_to:
+			endpoint += f"&DataRegistrazioneIniziale={date_from}&DataRegistrazioneFinale={date_to}"
+
+		data, status = self.request(endpoint=endpoint, method="GET", log_error=True)
+
+		if status:
+			ddt_data = data.get("GetTestateFATTConInfoResult", {}).get("ListaTestateDDTFATTConInfo", [])
+
+			# Process the data
+			for item in ddt_data:
+				item["destination"] = item.get("DescrizioneEstesaIndirizzo", "")
+				item["date"] = item.get("DataRegistrazione", "")
+				doc_def = item.get("CausaleDocDefinitivo", "")
+				anno_def = item.get("AnnoDocDefinitivo", "")
+				num_def = item.get("NumeroDocDefinitivo", "")
+				item["document"] = f"{doc_def}/{anno_def}/{num_def}"
+				item["doc_type"] = doc_def
+				item["invoice_number"] = num_def
+				total_doc = item.get("TotaliDocumento", [0, 0, 0])
+				item["taxable"] = total_doc[0]
+				item["total"] = total_doc[2]
+				item["scope"] = doc_def
+				item["year"] = anno_def
+				item["number"] = num_def
+				item["type"] = item.get("TipoDocumento", "")
+				item["type_bar_code"] = "I"
+				item["bar_code_request"] = f"{doc_def}/{anno_def}/{num_def}/D"
+
+			return ddt_data
+
+		return None
+
+	def get_invoices(self, args: Dict[str, Any]) -> Optional[JsonDict]:
+		"""Get the invoice details."""
+
+		# Extract parameters from args
+		cod_cliente = args.get('client_id')
+		type = args.get('type', '')  # empty string as default if not provided
+		address_code = args.get('address_code', '')  # empty string as default
+		date_from = args.get('date_from')
+		date_to = args.get('date_to')
+
+		# Construct the service URL
+		endpoint = (f"/GetTestateFATTConInfo?CodiceInternoCliente={cod_cliente}"
+					f"&TipoEstrazione={type}&CodiceIndirizzo={address_code}")
+
+		# Adding the date parameters if they're present
+		if date_from and date_to:
+			endpoint += f"&DataRegistrazioneIniziale={date_from}&DataRegistrazioneFinale={date_to}"
+
+		data, status = self.request(endpoint=endpoint, method="GET", log_error=True)
+
+		if status:
+			invoice_data = data.get("GetTestateFATTConInfoResult", {}).get("ListaTestateDDTFATTConInfo", [])
+
+			# Process the data
+			for item in invoice_data:
+				item["destination"] = item.get("DescrizioneEstesaIndirizzo", "")
+				item["date"] = item.get("DataRegistrazione", "")
+				doc_def = item.get("CausaleDocDefinitivo", "")
+				anno_def = item.get("AnnoDocDefinitivo", "")
+				num_def = item.get("NumeroDocDefinitivo", "")
+				item["document"] = f"{doc_def}/{anno_def}/{num_def}"
+				item["doc_type"] = doc_def
+				item["invoice_number"] = num_def
+				total_doc = item.get("TotaliDocumento", [0, 0, 0])
+				item["taxable"] = total_doc[0]
+				item["total"] = total_doc[2]
+				item["scope"] = doc_def
+				item["year"] = anno_def
+				item["number"] = num_def
+				item["type"] = item.get("TipoDocumento", "")
+				item["type_bar_code"] = "I"
+				item["bar_code_request"] = f"{doc_def}/{anno_def}/{num_def}/D"
+
+			return invoice_data
+
+		return None
