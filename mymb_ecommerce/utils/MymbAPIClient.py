@@ -120,6 +120,40 @@ class MymbAPIClient:
 		)
 		if status:
 			return item
+
+	def get_addresses(self, customer_code: str, log_error=True) -> Optional[JsonDict]:
+		"""Get MymbAPIClient adresses data for specified customer code.
+
+		ref: https://documentation.mymb_b2c.com/docs/itemtype-get.html
+		"""
+		item, status = self.request(
+			endpoint="/GetIndirizziCliente", method="GET", params={"CodiceInternoCliente": customer_code}, log_error=log_error
+		)
+		if status:
+			return item
+		
+	def payment_deadline(self, customer_code: str, log_error=True) -> Optional[JsonDict]:
+		"""Get MymbAPIClient deadlines data for specified customer code.
+
+		ref: https://documentation.mymb_b2c.com/docs/itemtype-get.html
+		"""
+		item, status = self.request(
+			endpoint="/GetListaScadenzeConInfo", method="GET", params={"CodiceInternoCliente": customer_code}, log_error=log_error
+		)
+		if status:
+			return item
+	
+	def exposition(self, customer_code: str, log_error=True) -> Optional[JsonDict]:
+		"""Get MymbAPIClient exposition data for specified customer code.
+
+		ref: https://documentation.mymb_b2c.com/docs/itemtype-get.html
+		"""
+		item, status = self.request(
+			endpoint="/GetEsposizioneClienteInfo", method="GET", params={"CodiceInternoCliente": customer_code}, log_error=log_error
+		)
+		if status:
+			return item
+
 	def get_multiple_prices(
         self,
         customer_code: str,
@@ -253,7 +287,7 @@ class MymbAPIClient:
 		"""Get order headers with delivery information."""
 		
 		# Extract parameters from args
-		cod_cliente = args.get('client_id')
+		cod_cliente = args.get('customer_code')
 		type = args.get('type', 'T')  # 'T' as default
 		address_code = args.get('address_code')
 		date_from = args.get('date_from')
@@ -287,7 +321,7 @@ class MymbAPIClient:
 		"""Get the delivery note (DDT) details."""
 
 		# Extract parameters from args
-		cod_cliente = args.get('client_id')
+		cod_cliente = args.get('customer_code')
 		type = args.get('type', '')  # empty string as default if not provided
 		address_code = args.get('address_code', '')  # empty string as default
 		date_from = args.get('date_from')
@@ -334,7 +368,7 @@ class MymbAPIClient:
 		"""Get the invoice details."""
 
 		# Extract parameters from args
-		cod_cliente = args.get('client_id')
+		cod_cliente = args.get('customer_code')
 		type = args.get('type', '')  # empty string as default if not provided
 		address_code = args.get('address_code', '')  # empty string as default
 		date_from = args.get('date_from')

@@ -50,19 +50,74 @@ def get_orders(**kwargs):
             "status": "error",
             "message": str(e)
         }
-    
+
 @frappe.whitelist(allow_guest=True)
-def get_customer_by_code(customer_code):
+def get_customer(customer_code):
+    """Fetch customer from the mymb_api_client using the provided kwargs."""
     try:
         client = _get_mymb_api_client()
         customer = client.get_customer(customer_code)
         if customer:
-            return customer
+            return customer.get("GetClienteResult" , "")
         else:
             return {"error": "No customer found with given code."}
     except Exception as e:
          # Handle exceptions and errors, and return a meaningful message
-        frappe.log_error(f"Error while fetching orders: {e}", "Get Orders Error")
+        frappe.log_error(f"Error while fetching orders: {e}", "Get Customer Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    
+@frappe.whitelist(allow_guest=True)
+def get_addresses(customer_code):
+    """Fetch customer adresses from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        customer = client.get_addresses(customer_code)
+        if customer:
+            return customer.get("GetIndirizziClienteResult" , "")
+        else:
+            return {"error": "No address found with given code."}
+    except Exception as e:
+         # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "Get Adresses Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    
+@frappe.whitelist(allow_guest=True)
+def payment_deadline(customer_code):
+    """Fetch customer deadline from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        customer = client.payment_deadline(customer_code)
+        if customer:
+            return customer.get("GetListaScadenzeConInfoResult" , "")
+        else:
+            return {"error": "No deadline found with given code."}
+    except Exception as e:
+         # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "Get Deadline Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    
+@frappe.whitelist(allow_guest=True)
+def exposition(customer_code):
+    """Fetch customer exposition from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        customer = client.exposition(customer_code)
+        if customer:
+            return customer.get("GetEsposizioneClienteInfoResult" , "")
+        else:
+            return {"error": "No deadline found with given code."}
+    except Exception as e:
+         # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "Get Deadline Error")
         return {
             "status": "error",
             "message": str(e)
