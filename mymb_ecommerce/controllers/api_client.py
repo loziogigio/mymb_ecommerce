@@ -20,9 +20,9 @@ def get_customer_by_code(customer_code):
     settings = frappe.get_doc(doctype_name)
     base_url = settings.mymb_base_api_url
     api_username =  settings.mymb_api_username
-    api_password = settings.mymb_api_username
+    api_password_decypted = get_decrypted_password(doctype_name, settings.name, "mymb_api_password")
     try:
-        client = MymbAPIClient(api_password=api_password, api_username=api_username,settings_doctype=doctype_name, base_url=base_url)
+        client = MymbAPIClient(api_password=api_password_decypted, api_username=api_username,settings_doctype=doctype_name, url=base_url)
         customer = client.get_customer(customer_code)
         if customer:
             return customer
