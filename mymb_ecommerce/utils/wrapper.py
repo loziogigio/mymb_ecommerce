@@ -18,9 +18,8 @@ def paginate(items, per_page=5, total=None, page=None, pages=None, options=None)
 def build_product_list(product_array):
     result_array = []
 
-#    # Continue processing the dictionary as usual
-#    product_array['prices']['listino_type'] = product_array.get('listino_type', '')
-#    product_array['prices']['listino_code'] = product_array.get('listino_code', '')
+    # Continue processing the dictionary as usual
+
     if 'prices' in product_array and isinstance(product_array['prices'], dict):
         # Access 'listino_type' if it's a dictionary
         product_array['prices']['listino_type'] = product_array['prices'].get('listino_type', '')

@@ -421,6 +421,11 @@ def get_order_detail(**kwargs):
         base_url=config.get_api_drupal()
     )
 
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
     return result
 
 # Get Autocomplete Items

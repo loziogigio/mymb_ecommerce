@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import frappe
 import requests
 from frappe import _
-from frappe.utils import cint, cstr, get_datetime
+from frappe.utils import cint, cstr, get_datetime, safe_json_loads
 from pytz import timezone
 
 JsonDict = Dict[str, Any]
@@ -56,7 +56,8 @@ class APIClient:
 
         if method == "GET" and "application/json" not in response.headers.get("content-type"):
             return response.content, True
-
+        if isinstance(safe_json_loads(response.text), list):
+            return safe_json_loads(response.text)
         data = frappe._dict(response.json())
         status = data.successful if data.successful is not None else True
 
