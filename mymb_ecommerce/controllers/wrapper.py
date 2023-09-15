@@ -477,11 +477,15 @@ def account(**kwargs):
         base_url=config.get_api_drupal()
     )
 
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
     if result is None:
         return {
             'success': False,
             'message': _('API request failed!')
         }, 500
-
 
     return result
