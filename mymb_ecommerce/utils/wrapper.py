@@ -16,13 +16,21 @@ def paginate(items, per_page=5, total=None, page=None, pages=None, options=None)
     return pagination
 
 def build_product_list(product_array):
-   result_array = []
+    result_array = []
 
-   # Continue processing the dictionary as usual
-   product_array['prices']['listino_type'] = product_array.get('listino_type', '')
-   product_array['prices']['listino_code'] = product_array.get('listino_code', '')
+    # Continue processing the dictionary as usual
 
-   if product_array:
+    if 'prices' in product_array and isinstance(product_array['prices'], dict):
+        # Access 'listino_type' if it's a dictionary
+        product_array['prices']['listino_type'] = product_array['prices'].get('listino_type', '')
+    else:
+        # Handle the case where 'prices' is not a dictionary
+        product_array['prices'] = {
+            'listino_type': product_array.get('listino_type', ''),
+            'listino_code': product_array.get('listino_code', '')
+        }
+
+    if product_array:
       for id, value in product_array['results'].items():
          wrapped_data = wrap_product_detail_from_list(value, product_array['prices'])
          if wrapped_data:

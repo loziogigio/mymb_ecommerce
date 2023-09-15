@@ -89,6 +89,7 @@ def product_list(**kwargs):
     page = kwargs.get('page')
     text = kwargs.get('text')
     query_args = {key: value for key, value in kwargs.items() if key not in ('per_page', 'page', 'ext_call', 'address_code', 'client_id', 'cmd')}
+    body_args = {key: value for key, value in kwargs.items() if key in ('client_id', 'address_code', 'ext_call', 'per_page', 'page' )}
     query_string = '?'
 
     if query_args:
@@ -97,18 +98,19 @@ def product_list(**kwargs):
     result = APIClient.request(
         endpoint=f'catalogo{query_string}',
         method='POST',
-        body=kwargs,
+        body=body_args,
         base_url=config.get_api_drupal()
     )
 
-    if 'response' in result and result['response'] == 'no result':
-        return {
-            'success': False
-        }
     if isinstance(result, tuple):
         result = result[0]
     else:
         result = result
+
+    if 'response' in result and result['response'] == 'no result':
+        return {
+            'success': False
+        }   
 
     build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
     filter_list = build_filter_list(result)
@@ -136,6 +138,11 @@ def child_list(**kwargs):
         body=kwargs,
         base_url=config.get_api_drupal()
     )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
 
     return result
 
@@ -231,6 +238,11 @@ def add_to_cart(**kwargs):
         base_url=config.get_api_drupal()
     )
 
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
     return result
 
 # Add To Cart Promo
@@ -250,6 +262,11 @@ def add_to_cart_promo(**kwargs):
         body=kwargs,
         base_url=config.get_api_drupal()
     )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
 
     return result
 
@@ -271,6 +288,11 @@ def get_cart_items(**kwargs):
         base_url=config.get_api_drupal()
     )
 
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
     return result
 
 # Update Cart
@@ -291,6 +313,11 @@ def update_cart(**kwargs):
         base_url=config.get_api_drupal()
     )
 
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
     return result
 
 # Remove Cart Item
@@ -310,6 +337,31 @@ def remove_cart_item(**kwargs):
         body=kwargs,
         base_url=config.get_api_drupal()
     )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
+
+    return result
+
+# Remove Cart
+@frappe.whitelist(allow_guest=True)
+def remove_cart(**kwargs):
+    
+    id_cart=kwargs.get('id_cart','')
+    query_string = f'{id_cart}?ext_call=true'
+
+    result = APIClient.request(
+        endpoint=f'delete_cart/{query_string}',
+        method='POST',
+        base_url=config.get_api_drupal()
+    )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
 
     return result
 
@@ -368,6 +420,11 @@ def get_order_detail(**kwargs):
         body=kwargs,
         base_url=config.get_api_drupal()
     )
+
+    if isinstance(result, tuple):
+        result = result[0]
+    else:
+        result = result
 
     return result
 
