@@ -200,5 +200,9 @@ fixtures = [
         "filters": {
             "name": ["in", ["transfer-confirm-sales-order", "confirm-sales-order"]]
         }
+    },
+    {
+        "doctype": "Web Page",
+        "filters": {}  # Add any filters you want here, or leave it empty to get all Web Page documents
     }
 ]
