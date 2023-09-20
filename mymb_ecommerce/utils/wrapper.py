@@ -204,6 +204,14 @@ def wrap_child_product_detail(data):
         'extra_info': data,
     }
 
+    # Adding 'is_rate_promo' key for conditions met in 'all_promo' list
+    all_promo_list = result.get('price_info', {}).get('all_promo', [])
+    for promo in all_promo_list:
+        if promo.get("TipoPromozione") == "RigaPrezzoNettoQuantitaMinima":
+            promo['is_rate_promo'] = True
+        else:
+            promo['is_rate_promo'] = False
+
     return result
 
 
