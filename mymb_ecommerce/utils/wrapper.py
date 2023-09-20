@@ -119,6 +119,7 @@ def wrap_product_detail(data):
         'developer': None,
         'game_mode': None,
         'id': data['product']['id'],
+        "is_single_child": data['product']['is_single_child'],
         'is_hot': False,
         'is_new': None,
         'is_out_of_stock': None,
@@ -153,12 +154,21 @@ def wrap_product_detail(data):
         'listino_code': data.get('listino_code', None),
     }
 
+    # Adding 'is_rate_promo' key for conditions met in 'all_promo' list
+    all_promo_list = result.get('price_info', {}).get('all_promo', [])
+    for promo in all_promo_list:
+        if promo.get("TipoPromozione") == "RigaPrezzoNettoQuantitaMinima":
+            promo['is_rate_promo'] = True
+        else:
+            promo['is_rate_promo'] = False
+
     return result
 
 def wrap_child_product_detail(data):
     result = {
         'developer': None,
         'game_mode': None,
+        "is_single_child": data['data']['is_single_child'],
         'id': data['data']['id'],
         'codice_figura': data['data']['codice_figura'],
         'id_father': data['data']['father_id'],
