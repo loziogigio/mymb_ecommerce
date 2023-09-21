@@ -11,7 +11,7 @@ from pytz import timezone
 from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.MymbAPIClient import MymbAPIClient
-
+from mymb_ecommerce.utils.APIClient import APIClient
 
 JsonDict = Dict[str, Any]
 
@@ -74,9 +74,9 @@ def get_addresses(customer_code):
     """Fetch customer adresses from the mymb_api_client using the provided kwargs."""
     try:
         client = _get_mymb_api_client()
-        customer = client.get_addresses(customer_code)
-        if customer:
-            return customer.get("GetIndirizziClienteResult" , "")
+        addresses = client.get_addresses(customer_code)
+        if addresses:
+            return addresses.get("GetIndirizziClienteResult" , "")
         else:
             return {"error": "No address found with given code."}
     except Exception as e:
@@ -89,12 +89,12 @@ def get_addresses(customer_code):
     
 @frappe.whitelist(allow_guest=True)
 def payment_deadline(customer_code):
-    """Fetch customer deadline from the mymb_api_client using the provided kwargs."""
+    """Fetch payment_deadline deadline from the mymb_api_client using the provided kwargs."""
     try:
         client = _get_mymb_api_client()
-        customer = client.payment_deadline(customer_code)
-        if customer:
-            return customer.get("GetListaScadenzeConInfoResult" , "")
+        payment_deadline = client.payment_deadline(customer_code)
+        if payment_deadline:
+            return payment_deadline.get("GetListaScadenzeConInfoResult" , "")
         else:
             return {"error": "No deadline found with given code."}
     except Exception as e:
@@ -107,12 +107,12 @@ def payment_deadline(customer_code):
     
 @frappe.whitelist(allow_guest=True)
 def exposition(customer_code):
-    """Fetch customer exposition from the mymb_api_client using the provided kwargs."""
+    """Fetch exposition from the mymb_api_client using the provided kwargs."""
     try:
         client = _get_mymb_api_client()
-        customer = client.exposition(customer_code)
-        if customer:
-            return customer.get("GetEsposizioneClienteInfoResult" , "")
+        exposition = client.exposition(customer_code)
+        if exposition:
+            return exposition.get("GetEsposizioneClienteInfoResult" , "")
         else:
             return {"error": "No deadline found with given code."}
     except Exception as e:
@@ -134,8 +134,6 @@ def get_ddt(**kwargs):
         else:
             return {"error": _("No ddt found with given code.")}
         
-        # Return the result
-        return response
     except Exception as e:
         # Handle exceptions and errors, and return a meaningful message
         frappe.log_error(f"Error while fetching ddt: {e}", "Get DDT Error")
@@ -149,14 +147,12 @@ def get_invoices(**kwargs):
     """Fetch ddt from the mymb_api_client using the provided kwargs."""
     try:
         client = _get_mymb_api_client()
-        ddt = client.get_invoices(args=kwargs)
-        if ddt:
-            return ddt
+        invoices = client.get_invoices(args=kwargs)
+        if invoices:
+            return invoices
         else:
             return {"error": _("No invoices found with given code.")}
         
-        # Return the result
-        return response
     except Exception as e:
         # Handle exceptions and errors, and return a meaningful message
         frappe.log_error(f"Error while fetching ddt: {e}", "Get Invoices Error")
@@ -164,4 +160,90 @@ def get_invoices(**kwargs):
             "status": "error",
             "message": str(e)
         }
+
+
+@frappe.whitelist(allow_guest=True)
+def pdf_tracking_order(**kwargs):
     
+    result = APIClient.request(
+        endpoint=f'pdf_tracking_order',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
+
+@frappe.whitelist(allow_guest=True)
+def pdf_barcode_document(**kwargs):
+    try:
+        result = APIClient.request(
+            endpoint='pdf_barcode_document',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
+
+        #Check if there's a result at index 0
+        if result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching PDF barcode document: {e}", "PDF Barcode Document Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@frappe.whitelist(allow_guest=True)
+def invoice_pdf(**kwargs):
+    try:
+        result = APIClient.request(
+            endpoint='get_invoice_pdf',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
+
+        # Check if there's a result at index 0
+        if result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching invoice PDF: {e}", "Invoice PDF Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@frappe.whitelist(allow_guest=True)
+def csv_invoice_document(**kwargs):
+    try:
+        result = APIClient.request(
+            endpoint='csv_invoice_document',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
+
+        # Check if there's a result at index 0
+        if result and result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching CSV invoice document: {e}", "CSV Invoice Document Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
