@@ -149,7 +149,12 @@ def get_invoices(**kwargs):
         client = _get_mymb_api_client()
         invoices = client.get_invoices(args=kwargs)
         if invoices:
-            return invoices
+            # Filter out invoices where CausaleDocDefinitivo is "SC"
+            filtered_invoices = [invoice for invoice in invoices if invoice.get('CausaleDocDefinitivo') != "V1"]
+            if filtered_invoices:
+                return filtered_invoices
+            else:
+                return {"error": _("No invoices found with given code.")}
         else:
             return {"error": _("No invoices found with given code.")}
         
@@ -164,15 +169,28 @@ def get_invoices(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def pdf_tracking_order(**kwargs):
-    
-    result = APIClient.request(
-        endpoint=f'pdf_tracking_order',
-        method='POST',
-        body=kwargs,
-        base_url=config.get_api_drupal()
-    )
+    try:
+        result = APIClient.request(
+            endpoint='pdf_tracking_order',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
 
-    return result
+        # Check if there's a result at index 0
+        if result and result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching PDF tracking order: {e}", "PDF Tracking Order Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 
 @frappe.whitelist(allow_guest=True)
 def pdf_barcode_document(**kwargs):
@@ -247,3 +265,28 @@ def csv_invoice_document(**kwargs):
             "status": "error",
             "message": str(e)
         }
+
+@frappe.whitelist(allow_guest=True)
+def pdf_scadenzario(**kwargs):
+    try:
+        result = APIClient.request(
+            endpoint='pdf_scadenzario',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
+
+        # Check if there's a result at index 0
+        if result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching invoice PDF: {e}", "Scadenziario PDF Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+

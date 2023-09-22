@@ -11,10 +11,10 @@
   "solr_url",
   "image_uri",
   "column_break_79ic",
+  "email_b2b",
   "mymb_site",
   "mymb_payment_success_page",
   "mymb_payment_failed_page",
-  "column_break_2",
   "mymb_db_info_section",
   "db_host",
   "db_port",
@@ -73,10 +73,6 @@
   {
    "fieldname": "column_break_79ic",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "column_break_2",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "db_host",
@@ -301,12 +297,10 @@
    "label": "Enable Mymb"
   },
   {
-   "depends_on": "enable_mymb_b2c",
    "description": "E.g. frappe.mymbb2c.com",
    "fieldname": "mymb_site",
    "fieldtype": "Data",
-   "label": "Mymb  Site",
-   "mandatory_depends_on": "enable_mymb_b2c"
+   "label": "Mymb  Site"
   },
   {
    "fieldname": "mymb_payment_success_page",
@@ -341,12 +335,18 @@
    "fieldname": "api_drupal",
    "fieldtype": "Data",
    "label": "Api Drupal"
+  },
+  {
+   "description": "E.g. office@omnicommerce.cloud",
+   "fieldname": "email_b2b",
+   "fieldtype": "Data",
+   "label": "Email B2B"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-12 12:18:02.351624",
+ "modified": "2023-09-21 14:00:20.039001",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",

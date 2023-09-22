@@ -13,6 +13,7 @@
   "solr_url",
   "image_uri",
   "column_break_79ic",
+  "email_b2c",
   "customer_code",
   "customer_address_code",
   "mymb_b2c_site",
@@ -362,12 +363,17 @@
    "fieldname": "footer_b2c_html",
    "fieldtype": "HTML Editor",
    "label": "B2C FOOTER HTML"
+  },
+  {
+   "fieldname": "email_b2c",
+   "fieldtype": "Data",
+   "label": "Email B2C"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-07 12:45:09.212686",
+ "modified": "2023-09-21 13:36:19.187057",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
