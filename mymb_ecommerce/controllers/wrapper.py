@@ -86,8 +86,10 @@ def register(**kwargs):
 def product_list(**kwargs):
     
     per_page = kwargs.get('per_page')
-    page = kwargs.get('page')
-    text = kwargs.get('text')
+    # Check if 'id' exists in kwargs and if so, remove 'text'
+    if 'id' in kwargs:
+        kwargs.pop('text', None)
+
     query_args = {key: value for key, value in kwargs.items() if key not in ('per_page', 'page', 'ext_call', 'address_code', 'client_id', 'cmd')}
     body_args = {key: value for key, value in kwargs.items() if key in ('client_id', 'address_code', 'ext_call', 'per_page', 'page' )}
     query_string = '?'
