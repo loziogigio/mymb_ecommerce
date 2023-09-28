@@ -22,7 +22,7 @@ def get_cart_list(limit=None, time_laps=None, page=1, filters=None,  sort_by = "
     tmp_cart_repo = TmpCarrelloRepository()
 
     # Fetch all the TmpCarrello items from the external database
-    tmp_cart_list = tmp_cart_repo.get_all_records(limit=limit, page=page, time_laps=time_laps, filters=filters, sort_by=sort_by , to_dict=True , sort_order=sort_order)
+    tmp_cart_list = tmp_cart_repo.get_all_records_b2b(limit=limit, page=page, time_laps=time_laps, filters=filters, sort_by=sort_by , to_dict=True , sort_order=sort_order)
 
     return {
         "data": tmp_cart_list,

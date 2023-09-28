@@ -30,5 +30,11 @@ class TmpCarrello(Base):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
     
     def to_b2b_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
+        return {
+            "client_id":self.id_cliente,
+            "id_cart":self.id_carrello,
+            "status":self.stato,
+            "totale_net":self.totale_netto,
+            "cart_name":self.gold_doc_name,
+            "creation_date":self.data_registrazione
+        }

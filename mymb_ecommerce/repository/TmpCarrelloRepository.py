@@ -43,3 +43,9 @@ class TmpCarrelloRepository(B2BBaseRepository):
             return [tmp_carrello.to_dict() for tmp_carrello in results]
         else:
             return results
+        
+    def get_all_records_b2b(self, **kwargs):
+        kwargs['to_dict'] = False 
+        results = self.get_all_records(**kwargs)
+
+        return [tmp_carrello.to_b2b_dict() for tmp_carrello in results]
