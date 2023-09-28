@@ -491,3 +491,15 @@ def account(**kwargs):
         }, 500
 
     return result
+
+# Save Cart
+@frappe.whitelist(allow_guest=True)
+def save_cart(**kwargs):
+    result = APIClient.request(
+        endpoint=f'save_prev',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
