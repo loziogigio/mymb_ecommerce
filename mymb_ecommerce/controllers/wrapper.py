@@ -503,3 +503,16 @@ def save_cart(**kwargs):
     )
 
     return result
+
+# Save Cart
+@frappe.whitelist(allow_guest=True)
+def activate_cart(**kwargs):
+    ##Placeing static 0/0 data because the real one are sen via post
+    result = APIClient.request(
+        endpoint=f'attiva_carrello/0/0',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    return result
