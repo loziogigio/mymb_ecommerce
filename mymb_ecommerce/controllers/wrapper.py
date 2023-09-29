@@ -86,17 +86,22 @@ def register(**kwargs):
 def product_list(**kwargs):
     
     per_page = kwargs.get('per_page')
-    # Check if 'id' exists in kwargs and if so, remove 'text'
-    if 'id' in kwargs:
-        kwargs.pop('text', None)
 
-    query_args = {key: value for key, value in kwargs.items() if key not in ('per_page', 'page', 'ext_call', 'address_code', 'client_id', 'cmd')}
-    body_args = {key: value for key, value in kwargs.items() if key in ('client_id', 'address_code', 'ext_call', 'per_page', 'page' )}
-    query_string = '?'
+    # Check if 'cmd' exists in kwargs and if so, remove 'cmd'
+    if 'cmd' in kwargs:
+        kwargs.pop('cmd', None)
 
-    if query_args:
-        query_string += '&'.join([f'{key}={value}' for key, value in query_args.items()]) + '&'
+    # Specified keys for the body
+    body_keys = ['client_id', 'address_code', 'ext_call', 'per_page', 'page']
 
+    # Extract the keys for the body and for the query string from kwargs
+    body_args = {key: value for key, value in kwargs.items() if key in body_keys}
+    query_args = {key: value for key, value in kwargs.items() if key not in body_keys}
+
+    # Build the query string
+    query_string = '?' + '&'.join([f'{key}={value}' for key, value in query_args.items()]) if query_args else ''
+
+    # Make the request
     result = APIClient.request(
         endpoint=f'catalogo{query_string}',
         method='POST',
