@@ -12,7 +12,7 @@ from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
 from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import get_redirect_uri, setup_redirect,update_integration_request_status,make_post_request,get_paypal_and_transaction_details
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
-from omnicommerce.controllers.email import send_sales_order_confirmation_email
+from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 
 config = Configurations()
 mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
@@ -80,7 +80,7 @@ def payment_request(quotation_name, payment_gateway="paypal"):
     elif payment_gateway == "transfer":
         payment_url = "/pages/payment-success?paymentgateway=transfer"
         submit_sales_order(sales_order.name)
-        send_sales_order_confirmation_email(sales_order=sales_order , email_template="transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
+        send_sales_order_confirmation_email_html(sales_order=sales_order , email_template="transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
         wired_transfer_data = f"{config.get_mymb_b2c_wire_transfer()}<h2>{sales_order.name}</h2>"
     else:
         payment_url = doc.get_default_url()  # Define this function to provide a default URL
@@ -563,7 +563,7 @@ def _confirm_sales_order(payment_request_id, status, payment_code=None):
     # Send email if Sales Order is confirmed
     if status == "Success":
         try:
-            send_sales_order_confirmation_email(sales_order=so )
+            send_sales_order_confirmation_email_html(sales_order=so )
         except Exception as e:
             frappe.log_error(message=f"Error while sending email: {str(e)}", title="Email Sending Error")
             # Optionally, you can also print the error for debugging purposes:
