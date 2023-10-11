@@ -1,14 +1,14 @@
-# mymb_ecommerce/mymb_ecommerce/repository/BcartmagRepository.py
+# mymb_ecommerce/mymb_ecommerce/repository/MyartmagRepository.py
 
-from mymb_ecommerce.model.Bcartmag import Bcartmag
-from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.model.Myartmag import Myartmag
+from mymb_ecommerce.settings.configurations import Configurations
 from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
 
-class BcartmagRepository:
+class MyartmagRepository:
 
     def __init__(self, external_db_connection_string=None):
         # Get the Configurations instance
@@ -18,7 +18,7 @@ class BcartmagRepository:
         if external_db_connection_string:
             engine = create_engine(external_db_connection_string)
         else:
-            db = config.get_mysql_connection(is_erp_db=True)
+            db = config.get_mysql_connection()
             engine = db.engine
 
         Session = sessionmaker(bind=engine)
@@ -28,22 +28,22 @@ class BcartmagRepository:
         self.session.close()
 
     def get_all_records(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None):
-        query = self.session.query(Bcartmag)
+        query = self.session.query(Myartmag)
 
         if time_laps is not None:
             time_laps = int(time_laps)
             time_threshold = datetime.now() - timedelta(minutes=time_laps)
-            query = query.filter(Bcartmag.created_at >= time_threshold)
+            query = query.filter(Myartmag.created_at >= time_threshold)
 
         # Apply the filters
         if filters is not None:
             for key, value in filters.items():
-                # Make sure the attribute exists in the Bcartmag model
-                if hasattr(Bcartmag, key):
-                    query = query.filter(getattr(Bcartmag, key) == value)
+                # Make sure the attribute exists in the Myartmag model
+                if hasattr(Myartmag, key):
+                    query = query.filter(getattr(Myartmag, key) == value)
 
         # Order by dinse_ianag in descending order
-        query = query.order_by(desc(Bcartmag.dinse_ianag))
+        query = query.order_by(desc(Myartmag.dinse_ianag))
         
         # Apply limit and offset for pagination
         if limit is not None:
@@ -54,6 +54,6 @@ class BcartmagRepository:
         results = query.all()
 
         if to_dict:
-            return [bcartmag.to_dict() for bcartmag in results]
+            return [myartmag.to_dict() for myartmag in results]
         else:
             return results

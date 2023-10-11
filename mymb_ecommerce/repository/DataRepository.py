@@ -9,7 +9,7 @@ class DataRepository:
         config = Configurations()
 
         # Get the database connection from Configurations class
-        db = config.get_mysql_connection()
+        db = config.get_mysql_connection(is_data_property=True)
         engine = db.engine
         Session = sessionmaker(bind=engine)
         self.session = Session()

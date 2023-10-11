@@ -17,7 +17,7 @@ import json
 import frappe
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def add_document_to_solr(args=None):
+def add_document_to_solr(args=None , solr_ext_instance=None ):
     """
     Add a document to the Solr index.
 
@@ -25,8 +25,11 @@ def add_document_to_solr(args=None):
     """
 
 
-    # Get the Solr instance from the Configurations class
-    solr = solr_instance
+    # Get the Solr instance from the Configurations class or via parameters
+    if solr_ext_instance:
+        solr = solr_ext_instance
+    else:
+        solr = solr_instance
 
     # Add the document to Solr
     response = solr.add_documents([args])
@@ -36,7 +39,7 @@ def add_document_to_solr(args=None):
     return response
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def delete_document_to_solr(id=None):
+def delete_document_to_solr(id=None , solr_ext_instance=None ):
     """
     Delete a document from the Solr index using the given id.
 
@@ -45,8 +48,12 @@ def delete_document_to_solr(id=None):
     if not id:
         return {"error": "No id provided"}
 
-    # Get the Solr instance from the Configurations class
-    solr = solr_instance
+    # Get the Solr instance from the Configurations class or via parameters
+    if solr_ext_instance:
+        solr = solr_ext_instance
+    else:
+        solr = solr_instance
+
 
     # Delete the document from Solr
     response = solr.delete_document(id=id)
@@ -56,7 +63,7 @@ def delete_document_to_solr(id=None):
     return response
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def update_document_in_solr(args=None):
+def update_document_in_solr(args=None , solr_ext_instance=None ):
     """
     Update a document in the Solr index.
 
@@ -64,8 +71,11 @@ def update_document_in_solr(args=None):
     """
 
 
-    # Get the Solr instance from the Configurations class
-    solr = solr_instance
+   # Get the Solr instance from the Configurations class or via parameters
+    if solr_ext_instance:
+        solr = solr_ext_instance
+    else:
+        solr = solr_instance
 
     # Update the document in Solr
     response = solr.update_document(args)
@@ -75,15 +85,18 @@ def update_document_in_solr(args=None):
     return response
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def delete_all_solr_docs():
+def delete_all_solr_docs(solr_ext_instance=None):
     """
     Delete all documents from the Solr index.
 
     :return: dict - A dictionary representing the Solr response.
     """
 
-    # Get the Solr instance from the Configurations class
-    solr = solr_instance
+    # Get the Solr instance from the Configurations class or via parameters
+    if solr_ext_instance:
+        solr = solr_ext_instance
+    else:
+        solr = solr_instance
 
     # Delete all documents from Solr
     response = solr.delete_all_documents()

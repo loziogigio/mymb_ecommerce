@@ -25,6 +25,7 @@
   "db_host",
   "db_port",
   "db_item_data",
+  "db_erp",
   "column_break_ge40",
   "db_username",
   "db_password",
@@ -368,12 +369,17 @@
    "fieldname": "email_b2c",
    "fieldtype": "Data",
    "label": "Email B2C"
+  },
+  {
+   "fieldname": "db_erp",
+   "fieldtype": "Data",
+   "label": "db erp"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-21 13:36:19.187057",
+ "modified": "2023-10-09 09:59:16.278771",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

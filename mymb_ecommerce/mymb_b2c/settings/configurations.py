@@ -66,7 +66,7 @@ class Configurations:
     
     
 
-    def get_mysql_connection(self , is_db_transaction=False):
+    def get_mysql_connection(self , is_data_property=True, is_db_transaction=False , is_erp_db=False ):
         """Get the MySQL connection from the Mymb b2c Settings DocType"""
         if not hasattr(self, 'mysql_connection'):
             username = self.doc.get('db_username')
@@ -75,7 +75,9 @@ class Configurations:
             db_port = self.doc.get('db_port')
             if is_db_transaction:
                 db_name = self.doc.get('db_transactions')
-            else:
+            elif is_erp_db:
+                db_name = self.doc.get('db_erp')
+            elif is_data_property:
                 db_name = self.doc.get('db_item_data')
 
             db_config = {

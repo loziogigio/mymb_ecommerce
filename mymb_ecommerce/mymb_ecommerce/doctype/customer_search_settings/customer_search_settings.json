@@ -10,7 +10,8 @@
   "customer_code",
   "customer_address_code",
   "disable_gross_price_view",
-  "admin_disable_gross_price_view"
+  "admin_disable_gross_price_view",
+  "autocomplete"
  ],
  "fields": [
   {
@@ -44,11 +45,18 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Admin disable gross price view"
+  },
+  {
+   "default": "0",
+   "fieldname": "autocomplete",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Disable autocomplete"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-09-03 11:57:05.505670",
+ "modified": "2023-10-11 09:57:54.739199",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Customer Search Settings",

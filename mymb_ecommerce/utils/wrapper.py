@@ -115,6 +115,8 @@ def build_filter_list(erp_data):
 
 
 def wrap_product_detail(data):
+
+    
     result = {
         'developer': None,
         'game_mode': None,

@@ -9,6 +9,8 @@ class Configurations:
     def __init__(self):
         self.doc = frappe.get_doc('Mymb Settings')
         self.image_uri = self.doc.get('image_uri')
+        self.solr_mymb_backoffice = self.doc.get('solr_mymb_backoffice')
+        self.solr_url = self.doc.get('solr_url')
         #solr section
         self.solr = None
         
@@ -16,13 +18,13 @@ class Configurations:
         # self.mysql_settings = self.doc.get('mysql_settings').as_dict()
         # self.mysql_connection = None
 
-    def get_solr_instance(self):
-        """Get the Solr instance from the Mymb b2c Settings DocType"""
+    def get_solr_instance(self , isSolrMymbBackoffice = False):
+        """Get the Solr instance from the Mymb Settings DocType"""
 
-        if not self.solr:
+        if isSolrMymbBackoffice:
+            self.solr = Solr(self.solr_mymb_backoffice)
+        else:
             self.solr = Solr(self.solr_url)
-
-        return self.solr
 
     def get_api_drupal(self):
         """Get the Solr image instance from the Mymb b2c Settings DocType"""

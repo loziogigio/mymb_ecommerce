@@ -9,6 +9,7 @@
  "field_order": [
   "enable_mymb",
   "solr_url",
+  "solr_mymb_backoffice",
   "image_uri",
   "column_break_79ic",
   "email_b2b",
@@ -19,6 +20,8 @@
   "db_host",
   "db_port",
   "db_item_data",
+  "db_mymb_backoffice",
+  "db_backoffice",
   "column_break_ge40",
   "db_username",
   "db_password",
@@ -341,12 +344,27 @@
    "fieldname": "email_b2b",
    "fieldtype": "Data",
    "label": "Email B2B"
+  },
+  {
+   "fieldname": "solr_mymb_backoffice",
+   "fieldtype": "Data",
+   "label": "Solr MyMb Backoffice"
+  },
+  {
+   "fieldname": "db_mymb_backoffice",
+   "fieldtype": "Data",
+   "label": "db mymb backoffice"
+  },
+  {
+   "fieldname": "db_backoffice",
+   "fieldtype": "Data",
+   "label": "db backoffice"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-21 14:00:20.039001",
+ "modified": "2023-10-04 06:54:36.725105",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",
