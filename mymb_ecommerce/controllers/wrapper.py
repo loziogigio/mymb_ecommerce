@@ -90,6 +90,11 @@ def product_list(**kwargs):
     # Check if 'cmd' exists in kwargs and if so, remove 'cmd'
     if 'cmd' in kwargs:
         kwargs.pop('cmd', None)
+    
+    
+    if any(key in kwargs for key in ['purchased','disponibili','promo_list','new','next_insert']):
+        kwargs.pop('text', None)
+
 
     # Specified keys for the body
     body_keys = ['client_id', 'address_code', 'ext_call', 'per_page', 'page']
@@ -100,6 +105,8 @@ def product_list(**kwargs):
 
     # Build the query string
     query_string = '?' + '&'.join([f'{key}={value}' for key, value in query_args.items()]) if query_args else ''
+
+    #in the case we have purchase we have just to pass the value as follow
 
     # Make the request
     result = APIClient.request(
