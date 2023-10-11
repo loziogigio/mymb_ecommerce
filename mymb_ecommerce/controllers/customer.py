@@ -78,7 +78,7 @@ def get_search_settings(customer_code, customer_address_code):
                 "customer_address_code": customer_address_code,  # Use provided input value
                 "disable_gross_price_view": disable_gross_price_view,
                 "admin_disable_gross_price_view": admin_disable_gross_price_view,
-                "disable_autocomplete":  existing_record.get("disable_autocomplete")
+                "disable_autocomplete":  bool(existing_record.get("disable_autocomplete"))
             }
         }
     else:
