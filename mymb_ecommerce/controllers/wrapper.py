@@ -16,12 +16,13 @@ from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_fil
 
 JsonDict = Dict[str, Any]
 
-config = Configurations()
+
 
 
 @frappe.whitelist(allow_guest=True)
 def login(**kwargs):
     # Making a POST request using the provided keyword arguments (kwargs).
+    config = Configurations()
     response = APIClient.request(
         endpoint='login.php',
         method='POST',
@@ -84,7 +85,7 @@ def register(**kwargs):
 # Get Product List
 @frappe.whitelist(allow_guest=True)
 def product_list(**kwargs):
-    
+    config = Configurations()
     per_page = kwargs.get('per_page')
 
     # Check if 'cmd' exists in kwargs and if so, remove 'cmd'
@@ -134,13 +135,14 @@ def product_list(**kwargs):
         'success': True,
         'product_list': build_result,
         'filters': filter_list,
-        'tab_list': build_tab_list
+        'tab_list': build_tab_list,
+        "api":config.get_api_drupal()
     }
 
 # Get Child List
 @frappe.whitelist(allow_guest=True)
 def child_list(**kwargs):
-    
+    config = Configurations()
     query_string = "?"  # Initialize the query string if needed
     
     if kwargs:
@@ -163,7 +165,7 @@ def child_list(**kwargs):
 # Get Item
 @frappe.whitelist(allow_guest=True)
 def get_item(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -200,7 +202,7 @@ def get_item(**kwargs):
 # Get Child Item
 @frappe.whitelist(allow_guest=True)
 def get_item_child(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -237,7 +239,7 @@ def get_item_child(**kwargs):
 # Add To Cart
 @frappe.whitelist(allow_guest=True)
 def add_to_cart(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = ''
 
@@ -262,7 +264,7 @@ def add_to_cart(**kwargs):
 # Add To Cart Promo
 @frappe.whitelist(allow_guest=True)
 def add_to_cart_promo(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = ''
 
@@ -287,7 +289,7 @@ def add_to_cart_promo(**kwargs):
 # Get Cart Items
 @frappe.whitelist(allow_guest=True)
 def get_cart_items(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -312,7 +314,7 @@ def get_cart_items(**kwargs):
 # Update Cart
 @frappe.whitelist(allow_guest=True)
 def update_cart(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -337,7 +339,7 @@ def update_cart(**kwargs):
 # Remove Cart Item
 @frappe.whitelist(allow_guest=True)
 def remove_cart_item(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -362,7 +364,7 @@ def remove_cart_item(**kwargs):
 # Remove Cart
 @frappe.whitelist(allow_guest=True)
 def remove_cart(**kwargs):
-    
+    config = Configurations()
     id_cart=kwargs.get('id_cart','')
     query_string = f'{id_cart}?ext_call=true'
 
@@ -382,7 +384,7 @@ def remove_cart(**kwargs):
 # Prepare Order
 @frappe.whitelist(allow_guest=True)
 def prepare_order(**kwargs):
-    
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -402,7 +404,7 @@ def prepare_order(**kwargs):
 # Send Order
 @frappe.whitelist(allow_guest=True)
 def send_order(**kwargs):
-    
+    config = Configurations()
     result = APIClient.request(
         endpoint=f'send_order',
         method='POST',
@@ -415,6 +417,7 @@ def send_order(**kwargs):
 # Get Order Detail
 @frappe.whitelist(allow_guest=True)
 def get_order_detail(**kwargs):
+    config = Configurations()
     numero_doc_definitivo = kwargs.get('NumeroDocDefinitivo')
     causale_doc_definitivo = kwargs.get('CausaleDocDefinitivo')
     anno_doc_definitivo = kwargs.get('AnnoDocDefinitivo')
@@ -445,7 +448,7 @@ def get_order_detail(**kwargs):
 # Get Autocomplete Items
 @frappe.whitelist(allow_guest=True)
 def autocomplete(**kwargs):
-
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = '?'
 
@@ -478,7 +481,7 @@ def autocomplete(**kwargs):
 # Get Account Info
 @frappe.whitelist(allow_guest=True)
 def account(**kwargs):
-
+    config = Configurations()
     query_args = {key: value for key, value in kwargs.items() if key not in ('cmd')}
     query_string = f'?'
 
@@ -507,6 +510,7 @@ def account(**kwargs):
 # Save Cart
 @frappe.whitelist(allow_guest=True)
 def save_cart(**kwargs):
+    config = Configurations()
     result = APIClient.request(
         endpoint=f'save_prev',
         method='POST',
@@ -519,6 +523,7 @@ def save_cart(**kwargs):
 # Save Cart
 @frappe.whitelist(allow_guest=True)
 def activate_cart(**kwargs):
+    config = Configurations()
     ##Placeing static 0/0 data because the real one are sen via post
     result = APIClient.request(
         endpoint=f'attiva_carrello/0/0',

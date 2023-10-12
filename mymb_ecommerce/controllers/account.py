@@ -15,8 +15,8 @@ from mymb_ecommerce.utils.APIClient import APIClient
 
 JsonDict = Dict[str, Any]
 
-config = Configurations()
-mymb_api_client = MymbAPIClient()
+
+
 
 
 def _get_mymb_api_client():
@@ -169,6 +169,7 @@ def get_invoices(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def pdf_tracking_order(**kwargs):
+    config = Configurations()
     try:
         result = APIClient.request(
             endpoint='pdf_tracking_order',
@@ -194,6 +195,7 @@ def pdf_tracking_order(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def pdf_barcode_document(**kwargs):
+    config = Configurations()
     try:
         result = APIClient.request(
             endpoint='pdf_barcode_document',
@@ -219,6 +221,7 @@ def pdf_barcode_document(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def invoice_pdf(**kwargs):
+    config = Configurations()
     try:
         result = APIClient.request(
             endpoint='get_invoice_pdf',
@@ -244,6 +247,7 @@ def invoice_pdf(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def csv_invoice_document(**kwargs):
+    config = Configurations()
     try:
         result = APIClient.request(
             endpoint='csv_invoice_document',
@@ -268,6 +272,7 @@ def csv_invoice_document(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def pdf_scadenzario(**kwargs):
+    config = Configurations()
     try:
         result = APIClient.request(
             endpoint='pdf_scadenzario',
