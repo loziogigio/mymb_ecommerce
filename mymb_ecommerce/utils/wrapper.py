@@ -47,6 +47,17 @@ def wrap_product_detail_from_list(data, prices):
         prices_data_id = prices[data['id']]
         is_sale = prices_data_id.get('price_discount', 0) > 0
         price_discount = prices_data_id.get('price_discount', None)
+        # Check if 'all_promo' key exists in prices_data_id
+        # Check if 'all_promo' key exists in prices_data_id
+        if 'all_promo' in prices_data_id:
+            # Iterate through each promo in all_promo list
+            for promo in prices_data_id['all_promo']:
+                # Add 'promo_row' key to each promo with value from 'RigaPromozione'
+                promo['promo_row'] = promo['RigaPromozione']
+
+            # Update prices_data_id with the modified all_promo list
+            prices_data_id['all_promo'] = prices_data_id['all_promo']
+
 
     result = {
         'developer': None,
