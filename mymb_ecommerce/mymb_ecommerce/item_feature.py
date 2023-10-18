@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from mymb_ecommerce.controllers.solr_action import update_solr_item_features
+from mymb_ecommerce.mymb_b2c.solr_action import update_solr_item_features
 
 @frappe.whitelist()
 def add_feature_list(docs):

@@ -1,12 +1,17 @@
 # mymb_ecommerce/model/Bcartmag.py
-
+import frappe
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text, Boolean, CHAR, Float
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 
+def get_bcartmag_full_tablename():
+    db = frappe.get_doc('Mymb b2c Settings').get("db_erp")
+    return f"{db}.bcartmag"
+
 class Bcartmag(Base):
+
     __tablename__ = 'bcartmag'
 
     csoci = Column(String(4), primary_key=True, nullable=False)

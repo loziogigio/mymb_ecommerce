@@ -91,3 +91,23 @@ class Configurations:
             self.mysql_connection = Database(db_config)
 
         return self.mysql_connection
+    
+    def get_mysql_generic_connection(self , is_data_property=True, is_db_transaction=False , is_erp_db=False ):
+        """Get the MySQL connection from the Mymb b2c Settings DocType"""
+        if not hasattr(self, 'mysql_connection'):
+            username = self.doc.get('db_username')
+            db_password = get_decrypted_password("Mymb b2c Settings", self.doc.name, 'db_password')  # Decrypt the password
+            db_host = self.doc.get('db_host')
+            db_port = self.doc.get('db_port')
+
+            db_config = {
+                'drivername': 'mysql',
+                'username': username,
+                'password': db_password,
+                'host': db_host,
+                'port': db_port
+            }
+            self.mysql_connection = Database(db_config)
+
+        return self.mysql_connection
+

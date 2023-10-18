@@ -1,5 +1,5 @@
 from mymb_ecommerce.mymb_b2c.product import import_all_products_from_mymb_b2c
-from mymb_ecommerce.controllers.solr_action import update_all_solr_category
+from mymb_ecommerce.mymb_b2c.solr_action import update_all_solr_category
 import frappe
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
