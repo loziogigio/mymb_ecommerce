@@ -13,9 +13,6 @@ from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 
 
-config = Configurations()
-solr_instance = config.get_solr_instance()
-image_uri_instance = config.get_image_uri_instance()
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 def shop(args=None):
@@ -50,7 +47,13 @@ def catalogue(args=None):
         query = f'text:{text}'
 
     if home:
-        query = f'text:piscina' 
+        label_to_search = "new-arrival"
+        url_value = frappe.db.get_value('B2C Menu', {'label': label_to_search}, 'url')
+        
+        if url_value:
+            query = f'text:{url_value}'
+        else:
+            query = f'text:*'
 
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
@@ -106,6 +109,8 @@ def catalogue(args=None):
         search_params['sort'] = 'net_price_with_vat desc'
 
     # Get the Solr instance from the Configurations class
+    config = Configurations()
+    solr_instance = config.get_solr_instance()
     solr = solr_instance
 
     # Execute the search and get the results
@@ -202,7 +207,8 @@ def map_solr_response_b2c(search_results ):
 
     # Initialize the mapped results list
     mapped_results = []
-
+    config = Configurations()
+    image_uri_instance = config.get_image_uri_instance()
     # Map the Solr results to our desired format
     media = Media(image_uri_instance)
     for result in search_results:
@@ -310,6 +316,8 @@ def get_default_product_values():
 @frappe.whitelist(allow_guest=True)
 def products():
     # Get the Solr instance from the Mymb b2c Settings DocType
+    config = Configurations()
+    solr_instance = config.get_solr_instance()
     solr = solr_instance
 
     # Get the slug parameter from the query string

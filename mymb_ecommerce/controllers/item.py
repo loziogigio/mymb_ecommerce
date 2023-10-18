@@ -3,16 +3,16 @@ from mymb_ecommerce.repository.BcartmagRepository import BcartmagRepository
 from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.repository.MediaRepository import MediaRepository
 from mymb_ecommerce.utils.MymbAPIClient import MymbAPIClient
-from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.mymb_ecommerce.settings.configurations import Configurations
 from datetime import datetime
 from frappe.utils.password import update_password
 from mymb_ecommerce.controllers.solr_crud import add_document_to_solr
 from bs4 import BeautifulSoup
 from slugify import slugify
 from datetime import datetime
+from sqlalchemy import text
 
 
-config = Configurations()
 
 
 
@@ -20,6 +20,7 @@ config = Configurations()
 def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None, fetch_property=False, fetch_media=False , fetch_price=False):
     # Initialize the BcartmagRepository
     item_repo = BcartmagRepository()
+    config = Configurations()
 
     # Fetch all the Bcartmag items from the external database
     external_items = item_repo.get_all_records(limit=limit,page=page, time_laps=time_laps, filters=filters, to_dict=True)
@@ -239,3 +240,96 @@ def transform_to_solr_document(item):
     }
 
     return solr_document
+
+
+# Update the update_categories function
+@frappe.whitelist(allow_guest=True)
+def get_categories(last_operation=None, count=False, args=None , item_codes=None , submenu_id=None):
+    config = Configurations()
+    db = config.get_mysql_connection(is_data_property=True)
+
+    item_codes_str = None
+    if item_codes is not None:
+        # Convert the list to a string
+        item_codes_str = ', '.join(str(code) for code in item_codes)
+
+    submenu_id_str = None
+    if submenu_id is not None:
+        # Convert the list to a string
+        submenu_id_str = ', '.join(str(id) for id in submenu_id)
+
+    # Non-recursive hierarchy representation
+    query_str = f"""
+    SELECT 
+        c1.submenu_id AS level1_id, c1.label AS level1_label,
+        c2.submenu_id AS level2_id, c2.label AS level2_label,
+        c3.submenu_id AS level3_id, c3.label AS level3_label,
+        c4.submenu_id AS level4_id, c4.label AS level4_label,
+        c5.submenu_id AS level5_id, c5.label AS level5_label,
+        c6.submenu_id AS level6_id, c6.label AS level6_label,
+        sp.product_code,
+        sp.product_ref,
+        sp.lastoperation,
+        CONCAT('[', 
+            JSON_OBJECT('label', c1.label, 'depth', 1), ',',
+            JSON_OBJECT('label', c2.label, 'depth', 2), ',',
+            JSON_OBJECT('label', c3.label, 'depth', 3), ',',
+            JSON_OBJECT('label', c4.label, 'depth', 4), ',',
+            JSON_OBJECT('label', c5.label, 'depth', 5), ',',
+            JSON_OBJECT('label', c6.label, 'depth', 6),
+        ']') AS hierarchy
+    FROM channel_submenu c1
+    LEFT JOIN channel_submenu c2 ON c1.submenu_id = c2.submenu_id_ref
+    LEFT JOIN channel_submenu c3 ON c2.submenu_id = c3.submenu_id_ref
+    LEFT JOIN channel_submenu c4 ON c3.submenu_id = c4.submenu_id_ref
+    LEFT JOIN channel_submenu c5 ON c4.submenu_id = c5.submenu_id_ref
+    LEFT JOIN channel_submenu c6 ON c5.submenu_id = c6.submenu_id_ref
+    JOIN submenu_product sp ON c1.submenu_id = sp.submenu_id
+    WHERE c1.submenu_id_ref = 0 AND (:last_operation IS NULL OR sp.lastoperation > :last_operation)
+    """
+
+    if item_codes_str is not None:
+        query_str += f" AND (sp.product_code IN ({item_codes_str}))"
+
+    if submenu_id_str is not None:
+        query_str += f" AND (c1.submenu_id IN ({submenu_id_str}))"
+
+    query_str += """
+    GROUP BY 
+    c1.submenu_id, c1.label,
+    c2.submenu_id, c2.label,
+    c3.submenu_id, c3.label,
+    c4.submenu_id, c4.label,
+    c5.submenu_id, c5.label,
+    c6.submenu_id, c6.label,
+    sp.product_code, sp.product_ref, sp.lastoperation
+    ORDER BY sp.product_code, c1.submenu_id
+    """
+
+    query = text(query_str)
+    if count:
+        count_query = text(f"SELECT COUNT(*) FROM ({query_str}) as subquery")
+        total_results = db.session.execute(count_query, {'last_operation': last_operation}).fetchone()[0]
+    results = db.session.execute(query, {'last_operation': last_operation}).fetchall()
+    db.disconnect()
+
+    result_list = []
+    for row in results:
+        result_dict = {
+            'submenu_id': row.level1_id,
+            'product_code': row.product_code,
+            'product_ref': row.product_ref,
+            'lastoperation': row.lastoperation,
+            'hierarchy': row.hierarchy,
+        }
+        result_list.append(result_dict)
+    if count:
+        result_list.append({'total_results': total_results})
+    # Construct the response
+    response =  {
+        'results': result_list
+    }
+    if count:
+        response['total_results'] = total_results
+
+    return response

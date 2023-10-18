@@ -4,10 +4,10 @@ from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from mymb_ecommerce.utils.Database import Database
 import frappe
 from frappe import _
-from sqlalchemy import text
 import json
 from mymb_ecommerce.utils.Solr import Solr
 from mymb_ecommerce.controllers.solr_crud import add_document_to_solr, update_document_in_solr
+from mymb_ecommerce.controllers.item import get_categories
 from slugify import slugify
 import re
 
@@ -18,82 +18,7 @@ image_uri_instance = config.get_image_uri_instance()
 # Add the following imports at the beginning of your filestatu
 
 
-# Update the update_categories function
-@frappe.whitelist(allow_guest=True)
-def get_categories(last_operation=None, count=False, args=None , item_codes=None , submenu_id=None):
-    db = config.get_mysql_connection()
 
-    item_codes_str = None
-    if item_codes is not None:
-        # Convert the list to a string
-        item_codes_str = ', '.join(str(code) for code in item_codes)
-
-    submenu_id_str = None
-    if submenu_id is not None:
-        # Convert the list to a string
-        submenu_id_str = ', '.join(str(id) for id in submenu_id)
-
-    query_str = f"""
-    WITH RECURSIVE hierarchy AS (
-        SELECT submenu_id, submenu_id_ref, label, depth, JSON_ARRAY(JSON_OBJECT('label', label, 'depth', depth)) AS path
-        FROM channel_submenu
-        WHERE submenu_id_ref = 0
-
-        UNION ALL
-
-        SELECT c.submenu_id, c.submenu_id_ref, c.label, c.depth, JSON_ARRAY_APPEND(h.path, '$', JSON_OBJECT('label', c.label, 'depth', c.depth))
-        FROM channel_submenu c
-        JOIN hierarchy h ON c.submenu_id_ref = h.submenu_id
-    )
-    SELECT
-        h.submenu_id,
-        sp.product_code,
-        sp.product_ref,
-        sp.lastoperation,
-        ANY_VALUE(h.path) AS hierarchy
-    FROM hierarchy h
-    JOIN submenu_product sp ON h.submenu_id = sp.submenu_id
-    WHERE (:last_operation IS NULL OR sp.lastoperation > :last_operation)
-    """
-
-    if item_codes_str is not None:
-        query_str += f" AND (sp.product_code IN ({item_codes_str}))"
-
-    if submenu_id_str is not None:
-        query_str += f" AND (h.submenu_id IN ({submenu_id_str}))"
-
-    query_str += """
-    GROUP BY h.submenu_id, sp.product_code, sp.lastoperation
-    ORDER BY sp.product_code, h.submenu_id
-    """
-
-    query = text(query_str)
-    if count:
-        count_query = text(f"SELECT COUNT(*) FROM ({query_str}) as subquery")
-        total_results = db.session.execute(count_query, {'last_operation': last_operation}).fetchone()[0]
-    results = db.session.execute(query, {'last_operation': last_operation}).fetchall()
-    db.disconnect()
-
-    result_list = []
-    for row in results:
-        result_dict = {
-            'submenu_id': row.submenu_id,
-            'product_code': row.product_code,
-            'product_ref': row.product_ref,
-            'lastoperation': row.lastoperation,
-            'hierarchy': row.hierarchy,
-        }
-        result_list.append(result_dict)
-    if count:
-        result_list.append({'total_results': total_results})
-    # Construct the response
-    response =  {
-        'results': result_list
-    }
-    if count:
-        response['total_results'] = total_results
-
-    return response
 
 
 

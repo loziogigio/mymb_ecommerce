@@ -69,14 +69,19 @@ class Configurations:
 
         return self.mysql_connection
     
-    def get_mysql_connection_b2b(self):
-        """Get the MySQL connection from the Mymb b2c Settings DocType"""
+    def get_mysql_connection_b2b(self , is_data_property=True, is_db_transaction=False , is_erp_db=False):
+        """Get the MySQL connection from the Mymb Settings DocType"""
         if not hasattr(self, 'mysql_connection'):
             username = self.doc.get('db_username')
             db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
             db_host = self.doc.get('db_host')
             db_port = self.doc.get('db_port')
-            db_transactions_b2b = self.doc.get('db_transactions')
+            if is_db_transaction:
+                db_name = self.doc.get('db_transactions')
+            elif is_erp_db:
+                db_name = self.doc.get('db_erp')
+            elif is_data_property:
+                db_name = self.doc.get('db_item_data')
 
 
             db_config = {
@@ -85,9 +90,8 @@ class Configurations:
                 'password': db_password,
                 'host': db_host,
                 'port': db_port,
-                'database': db_transactions_b2b
+                'database': db_name
             }
             self.mysql_connection = Database(db_config)
 
         return self.mysql_connection
-
