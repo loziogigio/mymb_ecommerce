@@ -6,9 +6,7 @@ from sqlalchemy import text
 import json
 from mymb_ecommerce.utils.Solr import Solr
 
-config = Configurations()
-solr_instance = config.get_solr_instance()
-image_uri_instance = config.get_image_uri_instance()
+
 
 # Add the following imports at the beginning of your filestatu
 
@@ -29,6 +27,8 @@ def add_document_to_solr(args=None , solr_ext_instance=None ):
     if solr_ext_instance:
         solr = solr_ext_instance
     else:
+        config = Configurations()
+        solr_instance = config.get_solr_instance()
         solr = solr_instance
 
     # Add the document to Solr
@@ -40,6 +40,7 @@ def add_document_to_solr(args=None , solr_ext_instance=None ):
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def delete_document_to_solr(id=None , solr_ext_instance=None ):
+    
     """
     Delete a document from the Solr index using the given id.
 
@@ -52,6 +53,8 @@ def delete_document_to_solr(id=None , solr_ext_instance=None ):
     if solr_ext_instance:
         solr = solr_ext_instance
     else:
+        config = Configurations()
+        solr_instance = config.get_solr_instance()
         solr = solr_instance
 
 
@@ -75,6 +78,8 @@ def update_document_in_solr(args=None , solr_ext_instance=None ):
     if solr_ext_instance:
         solr = solr_ext_instance
     else:
+        config = Configurations()
+        solr_instance = config.get_solr_instance()
         solr = solr_instance
 
     # Update the document in Solr
@@ -96,6 +101,8 @@ def delete_all_solr_docs(solr_ext_instance=None):
     if solr_ext_instance:
         solr = solr_ext_instance
     else:
+        config = Configurations()
+        solr_instance = config.get_solr_instance()
         solr = solr_instance
 
     # Delete all documents from Solr

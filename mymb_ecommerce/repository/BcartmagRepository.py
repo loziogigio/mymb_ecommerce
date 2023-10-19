@@ -28,9 +28,9 @@ class BcartmagRepository:
     def __del__(self):
         self.session.close()
 
-    def get_all_records(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None  , channel_product=None):
-        if channel_product:
-            filters["channel_id"] = channel_product
+    def get_all_records(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None  , channel_id=None):
+        if channel_id:
+            filters["channel_id"] = channel_id
             return self.get_all_records_by_channell_product( limit=limit, page=page, time_laps=time_laps, to_dict=to_dict, filters=filters)
         query = self.session.query(Bcartmag)
 
@@ -129,6 +129,60 @@ class BcartmagRepository:
             results = rows
 
         return results
-                
+            
+    
+    def get_record_count_by_channell_product(self, time_laps=None, filters=None , channel_id=None):
+        
+        if channel_id:
+            filters['channel_id'] = channel_id
+            
+        bcartmag = get_bcartmag_full_tablename()
+        channel_product = get_channel_product_full_tablename()
+        
+        # Base SQL query
+        sql_query_str = f"""
+            SELECT COUNT(*)
+            FROM {bcartmag} AS b
+            INNER JOIN {channel_product} AS c ON b.oarti = c.product_code
+        """
+        
+        # List to hold our filter conditions and their parameters
+        conditions = []
+        params = {}
+        
+        # Filter by time_laps if provided
+        if time_laps is not None:
+            time_laps = int(time_laps)
+            time_threshold = datetime.now() - timedelta(minutes=time_laps)
+            conditions.append("b.created_at >= :time_threshold")
+            params["time_threshold"] = time_threshold
+
+        # Apply other filters
+        if filters:
+            for key, value in filters.items():
+                if hasattr(Bcartmag, key):
+                    table_prefix = "b"
+                    conditions.append(f"{table_prefix}.{key} = :{key}")
+                    params[key] = value
+                elif hasattr(ChannellProduct, key):
+                    table_prefix = "c"
+                    conditions.append(f"{table_prefix}.{key} = :{key}")
+                    params[key] = value
+
+        # If we have any conditions, add them to the SQL
+        if conditions:
+            sql_query_str += " WHERE " + " AND ".join(conditions)
+        
+        # Convert the SQL string to a TextClause
+        sql_query = text(sql_query_str)
+
+        # Execute the SQL query
+        result = self.session.execute(sql_query, params)
+
+        # Fetch the count from the result
+        count = result.scalar()
+
+        return count
+
 
 
