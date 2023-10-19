@@ -9,7 +9,7 @@ def import_mymb_b2c_products():
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None):
+def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None , batch_size=None):
 
 
     # total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id)
@@ -17,7 +17,8 @@ def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None)
         total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id)
     
     # Define the batch size
-    batch_size = 5
+    if not batch_size:
+        batch_size = 100
     
     # Calculate total number of pages/batches
     total_pages = -(-total_item // batch_size)  # This is a neat trick for "ceiling division"
