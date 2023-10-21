@@ -8,6 +8,7 @@ from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.utils.media import get_website_domain
 import frappe
 from frappe import _
+from urllib.parse import urlparse, parse_qs
 
 from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
@@ -22,21 +23,52 @@ def shop(args=None):
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 def catalogue(args=None):
     # Get the "start" and "per_page" parameters from the query string
-    per_page = int(frappe.local.request.args.get('per_page', 12) or 12 ) 
-    page = int(frappe.local.request.args.get('page') or 1)
+    args = args or {}  # If args is None, make it an empty dictionary
+
+    request_args = {key: frappe.local.request.args.get(key) for key in frappe.local.request.args}
+
+    # Merge dictionaries with args taking precedence
+    unified_args = {**request_args, **args}
+
+    per_page_value = unified_args.get('per_page', 12)
+    per_page = int(per_page_value) if per_page_value else 1
+    
+    page_value = unified_args.get('page', 1)
+    page = int(page_value) if page_value else 1
     page = page - 1 if page > 0 else 0
+
+    text = unified_args.get('search_term', '*')
+    groups = unified_args.get('category')
+    features = unified_args.get('features')
+    wishlist = unified_args.get('wishlist')
+    home = unified_args.get('home' , False)
+    skus = unified_args.get('skus')
+    category_detail = unified_args.get('category_detail')
+
     start = page*per_page
-    text = frappe.local.request.args.get('search_term') or '*'
-    groups = frappe.local.request.args.get('category') or None
-    features = frappe.local.request.args.get('features') or None
-    whishlist = frappe.local.request.args.get('wishlist') or None
-    home = frappe.local.request.args.get('home') or None
-    category_detail = frappe.local.request.args.get('category_detail') or None
+
+    if home:
+        label_to_search = "home"
+        url_value = frappe.db.get_value('B2C Menu', {'label': label_to_search}, 'url')
+        
+        if url_value:
+            # Split the URL at the question mark to get the query parameters
+            query_params = urlparse(url_value).query
+            # Convert the query parameters into a dictionary
+            args_dict = {k: v[0] for k, v in parse_qs(query_params).items()}
+            args_dict["home"] = False            
+             
+            return  catalogue(args_dict)
+        else:
+            query = f'text:*'
+
+    if text!="*":
+        text = f"*{text}*"
 
     wishlist_items = []  # Initialize wishlist_items variable
 
     #we just search for whishlist
-    if whishlist:
+    if wishlist:
         JWTManager.verify_jwt_in_request()
         wishlist_items = get_from_wishlist(user=frappe.local.jwt_payload['email'])
 
@@ -46,14 +78,12 @@ def catalogue(args=None):
     else:
         query = f'text:{text}'
 
-    if home:
-        label_to_search = "new-arrival"
-        url_value = frappe.db.get_value('B2C Menu', {'label': label_to_search}, 'url')
-        
-        if url_value:
-            query = f'text:{url_value}'
-        else:
-            query = f'text:*'
+    #search item by code
+    if skus:
+        skus_array = skus.split(";")
+        query = f'text:{text} AND ({" OR ".join([f"sku:{sku}" for sku in skus_array])})'
+
+
 
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
@@ -107,6 +137,18 @@ def catalogue(args=None):
         search_params['sort'] = 'net_price_with_vat asc'
     elif order_by == 'price-desc':
         search_params['sort'] = 'net_price_with_vat desc'
+    
+    order_by_creation_at = frappe.local.request.args.get('order_by_creation_at')
+    if order_by_creation_at == 'asc':
+        search_params['sort'] = 'created_at asc'
+    elif order_by_creation_at == 'desc':
+        search_params['sort'] = 'created_at desc'
+
+    order_by_updated_at = frappe.local.request.args.get('order_by_updated_at')
+    if order_by_updated_at == 'asc':
+        search_params['sort'] = 'updated_at asc'
+    elif order_by_updated_at == 'desc':
+        search_params['sort'] = 'updated_at desc'
 
     # Get the Solr instance from the Configurations class
     config = Configurations()
@@ -162,7 +204,7 @@ def catalogue(args=None):
         "menu_category_detail": get_menu_category_detail(category_detail)
     }
     return response
-
+  
 def get_menu_category_detail(category_detail):
     web_site_domain = get_website_domain()
     try:

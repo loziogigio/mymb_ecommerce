@@ -9,6 +9,7 @@ from erpnext import get_default_company
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cstr, get_datetime, now
+from datetime import datetime
 
 
 class MymbItem(Document):
@@ -140,15 +141,24 @@ def create_or_update_mymb_item(
 	# SKU not allowed for template items
 	sku = cstr(sku) if not has_variants else None
 
-	if is_synced(integration, integration_item_code, variant_id, sku):
-		return
-
 	# Check if the item already exists by a unique identifier, such as SKU
 	existing_item = frappe.db.get_value("Item", {"name": sku}) if sku else None
+
+	if is_synced(integration, integration_item_code, variant_id, sku):
+		#update the item
+		item = frappe.get_doc("Item", existing_item)
+		item_dict['disabled'] = 0
+		item.update(item_dict)
+		item.flags.from_integration = True
+		item.save(ignore_permissions=True)
+		return
+
+	
 
 	# Update existing item if found
 	if existing_item:
 		item = frappe.get_doc("Item", existing_item)
+		item_dict['disabled'] = 0
 		item.update(item_dict)
 		item.flags.from_integration = True
 		item.save(ignore_permissions=True)
@@ -161,13 +171,15 @@ def create_or_update_mymb_item(
 			"include_item_in_manufacturing": 0,
 			"item_defaults": [{"company": get_default_company()}],
 		}
-		if qty > 0:
-			item_dict['disabled'] =  0  # Enabme the item
+		# if qty > 0:
+		# 	item_dict['disabled'] =  0  # Enabme the item
+		item_dict['disabled'] = 0
 		item_data.update(item_dict)  # Updating the item_data with the values from item_dict
 		new_item = frappe.get_doc(item_data)
 		new_item.flags.from_integration = True
 		new_item.insert(ignore_permissions=True)
-		create_stock_entry(new_item, qty)  # U
+		if qty > 0:
+			create_stock_entry(new_item, qty)  # U
 
 	# Create or update the corresponding Mymb Item doctype
 	mymb_item_data = {
@@ -180,7 +192,7 @@ def create_or_update_mymb_item(
 		"variant_of": cstr(variant_of),
 		"sku": sku,
 		"oarti": oarti,
-		"item_synced_on": now(),
+    	"item_synced_on": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 	}
 
 	# Check if the Mymb Item already exists

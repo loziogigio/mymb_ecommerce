@@ -238,8 +238,24 @@ def transform_to_solr_document(item):
 
 
     # Create a dictionary to store the values for Solr
+    try:
+        created_at_str = item.get('dinse_ianag', None)
+    
+        if created_at_str:
+            created_at = created_at_str.strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            created_at = None
 
- 
+    except AttributeError:
+        created_at = None
+    except Exception as e:
+        created_at = None
+
+
+
+    # Get the current datetime in Solr's pdate format
+    updated_at = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
     solr_document = {
         "id": id,
         "sku": sku,
@@ -278,7 +294,9 @@ def transform_to_solr_document(item):
         "discount": prices.get('discount', [None]*6),
         "discount_extra": prices.get('discount_extra', [None]*3),
         "pricelist_type": prices.get('pricelist_type', None),
-        "pricelist_code": prices.get('pricelist_code', None)
+        "created_at": created_at,
+        "updated_at": updated_at,
+
     }
 
     ##add not mandatory field
