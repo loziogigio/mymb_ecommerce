@@ -46,41 +46,48 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
          # Check if a B2COrder with this external_ref already exists
         existing_order = b2c_order_repo.session.query(B2COrder).filter_by(external_ref=sales_order['name']).first()
-        if existing_order:
-            continue
+        # if existing_order:
+        #     continue
             
         billing_address_details = vars(sales_order.get('billing_address_details', None))
         shipping_address_details = vars(sales_order.get('shipping_address_details', None))
         order_rows =sales_order['items']
         order_transactions = sales_order['payment_requests']
 
+       
+        payment_method = "BONA" if sales_order['payment_mode'] == "TRANSFER" else sales_order['payment_mode']
+        transaction_status = "Nuovo" if sales_order['transaction_status'] == "New" else sales_order['transaction_status']
+
+        if sales_order['paid'] == "SI":
+            transaction_status = "PAID"
+
         # Map fields from ERPNext Sales Order to B2COrder
         b2c_order = B2COrder(
             # existing fields here...
             external_ref=sales_order['name'],
             email=sales_order['recipient_email'],
-            payment_method=sales_order['payment_mode'],
-            status= 'PAID ', #sales_order['transaction_status'],
+            payment_method=payment_method,
+            status= transaction_status, #sales_order['paid'],
             currency=sales_order['currency'],
             total_amount=sales_order['total'],
             creation_date=datetime.now(), # You may need to adjust this based on your data
 
             
             #To make it dynamic
-            # billing_country=billing_address_details.get('country','IT'),
-            # billing_prov=billing_address_details.get('state','IT'),
-            billing_country='IT',
-            billing_prov='VC',
+            billing_country=billing_address_details.get('country','IT'),
+            billing_prov=billing_address_details.get('state','IT'),
+            # billing_country='IT',
+            # billing_prov='VC',
             billing_city=billing_address_details.get('city',''),
             billing_address=safe_concat(billing_address_details.get('address_line1',''), billing_address_details.get('address_line2','')),
             billing_postalcode=billing_address_details['pincode'],
             billing_name=billing_address_details['name'],
             billing_phone=billing_address_details['phone'],
 
-            # shipping_country=shipping_address_details.get('country','IT'),
-            # shipping_prov=shipping_address_details.get('state','IT'),
-            shipping_country='IT',
-            shipping_prov='VC',
+            shipping_country=shipping_address_details.get('country','IT'),
+            shipping_prov=shipping_address_details.get('state','IT'),
+            # shipping_country='IT',
+            # shipping_prov='VC',
             shipping_city=shipping_address_details.get('city',''),
             shipping_address=safe_concat(shipping_address_details.get('address_line1',''), shipping_address_details.get('address_line2','')),
             shipping_postalcode=shipping_address_details['pincode'],

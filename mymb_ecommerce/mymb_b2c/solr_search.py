@@ -63,7 +63,7 @@ def catalogue(args=None):
             query = f'text:*'
 
     if text!="*":
-        text = f"{text}"
+        query = f"text:{text}"
 
     wishlist_items = []  # Initialize wishlist_items variable
 
