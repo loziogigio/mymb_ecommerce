@@ -63,7 +63,7 @@ def catalogue(args=None):
             query = f'text:*'
 
     if text!="*":
-        text = f"*{text}*"
+        text = f"{text}"
 
     wishlist_items = []  # Initialize wishlist_items variable
 
@@ -82,8 +82,6 @@ def catalogue(args=None):
     if skus:
         skus_array = skus.split(";")
         query = f'text:{text} AND ({" OR ".join([f"sku:{sku}" for sku in skus_array])})'
-
-
 
     # Check if min_price is provided in the query string and add it to the query if it is
     min_price = frappe.local.request.args.get('min_price')
@@ -389,7 +387,9 @@ def products():
     product = map_solr_response_b2c([dict(solr_results['results'][0])])[0]
 
     args = frappe._dict()
-    args.family_code = 1009
+    if 'family_code' in product:
+        args.family_code = product.get('family_code')
+
     relatedProducts = catalogue(args)
 
     product["features"] = get_features_by_item_name(product["sku"])

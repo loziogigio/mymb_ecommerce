@@ -304,6 +304,8 @@ def transform_to_solr_document(item):
     if  categories:
         hierarchy = json.loads(categories.get('hierarchy'))
         # Loop through the hierarchy and add the values to the Solr document
+        solr_document['family_code'] = categories['family_code']
+        solr_document['family_name'] = categories['family_name']
         for h in hierarchy:
                 clean_label = h['label'].strip().replace("\t", "").replace("\n", "").replace(",", " ")
                 clean_label = re.sub(' +', ' ', clean_label)
@@ -387,9 +389,33 @@ def get_categories(last_operation=None, count=False, args=None, item_codes=None,
         
         # Filtering out the items with a null label
         filtered_hierarchy = [item for item in hierarchy if item['label'] is not None]
+
+        # Determine the family_code (deepest submenu_id)
+        family_code = (
+            row.level6_id if row.level6_id is not None else
+            row.level5_id if row.level5_id is not None else
+            row.level4_id if row.level4_id is not None else
+            row.level3_id if row.level3_id is not None else
+            row.level2_id if row.level2_id is not None else
+            row.level1_id
+        )
+
+         # Determine the family_name (label of the deepest submenu_id)
+        family_name = (
+            row.level6_label if row.level6_id is not None else
+            row.level5_label if row.level5_id is not None else
+            row.level4_label if row.level4_id is not None else
+            row.level3_label if row.level3_id is not None else
+            row.level2_label if row.level2_id is not None else
+            row.level1_label
+        )
+
+        
         
         result_dict = {
             'submenu_id': row.level1_id,
+            'family_code' : family_code,
+            'family_name' : family_name,
             'product_code': row.product_code,
             'product_ref': row.product_ref,
             'lastoperation': row.lastoperation,

@@ -14,9 +14,7 @@ from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import 
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 
-config = Configurations()
-mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
-mymb_b2c_payment_failed_page = config.get_mymb_b2c_payment_failed_page()
+
 
 
 
@@ -78,6 +76,7 @@ def payment_request(quotation_name, payment_gateway="paypal"):
     elif payment_gateway == "gestpay":
         payment_url = get_gestpay_url(doc)
     elif payment_gateway == "transfer":
+        config = Configurations()
         payment_url = "/pages/payment-success?paymentgateway=transfer"
         submit_sales_order(sales_order.name)
         send_sales_order_confirmation_email_html(sales_order=sales_order , email_template="transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
@@ -234,80 +233,81 @@ def get_quotation_addresses(quotation_name):
 
 @frappe.whitelist(allow_guest=True)
 def make_payment_request(**args):
-	"""Make payment request"""
+    """Make payment request"""
 
-	args = frappe._dict(args)
+    args = frappe._dict(args)
 
-	ref_doc = frappe.get_doc(args.dt, args.dn)
-	gateway_account = get_gateway_details(args) or frappe._dict()
-	
+    ref_doc = frappe.get_doc(args.dt, args.dn)
+    gateway_account = get_gateway_details(args) or frappe._dict()
+    
 
-	grand_total = args.grand_total or get_amount(ref_doc, gateway_account.get("payment_account"))
+    grand_total = args.grand_total or get_amount(ref_doc, gateway_account.get("payment_account"))
 
     
-	bank_account = (
-		get_party_bank_account(args.get("party_type"), args.get("party"))
-		if args.get("party_type")
-		else ""
-	)
+    bank_account = (
+        get_party_bank_account(args.get("party_type"), args.get("party"))
+        if args.get("party_type")
+        else ""
+    )
 
-	draft_payment_request = frappe.db.get_value(
-		"Payment Request",
-		{"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
-	)
+    draft_payment_request = frappe.db.get_value(
+        "Payment Request",
+        {"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
+    )
 
-	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
+    existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
 
-	if existing_payment_request_amount:
-		grand_total -= existing_payment_request_amount
+    if existing_payment_request_amount:
+        grand_total -= existing_payment_request_amount
 
-	if draft_payment_request:
-		frappe.db.set_value(
-			"Payment Request", draft_payment_request, "grand_total", grand_total, update_modified=False
-		)
-		pr = frappe.get_doc("Payment Request", draft_payment_request)
-	else:
-		pr = frappe.new_doc("Payment Request")
-		pr.update(
-			{
-				"payment_gateway_account": gateway_account.get("name"),
-				"payment_gateway": gateway_account.get("payment_gateway"),
-				"payment_account": gateway_account.get("payment_account"),
-				"payment_channel": gateway_account.get("payment_channel"),
-				"payment_request_type": args.get("payment_request_type"),
-				"currency": ref_doc.currency,
-				"grand_total": grand_total,
-				"mode_of_payment": args.mode_of_payment,
-				"email_to": args.recipient_id or ref_doc.owner,
-				"subject": _("Payment Request for {0}").format(args.dn),
-				"message": gateway_account.get("message") or get_dummy_message(ref_doc),
-				"reference_doctype": args.dt,
-				"reference_name": args.dn,
-				"party_type": args.get("party_type") or "Customer",
-				"party": args.get("party") or ref_doc.get("customer"),
-				"bank_account": bank_account,
-			}
-		)
+    # if draft_payment_request:
+    if 1==2:
+        frappe.db.set_value(
+            "Payment Request", draft_payment_request, "grand_total", grand_total, update_modified=False
+        )
+        pr = frappe.get_doc("Payment Request", draft_payment_request)
+    else:
+        pr = frappe.new_doc("Payment Request")
+        pr.update(
+            {
+                "payment_gateway_account": gateway_account.get("name"),
+                "payment_gateway": gateway_account.get("payment_gateway"),
+                "payment_account": gateway_account.get("payment_account"),
+                "payment_channel": gateway_account.get("payment_channel"),
+                "payment_request_type": args.get("payment_request_type"),
+                "currency": ref_doc.currency,
+                "grand_total": grand_total,
+                "mode_of_payment": args.mode_of_payment,
+                "email_to": args.recipient_id or ref_doc.owner,
+                "subject": _("Payment Request for {0}").format(args.dn),
+                "message": gateway_account.get("message") or get_dummy_message(ref_doc),
+                "reference_doctype": args.dt,
+                "reference_name": args.dn,
+                "party_type": args.get("party_type") or "Customer",
+                "party": args.get("party") or ref_doc.get("customer"),
+                "bank_account": bank_account,
+            }
+        )
 
-		# Update dimensions
-		pr.update(
-			{
-				"cost_center": ref_doc.get("cost_center"),
-				"project": ref_doc.get("project"),
-			}
-		)
+        # Update dimensions
+        pr.update(
+            {
+                "cost_center": ref_doc.get("cost_center"),
+                "project": ref_doc.get("project"),
+            }
+        )
 
-		for dimension in get_accounting_dimensions():
-			pr.update({dimension: ref_doc.get(dimension)})
+        for dimension in get_accounting_dimensions():
+            pr.update({dimension: ref_doc.get(dimension)})
 
-		if args.order_type == "Shopping Cart" or args.mute_email:
-			pr.flags.mute_email = True
+        if args.order_type == "Shopping Cart" or args.mute_email:
+            pr.flags.mute_email = True
 
-		pr.insert(ignore_permissions=True)
-		if args.submit_doc:
-			pr.submit()
+        pr.insert(ignore_permissions=True)
+        if args.submit_doc:
+            pr.submit()
 
-	return pr
+    return pr
 
 
 def _convert_quotation_to_order(quotation_name):
@@ -460,90 +460,93 @@ def get_stripe_secret(doc):
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def get_express_checkout_details(token):
-	try:
-		doc = frappe.get_doc("PayPal Settings")
-		doc.setup_sandbox_env(token)
+    try:
+        doc = frappe.get_doc("PayPal Settings")
+        doc.setup_sandbox_env(token)
 
-		params, url = doc.get_paypal_params_and_url()
-		params.update({"METHOD": "GetExpressCheckoutDetails", "TOKEN": token})
+        params, url = doc.get_paypal_params_and_url()
+        params.update({"METHOD": "GetExpressCheckoutDetails", "TOKEN": token})
 
-		response = make_post_request(url, data=params)
+        response = make_post_request(url, data=params)
 
-		if response.get("ACK")[0] != "Success":
-			frappe.respond_as_web_page(
-				_("Something went wrong"),
-				_(
-					"Looks like something went wrong during the transaction. Since we haven't confirmed the payment, Paypal will automatically refund you this amount. If it doesn't, please send us an email and mention the Correlation ID: {0}."
-				).format(response.get("CORRELATIONID", [None])[0]),
-				indicator_color="red",
-				http_status_code=frappe.ValidationError.http_status_code,
-			)
+        if response.get("ACK")[0] != "Success":
+            frappe.respond_as_web_page(
+                _("Something went wrong"),
+                _(
+                    "Looks like something went wrong during the transaction. Since we haven't confirmed the payment, Paypal will automatically refund you this amount. If it doesn't, please send us an email and mention the Correlation ID: {0}."
+                ).format(response.get("CORRELATIONID", [None])[0]),
+                indicator_color="red",
+                http_status_code=frappe.ValidationError.http_status_code,
+            )
 
-			return
+            return
 
-		doc = frappe.get_doc("Integration Request", token)
-		update_integration_request_status(
-			token,
-			{"payerid": response.get("PAYERID")[0], "payer_email": response.get("EMAIL")[0]},
-			"Authorized",
-			doc=doc,
-		)
+        doc = frappe.get_doc("Integration Request", token)
+        update_integration_request_status(
+            token,
+            {"payerid": response.get("PAYERID")[0], "payer_email": response.get("EMAIL")[0]},
+            "Authorized",
+            doc=doc,
+        )
 
-		frappe.local.response["type"] = "redirect"
-		frappe.local.response["location"] = get_redirect_uri(
-			doc, token, response.get("PAYERID")[0]
-		)
+        frappe.local.response["type"] = "redirect"
+        frappe.local.response["location"] = get_redirect_uri(
+            doc, token, response.get("PAYERID")[0]
+        )
 
-	except Exception:
-		frappe.log_error(frappe.get_traceback())
+    except Exception:
+        frappe.log_error(frappe.get_traceback())
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def confirm_payment(token):
-	try:
-		custom_redirect_to = None
-		data, params, url = get_paypal_and_transaction_details(token)
 
-		params.update(
-			{
-				"METHOD": "DoExpressCheckoutPayment",
-				"PAYERID": data.get("payerid"),
-				"TOKEN": token,
-				"PAYMENTREQUEST_0_PAYMENTACTION": "SALE",
-				"PAYMENTREQUEST_0_AMT": data.get("amount"),
-				"PAYMENTREQUEST_0_CURRENCYCODE": data.get("currency").upper(),
-			}
-		)
+    try:
+        custom_redirect_to = None
+        data, params, url = get_paypal_and_transaction_details(token)
 
-		response = make_post_request(url, data=params)
+        params.update(
+            {
+                "METHOD": "DoExpressCheckoutPayment",
+                "PAYERID": data.get("payerid"),
+                "TOKEN": token,
+                "PAYMENTREQUEST_0_PAYMENTACTION": "SALE",
+                "PAYMENTREQUEST_0_AMT": data.get("amount"),
+                "PAYMENTREQUEST_0_CURRENCYCODE": data.get("currency").upper(),
+            }
+        )
 
+        response = make_post_request(url, data=params)
+        config = Configurations()
+        mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
+        mymb_b2c_payment_failed_page = config.get_mymb_b2c_payment_failed_page()
 
-		if response.get("ACK")[0] == "Success":
-			_confirm_sales_order(payment_request_id=data.get("reference_docname") , status=response.get("ACK")[0] , payment_code=response.get("PAYMENTINFO_0_TRANSACTIONID")[0])
-			update_integration_request_status(
-				token,
-				{
-					"transaction_id": response.get("PAYMENTINFO_0_TRANSACTIONID")[0],
-					"correlation_id": response.get("CORRELATIONID")[0],
-				},
-				"Completed",
-			)
+        if response.get("ACK")[0] == "Success":
+            _confirm_sales_order(payment_request_id=data.get("reference_docname") , status=response.get("ACK")[0] , payment_code=response.get("PAYMENTINFO_0_TRANSACTIONID")[0])
+            update_integration_request_status(
+                token,
+                {
+                    "transaction_id": response.get("PAYMENTINFO_0_TRANSACTIONID")[0],
+                    "correlation_id": response.get("CORRELATIONID")[0],
+                },
+                "Completed",
+            )
 
-			if data.get("reference_doctype") and data.get("reference_docname"):
-				custom_redirect_to = frappe.get_doc(
-					data.get("reference_doctype"), data.get("reference_docname")
-				).run_method("on_payment_authorized", "Completed")
-				frappe.db.commit()
-			
-			redirect_url = "{}?doctype={}&docname={}".format(
-				mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
-			)
-		else:
-			redirect_url = mymb_b2c_payment_failed_page
+            if data.get("reference_doctype") and data.get("reference_docname"):
+                custom_redirect_to = frappe.get_doc(
+                    data.get("reference_doctype"), data.get("reference_docname")
+                ).run_method("on_payment_authorized", "Completed")
+                frappe.db.commit()
+            
+            redirect_url = "{}?doctype={}&docname={}".format(
+                mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
+            )
+        else:
+            redirect_url = mymb_b2c_payment_failed_page
 
-		setup_redirect(data, redirect_url )
+        setup_redirect(data, redirect_url )
 
-	except Exception:
-		frappe.log_error(frappe.get_traceback())
+    except Exception:
+        frappe.log_error(frappe.get_traceback())
 
 def _confirm_sales_order(payment_request_id, status, payment_code=None):
     # Fetch Sales Order from payment_request_id
@@ -585,7 +588,7 @@ def gestpay_transaction_result():
     if response.status_code != 200:
         return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
     
-	 # Parse the response as json and transform it into a dictionary
+    # Parse the response as json and transform it into a dictionary
     response_dict = frappe._dict(response.json())
     # Fetch 'data' from response_dict
     data = frappe._dict(response_dict.get('result', {}))
@@ -624,7 +627,7 @@ def gestpay_transaction_result():
     if response.status_code != 200:
         return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
     
-	 # Parse the response as json and transform it into a dictionary
+     # Parse the response as json and transform it into a dictionary
     response_dict = frappe._dict(response.json())
     # Fetch 'data' from response_dict
     data = frappe._dict(response_dict.get('result', {}))
@@ -681,7 +684,7 @@ def gestpay_check_response():
     if response.status_code != 200:
         return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
     
-	 # Parse the response as json and transform it into a dictionary
+     # Parse the response as json and transform it into a dictionary
     response_dict = frappe._dict(response.json())
     # Fetch 'data' from response_dict
     data = frappe._dict(response_dict.get('data', {}))
