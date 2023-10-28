@@ -46,8 +46,8 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
          # Check if a B2COrder with this external_ref already exists
         existing_order = b2c_order_repo.session.query(B2COrder).filter_by(external_ref=sales_order['name']).first()
-        # if existing_order:
-        #     continue
+        if existing_order:
+            continue
             
         billing_address_details = vars(sales_order.get('billing_address_details', None))
         shipping_address_details = vars(sales_order.get('shipping_address_details', None))
