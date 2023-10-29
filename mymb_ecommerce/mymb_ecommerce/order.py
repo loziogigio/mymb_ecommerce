@@ -6,7 +6,7 @@ from frappe import _
 
 
 @frappe.whitelist(allow_guest=True)
-def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C"):
+def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None):
 
     # Fetch the customer from request
     if not customer_id:
@@ -71,9 +71,41 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
     # Save the Quotation document as a draft
     quotation.insert(ignore_permissions=True)
 
+    #Apply shipping rules
+
+    if  shipping_rule:
+        quotation.shipping_rule = shipping_rule
+        quotation.flags.ignore_permissions = True
+        quotation.save()
+        quotation.run_method("apply_shipping_rule")
+        quotation.run_method("calculate_taxes_and_totals")
+
     # Return the Quotation document ID
     return quotation.name
 
+def get_shipping_rules(quotation=None):
+
+
+    shipping_rules = []
+    if quotation.shipping_address_name:
+        country = frappe.db.get_value(
+            "Address", quotation.shipping_address_name, "country"
+        )
+        if country:
+            sr_country = frappe.qb.DocType("Shipping Rule Country")
+            sr = frappe.qb.DocType("Shipping Rule")
+            query = (
+                frappe.qb.from_(sr_country)
+                .join(sr)
+                .on(sr.name == sr_country.parent)
+                .select(sr.name)
+                .distinct()
+                .where((sr_country.country == country) & (sr.disabled != 1))
+            )
+            result = query.run(as_list=True)
+            shipping_rules = [x[0] for x in result]
+
+    return shipping_rules
 
 def _create_address(customer, contact_info, address_type='Billing' , full_name=None):
 
