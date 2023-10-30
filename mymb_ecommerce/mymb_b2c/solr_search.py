@@ -45,6 +45,8 @@ def catalogue(args=None):
     skus = unified_args.get('skus')
     category_detail = unified_args.get('category_detail')
 
+    query = f"text:{text}"
+
     start = page*per_page
 
     if home:
@@ -62,8 +64,8 @@ def catalogue(args=None):
         else:
             query = f'text:*'
 
-    if text!="*":
-        query = f"text:{text}"
+
+        
 
     wishlist_items = []  # Initialize wishlist_items variable
 
