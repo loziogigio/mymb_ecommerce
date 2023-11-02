@@ -532,10 +532,15 @@ def confirm_payment(token):
             )
 
             if data.get("reference_doctype") and data.get("reference_docname"):
-                custom_redirect_to = frappe.get_doc(
-                    data.get("reference_doctype"), data.get("reference_docname")
-                ).run_method("on_payment_authorized", "Completed")
-                frappe.db.commit()
+                try:
+                    custom_redirect_to = frappe.get_doc(
+                        data.get("reference_doctype"), data.get("reference_docname")
+                    ).run_method("on_payment_authorized", "Completed")
+                    frappe.db.commit()
+                except Exception as e:
+                    # Log the error, but continue execution
+                    frappe.log_error(frappe.get_traceback(), title=str(e))
+
             
             redirect_url = "{}?doctype={}&docname={}".format(
                 mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
