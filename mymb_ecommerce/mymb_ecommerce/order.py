@@ -3,7 +3,7 @@ from mymb_ecommerce.utils.JWTManager import JWTManager, JWT_SECRET_KEY
 jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 from bs4 import BeautifulSoup
 from frappe import _
-
+from mymb_ecommerce.mymb_b2c.product import start_import_mymb_b2c_from_external_db
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None):
@@ -68,8 +68,31 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
         quotation.customer_address = billing_address_name
         quotation.shipping_address_name = shipping_address_name
 
-    # Save the Quotation document as a draft
-    quotation.insert(ignore_permissions=True)
+    try:
+        quotation.insert(ignore_permissions=True)
+    except frappe.LinkValidationError as e:
+        # Handle the specific error for missing item code.
+        if "Item Code" in str(e):
+            item_code = str(e).split("Item Code:")[-1].strip()
+            error_message = f"Failed to create quotation. Item Code {item_code} not found in the system. {item_code}: {str(e)}"
+            frappe.log_error(message=f"{item_code} create quotation LinkValidationError", title=error_message)
+
+            #loop all items quotation and import them in erpnext
+            for item in items:
+                filters = {"carti": item.get("item_code")}
+                start_import_mymb_b2c_from_external_db(filters=filters,channel_id="B2C" ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+            
+            #after item creation we create the quotation again
+            quotation.insert(ignore_permissions=True)
+        else:
+            # Handle other LinkValidationErrors
+            error_message = f"Failed to create quotation.: {str(e)}"
+            frappe.log_error(message=f"{item_code} create quotation LinkValidationError", title=error_message)
+    except Exception as e:
+        # Handle any other exceptions
+        error_message = f"Failed to create quotation generic.: {str(e)}"
+        frappe.log_error(message=f"{item_code} create quotation Exception", title=error_message)
+
 
     # Apply shipping rules
     try:

@@ -7,6 +7,7 @@ from mymb_ecommerce.repository.B2COrderRepository import B2COrderRepository
 from mymb_ecommerce.repository.B2COrderRowRepository import B2COrderRowRepository
 from mymb_ecommerce.repository.B2COrderTransactionRepository import B2COrderTransactionRepository
 from mymb_ecommerce.model.B2COrderRow import B2COrderRow
+from frappe import db
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
@@ -23,6 +24,7 @@ def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
          # Recover Addresses
         sales_order['billing_address_details'] = frappe.get_doc('Address', sales_order['customer_address']) if sales_order.get('customer_address') else None
         sales_order['shipping_address_details'] = frappe.get_doc('Address', sales_order['shipping_address_name']) if sales_order.get('shipping_address_name') else None
+        sales_order['taxes_and_charges'] = frappe.get_all('Sales Taxes and Charges', fields=['*'], filters={'parent': sales_order.name})
 
 
     return {
@@ -32,6 +34,27 @@ def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
 def safe_concat(*args):
     return ' '.join([str(a) for a in args if a])
+
+
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def export_sales_order(doc=None, method=None , sales_order_name=None):
+
+    if doc:
+        sales_order_name = doc.name
+    elif not sales_order_name:
+        # if neither doc nor sales_order_name is provided, return an error
+        return {"error": "Both doc and sales_order_name cannot be empty."}
+
+    # Create the filter dictionary for the sales_order name
+    filters = {"name": sales_order_name}
+
+    # Call the export_new_sales_order function using the filter
+    export_new_sales_order(filters=filters)
+
+
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
@@ -51,6 +74,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             
         billing_address_details = vars(sales_order.get('billing_address_details', None))
         shipping_address_details = vars(sales_order.get('shipping_address_details', None))
+        sales_taxes_and_charges = sales_order.get('taxes_and_charges', [])
         order_rows =sales_order['items']
         order_transactions = sales_order['payment_requests']
 
@@ -69,7 +93,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             payment_method=payment_method,
             status= transaction_status, #sales_order['paid'],
             currency=sales_order['currency'],
-            total_amount=sales_order['total'],
+            total_amount=sales_order['grand_total'],
             creation_date=datetime.now(), # You may need to adjust this based on your data
 
             
@@ -115,7 +139,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         # Save the B2COrder
         b2c_order_repo.session.add(b2c_order)
         b2c_order_repo.session.commit()
-        export_order_rows(b2c_order, order_rows)
+        export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
         if order_transactions:
             if order_transactions[0]:
                 export_order_transactions(b2c_order, order_transactions[0])
@@ -127,18 +151,40 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         "message": f"{len(sales_orders)} sales orders exported successfully."
     }
 
-def export_order_rows(b2c_order, line_items):
+def export_order_rows(b2c_order, line_items, sales_taxes_and_charges):
     # Assuming B2COrderRowRepository is your class to handle database interactions for order_rows
     b2c_order_row_repo = B2COrderRowRepository()
 
     # Initialize row number
     rn = 1
 
+    # Create order_row object for sales taxes and charges (for shipping in this case)
+    if sales_taxes_and_charges:
+        for tax in sales_taxes_and_charges:
+            if tax.get('description') and tax['tax_amount'] > 0:
+                order_row = B2COrderRow(
+                    order_id=b2c_order.order_id,
+                    row_id=tax['name'],
+                    row_num=rn,
+                    type='shipping',
+                    sku='',
+                    label=tax['description'],
+                    quantity=1,
+                    currency=b2c_order.currency,
+                    total_amount=tax['tax_amount'],
+                    base_price=tax['tax_amount'],
+                    unit_amount=tax['tax_amount']
+                )
+                # Add order_row to the session
+                b2c_order_row_repo.session.add(order_row)
+                # Increment row number
+                rn += 1
+
     # Iterate through line items
     for row in line_items:
         # Create order_row object with required details
         order_row = B2COrderRow(
-            order_id= b2c_order.order_id ,
+            order_id=b2c_order.order_id,
             row_id=row['idx'],
             row_num=rn,
             type='product',
@@ -161,6 +207,7 @@ def export_order_rows(b2c_order, line_items):
     b2c_order_row_repo.session.commit()
 
     return True
+
 
 def export_order_transactions(b2c_order, order_transaction):
     # Assuming B2COrderTransactionRepository is your class to handle database interactions for order_transactions

@@ -108,20 +108,27 @@ def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None
         prices = client.get_multiple_prices(default_customer_code, default_customer_address_code, item_codes, quantity_list)
 
         # Create a dictionary where the keys are item_codes and the values are prices
-        all_prices = {}
-        for item_code, price in zip(item_codes, prices):
-            if isinstance(price, dict) and 'item_code' in price:
-                price['entity_code'] = price['item_code'] 
-                all_prices[price['item_code']] = price
-            else:
-                frappe.log_error(message=f"Price dictionary does not contain 'id' key for item code {item_code}: {price}", title=f"Item ID:{item_code}From Ext DB/Missing Key Error")
-                continue
-        # For each record, match associated Price from the fetched prices
-        for record in external_items:
-            if record['oarti'] in all_prices:
-                record['prices'] = all_prices[record['oarti']]
-            else:
-                frappe.log_error(message=f"Item {record['oarti']} has no price", title="Item From Ext DB/No Price Error")
+        try:
+            all_prices = {}
+            for item_code, price in zip(item_codes, prices):
+                if isinstance(price, dict) and 'item_code' in price:
+                    price['entity_code'] = price['item_code'] 
+                    all_prices[price['item_code']] = price
+                else:
+                    frappe.log_error(message=f"Price dictionary does not contain 'id' key for item code {item_code}: {price}", title=f"Item ID:{item_code} From Ext DB/Missing Key Error")
+                    continue
+
+            # For each record, match associated Price from the fetched prices
+            for record in external_items:
+                if record['oarti'] in all_prices:
+                    record['prices'] = all_prices[record['oarti']]
+                else:
+                    frappe.log_error(message=f"Item {record['oarti']} has no price", title="Item From Ext DB/No Price Error")
+
+        except TypeError as e:
+            message= f" item codes:{item_codes} item prices:{prices} {str(e)} "
+            frappe.log_error(message=message, title="TypeError in get_items_from_external_db")
+
         
 
     return {

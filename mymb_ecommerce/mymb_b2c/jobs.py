@@ -1,5 +1,6 @@
 from mymb_ecommerce.mymb_b2c.product import import_all_products_from_mymb_b2c, start_import_mymb_b2c_from_external_db
 from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, import_items_in_solr
+from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order
 import frappe
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
@@ -76,3 +77,12 @@ def update_omnicommerce(time_laps=None, filters=None, channel_id=None , total_it
         )
     
     return f"omnicommerce import {total_item} records are being imported in batches of {batch_size}. Jobs have been enqueued and are in progress."
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_export_sales_order(doc, method=None , sales_order_name=None):
+    # Enqueue the job to run in the background
+    frappe.enqueue(method=export_sales_order,
+                   doc=doc,
+                   sales_order_name=sales_order_name,
+                   queue='short',
+                   timeout=240)  # Adjust the timeout as per your needs

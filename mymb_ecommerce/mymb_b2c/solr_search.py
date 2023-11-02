@@ -47,6 +47,8 @@ def catalogue(args=None):
 
 
     start = page*per_page
+    if text=="":
+        text="*"
 
     if home:
         label_to_search = "home"
@@ -61,7 +63,7 @@ def catalogue(args=None):
              
             return  catalogue(args_dict)
         else:
-            query = f'text:*'
+            query = f'text:{text}'
 
 
         
@@ -77,7 +79,7 @@ def catalogue(args=None):
         item_codes = [item['item_code'] for item in wishlist_items]
         query = f'text:{text} AND ({" OR ".join([f"sku:{code}" for code in item_codes])})'
     else:
-        query = f'text:{text}'
+        query = f'text:{text} '
 
     #search item by code
     if skus:
