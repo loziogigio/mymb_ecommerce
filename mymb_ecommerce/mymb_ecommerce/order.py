@@ -4,6 +4,7 @@ jwt_manager = JWTManager(secret_key=JWT_SECRET_KEY)
 from bs4 import BeautifulSoup
 from frappe import _
 from mymb_ecommerce.mymb_b2c.product import start_import_mymb_b2c_from_external_db
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None):
@@ -78,10 +79,13 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
             frappe.log_error(message=f"{item_code} create quotation LinkValidationError", title=error_message)
 
             #loop all items quotation and import them in erpnext
+            config = Configurations()
             for item in items:
-                filters = {"carti": item.get("item_code")}
-                start_import_mymb_b2c_from_external_db(filters=filters,channel_id="B2C" ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
-            
+                #check if is mymb b2c active
+                if config.enable_mymb_b2c:
+                    filters = {"carti": item.get("item_code")}
+                    start_import_mymb_b2c_from_external_db(filters=filters,channel_id="B2C" ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+                
             #after item creation we create the quotation again
             quotation.insert(ignore_permissions=True)
         else:

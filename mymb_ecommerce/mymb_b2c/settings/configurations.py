@@ -10,6 +10,7 @@ class Configurations:
         self.doc = frappe.get_doc('Mymb b2c Settings')
         self.image_uri = self.doc.get('image_uri')
         #solr section
+        self.enable_mymb_b2c = self.doc.get('enable_mymb_b2c')
         self.solr_url = self.doc.get('solr_url')
         self.customer_code = self.doc.get('customer_code')
         self.customer_address_code = self.doc.get('customer_address_code')
