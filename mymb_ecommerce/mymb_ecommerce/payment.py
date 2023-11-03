@@ -442,7 +442,7 @@ def get_stripe_secret(doc):
 
     # Define the payload for the API request
     payload = {
-        "amount": amount*100, #amount in cent
+        "amount": int(amount*100), #amount in cent
         "transactionId": transactionId,
         "stripe_key":stripe_key
     }
