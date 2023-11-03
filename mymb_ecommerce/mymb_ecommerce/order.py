@@ -84,7 +84,7 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
                 #check if is mymb b2c active
                 if config.enable_mymb_b2c:
                     filters = {"carti": item.get("item_code")}
-                    start_import_mymb_b2c_from_external_db(filters=filters,channel_id="B2C" ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+                    start_import_mymb_b2c_from_external_db(filters=filters ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
                 
             #after item creation we create the quotation again
             quotation.insert(ignore_permissions=True)

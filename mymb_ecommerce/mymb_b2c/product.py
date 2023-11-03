@@ -1,3 +1,4 @@
+import datetime
 from typing import List, NewType
 from frappe.utils.data import nowtime, today
 from mymb_ecommerce.mymb_b2c.item import get_items_from_external_db
@@ -73,7 +74,7 @@ def import_all_products_from_mymb_b2c(batch_size: int = 100) -> str:
     return "Importing products from Mymb b2c is in progress"
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def start_import_mymb_b2c_from_external_db(limit=None, time_laps=None, page=1, filters=None, fetch_property=False, fetch_media=False, fetch_price=False, fetch_categories=True, channel_id="B2C"):
+def start_import_mymb_b2c_from_external_db(limit=None, time_laps=None, page=1, filters=None, fetch_property=False, fetch_media=False, fetch_price=False, fetch_categories=True, channel_id=None):
     items = get_items_from_external_db(
         limit=limit,
         time_laps=time_laps,
@@ -93,15 +94,19 @@ def start_import_mymb_b2c_from_external_db(limit=None, time_laps=None, page=1, f
     if items.get("data") and items.get("count") > 0:
         # Loop through each SKU in the array
         for item in items.get("data"):
-        #     # Process each SKU
             try:
                 item["sku"] = item.get("carti")
                 item["id"] = item.get("oarti")
-                # Convert datetime to a JSON-serializable format (ISO 8601)
-                item["dinse_ianag"] = item['dinse_ianag'].isoformat()
-                item["lastoperation"] = item['lastoperation'].isoformat()
+                
+                # Ensure 'dinse_ianag' is a datetime object before converting
+                if isinstance(item.get("dinse_ianag"), datetime.datetime):
+                    item["dinse_ianag"] = item["dinse_ianag"].isoformat()
+                
+                # Check if 'lastoperation' exists and is a datetime object before converting
+                if "lastoperation" in item and isinstance(item["lastoperation"], datetime.datetime):
+                    item["lastoperation"] = item["lastoperation"].isoformat()
+                
                 import_product_from_mymb_b2c(item, item["sku"])  # Pass SKU here
-                # update_main_image_item(item)
                 
                 results["success_import"].append(item.get('carti'))
             except Exception as e:
@@ -109,8 +114,9 @@ def start_import_mymb_b2c_from_external_db(limit=None, time_laps=None, page=1, f
                 error_message = f"Error while importing mymb_b2c item with SKU {item.get('carti')}: {str(e)}"
                 frappe.log_error(message=f"{item}", title=error_message)
                 results["fail_import"].append(item.get('carti'))
-                
+            
     return results
+
 
 
 
