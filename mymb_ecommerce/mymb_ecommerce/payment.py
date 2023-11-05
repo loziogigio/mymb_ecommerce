@@ -576,111 +576,90 @@ def _confirm_sales_order(payment_request_id, status, payment_code=None):
             frappe.log_error(message=f"Error while sending email: {str(e)}", title="Email Sending Error")
             # Optionally, you can also print the error for debugging purposes:
 
-@frappe.whitelist(allow_guest=True, xss_safe=True)
-def gestpay_transaction_result():
-    
-    
-    # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/response"
-    
-    # Get the parameters from the original request
-    parameters = frappe.request.args
 
-    # Send GET request to api_url with parameters
-    response = requests.get(api_url, params=parameters)
-
-    # If the response is not successful, return
-    if response.status_code != 200:
-        return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
-    
-    # Parse the response as json and transform it into a dictionary
-    response_dict = frappe._dict(response.json())
-    # Fetch 'data' from response_dict
-    data = frappe._dict(response_dict.get('result', {}))
-    
-    # Get the ShopTransactionID and remove the 'brico-casa_' prefix
-    payment_request_id = data.get("ShopTransactionID")
-
-    # Fetch the related Payment Request Document
-    payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
-
-    # If the status is 'Requested', proceed to update the Payment Request
-    if payment_request_doc.status == 'Requested' or 'Paid':
-        # Check the TransactionResult to determine the status
-        status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
-
-        # Update Payment Request
-        new_status = 'Paid' if status == "Success" else 'Failed'
-        frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
-        frappe.db.commit()  # Commit the transaction
-        updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def gestpay_transaction_result():
+    gestpay_settings = frappe.get_single('GestPay Settings')
+
+    testEnv = gestpay_settings.test_environment
     
-    
-    # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/response"
-    
-    # Get the parameters from the original request
-    parameters = frappe.request.args
+    try:
+        # Define the API endpoint
+        api_url = "https://crowdechain.com/gestpay/response"
+        
+         
+        # Convert ImmutableMultiDict to a regular mutable dictionary
+        # Get the parameters from the original request
+        parameters = frappe.request.args
+        parameters['testEnv'] = testEnv
 
-    # Send GET request to api_url with parameters
-    response = requests.get(api_url, params=parameters)
+        response = requests.get(api_url, params=parameters)
 
-    # If the response is not successful, return
-    if response.status_code != 200:
-        return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
-    
-     # Parse the response as json and transform it into a dictionary
-    response_dict = frappe._dict(response.json())
-    # Fetch 'data' from response_dict
-    data = frappe._dict(response_dict.get('result', {}))
-    
-    # Get the ShopTransactionID and remove the 'brico-casa_' prefix
-    payment_request_id = data.get("ShopTransactionID")
 
-    # Fetch the related Payment Request Document
-    payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+        # If the response is not successful, return
+        if response.status_code != 200:
+            return {"status": "Failed", "message": "Unable to fetch transaction result from server."}
+        
+        # Parse the response as json and transform it into a dictionary
+        response_dict = frappe._dict(response.json())
+        # Fetch 'data' from response_dict
+        data = frappe._dict(response_dict.get('result', {}))
+        
+        # Get the ShopTransactionID and remove the 'brico-casa_' prefix
+        payment_request_id = data.get("ShopTransactionID")
 
-    # If the status is 'Requested', proceed to update the Payment Request
-    if payment_request_doc.status == 'Requested' or 'Paid':
-        # Check the TransactionResult to determine the status
-        status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
+        # Fetch the related Payment Request Document
+        payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
 
-        # Update Payment Request
-        new_status = 'Paid' if status == "Success" else 'Failed'
-        frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
-        frappe.db.commit()  # Commit the transaction
-        updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
+        # If the status is 'Requested', proceed to update the Payment Request
+        if payment_request_doc.status == 'Requested' or 'Paid':
+            # Check the TransactionResult to determine the status
+            status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
 
-        # If payment was successful, confirm the sales order
-        if updated_payment_request_doc.status == 'Paid':
-            try:
-                _confirm_sales_order(payment_request_id=payment_request_id, status=status, payment_code=payment_request_id)
-                return {"status": "Success"}
+            # Update Payment Request
+            new_status = 'Paid' if status == "Success" else 'Failed'
+            frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
+            frappe.db.commit()  # Commit the transaction
+            updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
 
-            except Exception:
-                frappe.log_error(frappe.get_traceback())
+            # If payment was successful, confirm the sales order
+            if updated_payment_request_doc.status == 'Paid':
+                try:
+                    _confirm_sales_order(payment_request_id=payment_request_id, status=status, payment_code=payment_request_id)
+                    return {"status": "Success"}
+
+                except Exception:
+                    frappe.log_error(frappe.get_traceback())
+                    return {"status": "Failed"}
+            # If payment was unsuccessful, log the error
+            else:
+                error_msg = f"Failed: {payment_request_id} gest pay"
+                frappe.log_error(message=data, title=error_msg)
                 return {"status": "Failed"}
-        # If payment was unsuccessful, log the error
         else:
-            error_msg = f"Failed: {payment_request_id} gest pay"
-            frappe.log_error(message=data, title=error_msg)
-            return {"status": "Failed"}
-    else:
-        # If the status is not 'Requested', do not make any changes and return a message
-        return {"status": "Failed", "message": f"Payment Request status already updated'. No updates were made."}
+            # If the status is not 'Requested', do not make any changes and return a message
+            return {"status": "Failed", "message": f"Payment Request status already updated'. No updates were made."}
+        
+    except Exception as e:
+        error_msg = f"Failed: {payment_request_id} gest pay"
+        frappe.log_error(message=f"request: {parameters} response: {data} error_message: {error_msg}", title=error_msg)
+        return {"status": "Failed"}
 
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def gestpay_check_response():
+
+    gestpay_settings = frappe.get_single('GestPay Settings')
+
+    testEnv = gestpay_settings.test_environment
     
     # Define the API endpoint
     api_url = "https://crowdechain.com/gestpay/response"
     
     # Get the parameters from the original request
     parameters = frappe.request.args
+    parameters['testEnv'] = testEnv
 
     # Send GET request to api_url with parameters
     response = requests.get(api_url, params=parameters)
