@@ -69,33 +69,33 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
         quotation.customer_address = billing_address_name
         quotation.shipping_address_name = shipping_address_name
 
+    config = Configurations()
+    # Ensure all items exist or import missing ones
+    if config.enable_mymb_b2c:
+        missing_items = []
+        for item in items:
+            if not frappe.db.exists('Item', item.get("item_code")):
+                missing_items.append(item.get("item_code"))
+
+        if missing_items:
+            # Call your import function for each missing item
+            for missing_item_code in missing_items:
+                filters = {"carti": missing_item_code}
+                # Ensure to handle exceptions or check the result to confirm import success
+                start_import_mymb_b2c_from_external_db(filters=filters, fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+
+
+    # After you've constructed the quotation document object
     try:
         quotation.insert(ignore_permissions=True)
-    except frappe.LinkValidationError as e:
-        # Handle the specific error for missing item code.
-        if "Item Code" in str(e):
-            item_code = str(e).split("Item Code:")[-1].strip()
-            error_message = f"Failed to create quotation. Item Code {item_code} not found in the system. {item_code}: {str(e)}"
-            frappe.log_error(message=f"{item_code} create quotation LinkValidationError", title=error_message)
-
-            #loop all items quotation and import them in erpnext
-            config = Configurations()
-            for item in items:
-                #check if is mymb b2c active
-                if config.enable_mymb_b2c:
-                    filters = {"carti": item.get("item_code")}
-                    start_import_mymb_b2c_from_external_db(filters=filters ,fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
-                
-            #after item creation we create the quotation again
-            quotation.insert(ignore_permissions=True)
-        else:
-            # Handle other LinkValidationErrors
-            error_message = f"Failed to create quotation.: {str(e)}"
-            frappe.log_error(message=f"{item_code} create quotation LinkValidationError", title=error_message)
-    except Exception as e:
-        # Handle any other exceptions
-        error_message = f"Failed to create quotation generic.: {str(e)}"
-        frappe.log_error(message=f"{item_code} create quotation Exception", title=error_message)
+        frappe.db.commit()  # Commit changes to the database
+    except frappe.ValidationError as e:
+        error_message = f"ERROR in quotation creation. Order: {items}. Customer:  {quotation}.  Items: {items}. Contact info: {contact_info}. Bsusinness info: {business_info}. {str(e)}"
+        error_title = f"ERROR in quotation creation for: {full_name}"
+        frappe.log_error(message=f"{error_message}", title=error_title)
+        # Raise a frappe exception which will send a non-200 HTTP response
+        frappe.throw(_(error_message), exc=frappe.ValidationError)
+        return {"error": str(e)}
 
 
     # Apply shipping rules

@@ -589,9 +589,9 @@ def gestpay_transaction_result():
         api_url = "https://crowdechain.com/gestpay/response"
         
          
-        # Convert ImmutableMultiDict to a regular mutable dictionary
         # Get the parameters from the original request
-        parameters = frappe.request.args
+        parameters = frappe.request.args.to_dict()  # Convert ImmutableMultiDict to regular dictionary
+        # Get the parameters from the original request
         parameters['testEnv'] = testEnv
 
         response = requests.get(api_url, params=parameters)
@@ -642,7 +642,7 @@ def gestpay_transaction_result():
             return {"status": "Failed", "message": f"Payment Request status already updated'. No updates were made."}
         
     except Exception as e:
-        error_msg = f"Failed: {payment_request_id} gest pay"
+        error_msg = f"Failed: {payment_request_id} gestpay"
         frappe.log_error(message=f"request: {parameters} response: {data} error_message: {error_msg}", title=error_msg)
         return {"status": "Failed"}
 
@@ -659,7 +659,7 @@ def gestpay_check_response():
     
     # Get the parameters from the original request
     parameters = frappe.request.args
-    parameters['testEnv'] = testEnv
+    # parameters['testEnv'] = testEnv
 
     # Send GET request to api_url with parameters
     response = requests.get(api_url, params=parameters)
