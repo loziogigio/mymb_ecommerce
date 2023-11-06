@@ -121,7 +121,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             channel_id=sales_order['channel']
         )
         #If is billing 
-        if sales_order['invoice_requested']:
+        if sales_order['invoice_requested']!="NO":
             b2c_order.billing_name = sales_order['recipient_full_name']
             if sales_order['customer_type']=='Company':
                 b2c_order.invoice_required = True
@@ -137,12 +137,12 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
 
         # Save the B2COrder
-        b2c_order_repo.session.add(b2c_order)
-        b2c_order_repo.session.commit()
-        export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
+        # b2c_order_repo.session.add(b2c_order)
+        # b2c_order_repo.session.commit()
+        # export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
         if order_transactions:
             if order_transactions[0]:
-                export_order_transactions(b2c_order, order_transactions[0])
+                export_order_transactions(b2c_order, order_transactions[0] , sales_order)
 
 
 
@@ -209,7 +209,7 @@ def export_order_rows(b2c_order, line_items, sales_taxes_and_charges):
     return True
 
 
-def export_order_transactions(b2c_order, order_transaction):
+def export_order_transactions(b2c_order, order_transaction , sales_order):
     # Assuming B2COrderTransactionRepository is your class to handle database interactions for order_transactions
     b2c_order_transaction_repo = B2COrderTransactionRepository()
     payload = None
@@ -217,8 +217,10 @@ def export_order_transactions(b2c_order, order_transaction):
     if payload is not None:
         payload = payload.encode('utf-8')
     # Create transaction object with required details
+    transaction_name = sales_order['payment_code'] if sales_order['payment_mode'] == "PAYPAL" else order_transaction['name']
+
     transaction = B2COrderTransaction(
-        transaction_id=order_transaction['name'],
+        transaction_id=transaction_name if transaction_name and transaction_name!="" else order_transaction['name'],
         order_id= b2c_order.order_id ,
         status=b2c_order.status,
         currency=b2c_order.currency,
