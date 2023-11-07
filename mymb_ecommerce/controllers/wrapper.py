@@ -533,3 +533,31 @@ def activate_cart(**kwargs):
     )
 
     return result
+
+
+@frappe.whitelist(allow_guest=True)
+def reset_password(**kwargs):
+    # Making a POST request using the provided keyword arguments (kwargs).
+    config = Configurations()
+    response = APIClient.request(
+        endpoint='register.php',
+        method='POST',
+        body=kwargs,
+        base_url=config.get_api_drupal()
+    )
+
+    if response is None:
+        return {
+            'success': False,
+            'message': _('API request failed!')
+        }, 500
+
+    result, success = response
+
+    if success:
+        return result  # directly return the API response
+    else:
+        return {
+            'success': False,
+            'message': _('Authentication Failed!')
+        }, 422

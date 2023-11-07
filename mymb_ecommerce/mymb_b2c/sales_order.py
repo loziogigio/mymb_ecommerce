@@ -137,9 +137,9 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
 
         # Save the B2COrder
-        # b2c_order_repo.session.add(b2c_order)
-        # b2c_order_repo.session.commit()
-        # export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
+        b2c_order_repo.session.add(b2c_order)
+        b2c_order_repo.session.commit()
+        export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
         if order_transactions:
             if order_transactions[0]:
                 export_order_transactions(b2c_order, order_transactions[0] , sales_order)
