@@ -79,7 +79,7 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         config = Configurations()
         payment_url = "/pages/payment-success?paymentgateway=transfer"
         submit_sales_order(sales_order.name)
-        send_sales_order_confirmation_email_html(sales_order=sales_order , email_template="transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
+        send_sales_order_confirmation_email_html(sales_order=sales_order , email_template="custom-transfer-confirm-sales-order" , wire_info=config.get_mymb_b2c_wire_transfer())
         wired_transfer_data = f"{config.get_mymb_b2c_wire_transfer()}<h2>{sales_order.name}</h2>"
     else:
         payment_url = doc.get_default_url()  # Define this function to provide a default URL

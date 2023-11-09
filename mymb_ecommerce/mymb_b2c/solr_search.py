@@ -384,7 +384,33 @@ def products():
 
     # Check if there are any search results
     if solr_results['hits'] == 0:
-        frappe.throw(_('Product not found'), frappe.DoesNotExistError)
+        # search in previous slugs
+        query = f'prev_slugs:{slug}'
+
+        # Construct the Solr search parameters
+        new_search_params = {
+            'q': query,
+            'rows': 1,
+        }
+        # Execute the search and get the results
+        solr_results = solr.search(**new_search_params)
+        if solr_results['hits'] == 0: 
+            response =  {
+                'product': ''
+            }
+            frappe.throw(_(f"{query}"), frappe.DoesNotExistError)
+            return response
+        else:
+            product = dict(solr_results['results'][0])
+            #return the redirect url
+            response =  {
+                'product': {
+                    'redirect_to':product['slug']
+                }
+            }
+            return response
+
+        
 
     # Extract the product details from the Solr result
     product = map_solr_response_b2c([dict(solr_results['results'][0])])[0]

@@ -561,3 +561,47 @@ def reset_password(**kwargs):
             'success': False,
             'message': _('Authentication Failed!')
         }, 422
+
+
+
+def send_general_email(recipient_email , data, email_template="custom-standard-email" ):
+    
+    # Check if the custom email template exists
+    if frappe.db.exists("Email Template", email_template):
+        email_template = frappe.get_doc("Email Template", email_template)
+    # else if the general email template exists by remove 'custom-'
+    if frappe.db.exists("Email Template",  email_template.replace('custom-', '', 1)):
+        email_template = frappe.get_doc("Email Template",  email_template.replace('custom-', '', 1))
+    else:
+        default_email_templates = frappe.get_all("Email Template", limit=1)
+        if not default_email_templates:
+            return {"status": "Failed", "message": "No email template found."}
+        email_template = frappe.get_doc("Email Template", default_email_templates[0].name)
+        
+    if not recipients:
+        recipients = [recipient_email]   # Assuming 'recipient_email' is the field in Sales Order for customer's email
+
+    
+    context = {
+        "data":data
+        # ... you can add other context variables as needed
+    }
+    try:
+        # Render the email content with the context
+        rendered_email_content = frappe.render_template(email_template.response_, context)
+        rendered_subject = frappe.render_template(email_template.subject, context)
+
+        # Send email
+        frappe.sendmail(
+            recipients=recipients,
+            subject=rendered_subject,
+            message=rendered_email_content
+        )
+
+        return {"status": "Success", "message": "Email sent successfully."}
+    except Exception as e:
+        # Log the error
+        frappe.log_error(message=f"Error sending sales order confirmation email for context: {context}: {str(e)}", title=f"Email Error {recipient_email}")
+
+        # Return a response indicating that there was an error
+        return {"status": "Failed", "message": f"Error encountered: {str(e)}"}
