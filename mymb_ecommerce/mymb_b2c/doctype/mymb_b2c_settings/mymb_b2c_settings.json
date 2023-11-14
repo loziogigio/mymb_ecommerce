@@ -9,6 +9,7 @@
  "field_order": [
   "enable_mymb_b2c",
   "b2c_url",
+  "b2c_item_group",
   "column_break_uxxs",
   "solr_url",
   "image_uri",
@@ -374,12 +375,19 @@
    "fieldname": "db_erp",
    "fieldtype": "Data",
    "label": "db erp"
+  },
+  {
+   "fetch_from": ".",
+   "fieldname": "b2c_item_group",
+   "fieldtype": "Link",
+   "label": "B2C Item Group",
+   "options": "Item Group"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-10-09 09:59:16.278771",
+ "modified": "2023-11-14 04:43:19.771826",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

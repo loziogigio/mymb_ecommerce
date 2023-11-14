@@ -17,6 +17,7 @@ class Configurations:
         self.mymb_b2c_payment_success_page =  self.doc.get('mymb_b2c_payment_success_page')
         self.mymb_b2c_payment_failed_page=  self.doc.get('mymb_b2c_payment_failed_page')
         self.mymb_b2c_wire_transfer =   self.doc.get('wire_transfer')
+        self.b2c_item_group =   self.doc.get('b2c_item_group')
         self.solr = None
         
         #mysql section
