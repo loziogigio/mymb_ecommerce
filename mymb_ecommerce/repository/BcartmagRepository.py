@@ -1,6 +1,7 @@
 # mymb_ecommerce/mymb_ecommerce/repository/BcartmagRepository.py
 
 from mymb_ecommerce.model.Bcartmag import Bcartmag , get_bcartmag_full_tablename
+from mymb_ecommerce.model.MyPrecod import MyPrecod , get_myprecod_full_tablename
 from mymb_ecommerce.model.ChannelProduct import ChannellProduct , get_channel_product_full_tablename
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from datetime import datetime, timedelta
@@ -32,7 +33,16 @@ class BcartmagRepository:
         if channel_id:
             filters["channel_id"] = channel_id
             return self.get_all_records_by_channell_product( limit=limit, page=page, time_laps=time_laps, to_dict=to_dict, filters=filters)
-        query = self.session.query(Bcartmag)
+        
+        # query = self.session.query(Bcartmag)
+
+        # Query with an inner join on MyPrecod
+        query = self.session.query(Bcartmag , MyPrecod.tprec_darti).join(
+            MyPrecod, and_(
+                MyPrecod.cprec_darti == Bcartmag.cprec_darti,
+                MyPrecod.csoci == Bcartmag.csoci
+            )
+        )
 
         if time_laps is not None:
             time_laps = int(time_laps)
@@ -44,7 +54,12 @@ class BcartmagRepository:
             for key, value in filters.items():
                 # Make sure the attribute exists in the Bcartmag model
                 if hasattr(Bcartmag, key):
-                    query = query.filter(getattr(Bcartmag, key) == value)
+                    if isinstance(value, list):
+                        # If the value is a list, use the IN statement
+                        query = query.filter(getattr(Bcartmag, key).in_(value))
+                    else:
+                        # Else, use the equality filter
+                        query = query.filter(getattr(Bcartmag, key) == value)
 
         # Order by dinse_ianag in descending order
         query = query.order_by(desc(Bcartmag.dinse_ianag))
@@ -57,21 +72,29 @@ class BcartmagRepository:
 
         results = query.all()
 
+        # Process results
         if to_dict:
-            return [bcartmag.to_dict() for bcartmag in results]
+            return [{"bcartmag": bcartmag.to_dict(), "tprec_darti": tprec_darti} for bcartmag, tprec_darti in results]
         else:
-            return results
+            processed_results = []
+            for bcartmag, tprec_darti in results:
+                bcartmag_dict = bcartmag.to_dict() if hasattr(bcartmag, 'to_dict') else bcartmag
+                bcartmag_dict['tprec_darti'] = tprec_darti
+                processed_results.append(bcartmag_dict)
+            return processed_results
         
     def get_all_records_by_channell_product(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None):
         
         bcartmag = get_bcartmag_full_tablename()
         channel_product = get_channel_product_full_tablename()
+        myprecod = get_myprecod_full_tablename() 
         
         # Base SQL query
         sql_query_str = f"""
             SELECT b.*, c.channel_id, c.lastoperation
             FROM {bcartmag} AS b
             INNER JOIN {channel_product} AS c ON b.oarti = c.product_code
+            INNER JOIN {myprecod} AS m ON m.cprec_darti = b.cprec_darti AND m.csoci = b.csoci
         """
         
         # List to hold our filter conditions and their parameters

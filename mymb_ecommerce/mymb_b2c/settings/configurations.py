@@ -12,12 +12,14 @@ class Configurations:
         #solr section
         self.enable_mymb_b2c = self.doc.get('enable_mymb_b2c')
         self.solr_url = self.doc.get('solr_url')
+        self.b2c_url = self.doc.get('b2c_url')
         self.customer_code = self.doc.get('customer_code')
         self.customer_address_code = self.doc.get('customer_address_code')
         self.mymb_b2c_payment_success_page =  self.doc.get('mymb_b2c_payment_success_page')
         self.mymb_b2c_payment_failed_page=  self.doc.get('mymb_b2c_payment_failed_page')
         self.mymb_b2c_wire_transfer =   self.doc.get('wire_transfer')
-        self.b2c_item_group =   self.doc.get('b2c_item_group')
+        self.default_item_group =   self.doc.get('default_item_group')
+        self.b2c_title =   self.doc.get('b2c_title')
         self.solr = None
         
         #mysql section

@@ -8,8 +8,9 @@
  "engine": "InnoDB",
  "field_order": [
   "enable_mymb_b2c",
+  "b2c_title",
   "b2c_url",
-  "b2c_item_group",
+  "default_item_group",
   "column_break_uxxs",
   "solr_url",
   "image_uri",
@@ -42,7 +43,6 @@
   "token_type",
   "item_sync_settings_section",
   "upload_item_to_mymb_b2c",
-  "default_item_group",
   "sales_order_syncing_section",
   "only_sync_completed_orders",
   "order_sync_frequency",
@@ -135,6 +135,7 @@
    "label": "Item Sync Settings"
   },
   {
+   "description": "Used as root for categories creation in Omnicommerce Shop",
    "fieldname": "default_item_group",
    "fieldtype": "Link",
    "label": "Default Item Group",
@@ -258,7 +259,6 @@
   },
   {
    "default": "0",
-   "description": "If enabled, any new item with \"sync with Unicommerce\" checked will be uploaded to Unicommerce on an hourly basis.",
    "fieldname": "upload_item_to_mymb_b2c",
    "fieldtype": "Check",
    "label": "Upload new items to Mymb b2c"
@@ -377,17 +377,15 @@
    "label": "db erp"
   },
   {
-   "fetch_from": ".",
-   "fieldname": "b2c_item_group",
-   "fieldtype": "Link",
-   "label": "B2C Item Group",
-   "options": "Item Group"
+   "fieldname": "b2c_title",
+   "fieldtype": "Data",
+   "label": "B2C Title"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-11-14 04:43:19.771826",
+ "modified": "2023-11-16 06:31:43.785714",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

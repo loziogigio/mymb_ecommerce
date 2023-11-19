@@ -49,7 +49,7 @@ class JWTManager:
     def verify_jwt_in_request():
         jwt_manager_instance = JWTManager(secret_key=JWT_SECRET_KEY)
         try:
-            jwt_header = frappe.get_request_header("Authorization")
+            jwt_header = frappe.get_request_header("Jwt")
             if not jwt_header:
                 raise ValueError("Missing Authorization header")
 

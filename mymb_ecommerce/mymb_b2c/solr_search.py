@@ -236,15 +236,17 @@ def map_solr_response_b2c(search_results ):
         'id': 'id',
         'sku': 'sku',
         'name': 'name',
+        'description': 'description',
         'gross_price_with_vat': 'gross_price',
         'net_price_with_vat': 'net_price',
         'promo_price_with_vat': 'promo_price',
-        'name_web':'short_description',
+        'short_description':'short_description',
         'is_promo':'is_sale',
         'availability':'stock',
         'images': 'images',
         'slug':'slug',
-        'family_code':'family_code'
+        'family_code':'family_code',
+        'brand':'brand'
     }
 
 
