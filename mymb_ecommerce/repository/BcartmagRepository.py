@@ -2,12 +2,12 @@
 
 from mymb_ecommerce.model.Bcartmag import Bcartmag , get_bcartmag_full_tablename
 from mymb_ecommerce.model.MyPrecod import MyPrecod , get_myprecod_full_tablename
+from mymb_ecommerce.model.MyBarcod import MyBarcod , get_mybarcod_full_tablename
 from mymb_ecommerce.model.ChannelProduct import ChannellProduct , get_channel_product_full_tablename
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from datetime import datetime, timedelta
-from sqlalchemy import create_engine, desc, and_
 from sqlalchemy.orm import sessionmaker, joinedload
-from sqlalchemy import text
+from sqlalchemy import text , create_engine, desc, and_  ,select
 
 
 class BcartmagRepository:
@@ -88,10 +88,17 @@ class BcartmagRepository:
         bcartmag = get_bcartmag_full_tablename()
         channel_product = get_channel_product_full_tablename()
         myprecod = get_myprecod_full_tablename() 
+        mybarcod = get_mybarcod_full_tablename() 
+
+        mybarcod_subquery = f"""
+        (SELECT mb.cbarx FROM {mybarcod} AS mb
+         WHERE mb.csoci = b.csoci AND mb.oarti = b.oarti
+         ORDER BY mb.daggi DESC, mb.bbarx_sazie ASC LIMIT 1)
+        """
         
         # Base SQL query
         sql_query_str = f"""
-            SELECT b.*, c.channel_id, c.lastoperation
+            SELECT b.*, c.channel_id, c.lastoperation , {mybarcod_subquery} AS barcode , m.tprec_darti as brand
             FROM {bcartmag} AS b
             INNER JOIN {channel_product} AS c ON b.oarti = c.product_code
             INNER JOIN {myprecod} AS m ON m.cprec_darti = b.cprec_darti AND m.csoci = b.csoci
@@ -113,12 +120,21 @@ class BcartmagRepository:
             for key, value in filters.items():
                 if hasattr(Bcartmag, key):
                     table_prefix = "b"
-                    conditions.append(f"{table_prefix}.{key} = :{key}")
-                    params[key] = value
                 elif hasattr(ChannellProduct, key):
                     table_prefix = "c"
+                else:
+                    continue  # Skip if attribute does not exist in either model
+
+                if isinstance(value, list):
+                    # Handling list values using the IN statement
+                    placeholder = f"{key}_list"
+                    conditions.append(f"{table_prefix}.{key} IN :{placeholder}")
+                    params[placeholder] = value
+                else:
+                    # Handling single values using equality
                     conditions.append(f"{table_prefix}.{key} = :{key}")
                     params[key] = value
+
 
         # If we have any conditions, add them to the SQL
         if conditions:

@@ -1,9 +1,12 @@
 # mymb_ecommerce/mymb_ecommerce/model/MyBarcod.py
-
+import frappe
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+def get_mybarcod_full_tablename():
+    db = frappe.get_doc('Mymb b2c Settings').get("db_erp")
+    return f"{db}.mybarcod"
 
 class MyBarcod(Base):
     __tablename__ = 'mybarcod'

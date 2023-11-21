@@ -9,14 +9,21 @@ import frappe
 from frappe import _
 from urllib.parse import urlparse, parse_qs
 import xml.etree.ElementTree as ET
+from lxml import etree as ET
+
 
 # Function to add CDATA
-def add_cdata(text):
-    text_str = str(text)  # Convert to string to ensure compatibility with isdigit()
-    if not text_str.isdigit():
-        return f'<![CDATA[{text_str}]]>'
-    else:
-        return text_str
+def add_cdata_lxml(text, parent_element):
+    """
+    Adds a CDATA section to a given parent XML element.
+
+    Args:
+    text (str): The text to be wrapped in a CDATA section.
+    parent_element (lxml.etree._Element): The parent element to which the CDATA section will be added.
+    """
+    cdata = ET.CDATA(text)
+    parent_element.text = cdata
+
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def init_feed_generation( folder , file_name ,feed_type , args=None , limit = 100):
@@ -43,13 +50,12 @@ def init_feed_generation( folder , file_name ,feed_type , args=None , limit = 10
     for product in products:
         ids.append(product['id'])
 
-    barcode_repo = MyBarcodRepository()
+
     bcartmag_repo = BcartmagRepository()
     filter_oarti = {
         "oarti":ids
     }
-    barcods = barcode_repo.get_all_records(filters=filter_oarti)
-    bcartmags = bcartmag_repo.get_all_records(filters=filter_oarti)
+    bcartmags = bcartmag_repo.get_all_records_by_channell_product(filters=filter_oarti , to_dict=True)
 
 
     # Initialize the root of the XML
@@ -67,50 +73,57 @@ def init_feed_generation( folder , file_name ,feed_type , args=None , limit = 10
 
     # Iterate over products and add them to the XML
     for i, product in enumerate(products):
-
         offer = ET.SubElement(products_element, "Offer")
         
-        # Add product details
-        ET.SubElement(offer, "Name").text = add_cdata(product['name'])
+        # Add product details with CDATA
+        name_element = ET.SubElement(offer, "Name")
+        add_cdata_lxml(product['name'], name_element)
 
-        brand = bcartmags[i]["tprec_darti"] if bcartmags[i]["tprec_darti"] else ""
-        ET.SubElement(offer, "Brand").text = add_cdata(brand)
+        brand = bcartmags[i]["brand"] if bcartmags[i]["brand"] else ""
+        brand_element = ET.SubElement(offer, "Brand")
+        add_cdata_lxml(brand, brand_element)
 
-        description = product.get("short_description") if product.get("short_description") else product.get("description" , "")
-        ET.SubElement(offer, "Description").text = add_cdata(description[:255])
+        description = product.get("short_description") if product.get("short_description") else product.get("description", "")
+        description_element = ET.SubElement(offer, "Description")
+        add_cdata_lxml(description[:255], description_element)
 
-        if  product.get("is_sale"):
-            ET.SubElement(offer, "PriorPrice").text = add_cdata(product.get("price"))
-            ET.SubElement(offer, "Price").text = add_cdata(product.get("sale_price"))
+        if product.get("is_sale"):
+            prior_price_element = ET.SubElement(offer, "PriorPrice")
+            # Convert price to string and assign directly
+            prior_price_element.text = str(product.get("price", ""))
+
+            price_element = ET.SubElement(offer, "Price")
+            # Convert sale price to string and assign directly
+            price_element.text = str(product.get("sale_price", ""))
             final_price = product.get("sale_price")
         else:
-            ET.SubElement(offer, "Price").text = add_cdata(product.get("price"))
+            price_element = ET.SubElement(offer, "Price")
+            # Convert price to string and assign directly
+            price_element.text = str(product.get("price", ""))
             final_price = product.get("price")
 
-        ET.SubElement(offer, "Code").text = add_cdata(product['sku'])
+        code_element = ET.SubElement(offer, "Code")
+        add_cdata_lxml(product['sku'], code_element)
 
-        ET.SubElement(offer, "Link").text = add_cdata(f"{product['slug']}")
+        link_element = ET.SubElement(offer, "Link")
+        add_cdata_lxml(f"{b2c_url}/{product['slug']}", link_element)
 
-        
-        brand = product.get("brad")[0] if product.get("brad") else ""
-        ET.SubElement(offer, "Brand").text = add_cdata(brand)
-        
-        
-        
-        ET.SubElement(offer, "ShippingCost").text = "0" if final_price > 300 else "9.90"
-        ET.SubElement(offer, "Stock").text = add_cdata(product.get("stock"))
+        shipping_cost_element = ET.SubElement(offer, "ShippingCost")
+        shipping_cost_element.text = "0" if final_price > 300 else "9.90"
 
-        barcode = barcods[i].cbarx if barcods[i].cbarx else ""
-        ET.SubElement(offer, "EanCode").text = add_cdata(barcode)
+        stock_element = ET.SubElement(offer, "Stock")
+        stock_element.text = str(product.get("stock", "0"))
 
-       
-
+        barcode = bcartmags[i]["barcode"] if bcartmags[i]["barcode"] else ""
+        eancode_element = ET.SubElement(offer, "EanCode")
+        add_cdata_lxml(barcode, eancode_element)
 
         # Add images
-        images = product.get('main_pictures', [])  # Assuming this is how images are referenced in the product dict
-        for i, image in enumerate(images, start=1):
-            image_key = "Image" if i==1 else f"Image{i}"
-            ET.SubElement(offer, image_key).text = add_cdata(image['url'])
+        images = product.get('main_pictures', [])
+        for img_index, image in enumerate(images, start=1):
+            image_key = "Image" if img_index == 1 else f"Image{img_index}"
+            image_element = ET.SubElement(offer, image_key)
+            add_cdata_lxml(image['url'], image_element)
 
     # Write the XML to a file
     tree = ET.ElementTree(rss)
