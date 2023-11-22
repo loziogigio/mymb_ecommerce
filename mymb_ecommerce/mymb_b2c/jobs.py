@@ -1,7 +1,7 @@
 from mymb_ecommerce.mymb_b2c.product import import_all_products_from_mymb_b2c, start_import_mymb_b2c_from_external_db
 from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, import_items_in_solr
 from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order
-from mymb_ecommerce.mymb_b2c.jobs  import feed_trova_prezzi
+from mymb_ecommerce.mymb_b2c.feed_trova_prezzi  import init_feed_generation
 import frappe
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 
@@ -94,17 +94,14 @@ def job_export_sales_order(doc, method=None , sales_order_name=None):
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def job_export_feed_trova_prezzi(folder, file_name, feed_type, args=None, per_page=100 , max_item=None):
+def job_export_feed_trova_prezzi_init(folder, file_name, feed_type, args=None, per_page=100 , max_item=None):
     # Enqueue the job to run in the background
-    config = Configurations()
-    if config.enable_mymb_b2c:
-        frappe.enqueue(
-                    method=feed_trova_prezzi,
-                    folder=folder, 
-                    file_name=file_name, 
-                    feed_type=feed_type, 
-                    args=args, 
-                    per_page=per_page , 
-                    max_item=max_item
+    frappe.enqueue(method=init_feed_generation,
+                    folder=folder,
+                    file_name=file_name,
+                    feed_type=feed_type,
+                    args=args,
+                    per_page=per_page,
+                    max_item=max_item,
                     queue='medium',
                     timeout=1200)  # Adjust the timeout as per your needs
