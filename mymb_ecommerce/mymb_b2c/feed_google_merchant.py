@@ -244,7 +244,7 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
     b2c_url = config.b2c_url if config.b2c_url else 'https://www.omnicommerce.cloud'
 
     # Pagination setup
-    page = 1
+    page = 240
     total_count = 0
     processed_count = 0
 
@@ -265,20 +265,32 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
         # Create a mapping of product ID to bcartmag
         bcartmag_map = {bcartmag['oarti']: bcartmag for bcartmag in bcartmags}
 
-        for product in products:
-            google_product  = map_goog_item(product,bcartmag_map , b2c_url)
-
-            # Insert product into Merchant Center
-            try:
-                response = service.products().insert(merchantId=merchant_id, body=google_product).execute()
-                responses.append(response)
-            except Exception as e:
-                print(f"Error uploading product {product['sku']}: {e}")
-                responses.append({'error': str(e), 'product': product['sku']})
-
-            # Increment the count of processed products
+        batch_requests = []
+        for i, product in enumerate(products):
+            google_product = map_goog_item(product, bcartmag_map, b2c_url)
+            batch_requests.append({
+                'batchId': i,
+                'merchantId': merchant_id,
+                'method': 'insert',
+                'product': google_product
+            })
             processed_count += 1
-            if processed_count == limit:
+
+            if len(batch_requests) == batch_size or i == len(products) - 1:
+                try:
+                    # Send batch request
+                    batch_response = service.products().custombatch(body={'entries': batch_requests}).execute()
+                    responses.extend(batch_response.get('entries', []))
+                    print(batch_response)
+                except Exception as e:
+                    print(f"Error during batch request: {e}")
+                    # Optionally, log the error or handle it as needed
+                    # You can also append the error to the responses list if you want to keep track of it
+                    responses.append({'error': str(e), 'batch': batch_requests})
+                finally:
+                    batch_requests = []  # Reset for next batch
+            
+            if processed_count >=limit:
                 return {
                     "processed_count":processed_count
                 }
