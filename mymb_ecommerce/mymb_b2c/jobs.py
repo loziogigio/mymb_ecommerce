@@ -2,8 +2,10 @@ from mymb_ecommerce.mymb_b2c.product import import_all_products_from_mymb_b2c, s
 from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, import_items_in_solr
 from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order
 from mymb_ecommerce.mymb_b2c.feed_trova_prezzi  import init_feed_generation
+from mymb_ecommerce.mymb_b2c.feed_google_merchant  import upload_to_google_merchant_create_product
 import frappe
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+import json
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def import_mymb_b2c_products():
@@ -103,5 +105,33 @@ def job_export_feed_trova_prezzi_init(folder, file_name, feed_type, args=None, p
                     args=args,
                     per_page=per_page,
                     max_item=max_item,
-                    queue='medium',
+                    queue='default',
                     timeout=1200)  # Adjust the timeout as per your needs
+    
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_export_feed_google_merchant_init(args, merchant_id, per_page, limit , credentials_json):
+    # Enqueue the job to run in the background
+    frappe.enqueue(method=upload_to_google_merchant_create_product,
+                    merchant_id=merchant_id,
+                    limit=limit,
+                    per_page=per_page,
+                    args=args,
+                    credentials_json=credentials_json,
+                    queue='default',
+                    timeout=1200)  # Adjust the timeout as per your needs
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_export_feed_google_merchant_init(args, merchant_id, per_page, limit, credentials_json):
+    # Convert args and credentials_json to serializable formats if they are not already
+    serializable_args = json.dumps(args) if isinstance(args, dict) else args
+    serializable_credentials = json.dumps(credentials_json) if isinstance(credentials_json, dict) else credentials_json
+
+    # Enqueue the job to run in the background
+    frappe.enqueue(method=upload_to_google_merchant_create_product,
+                   merchant_id=merchant_id,
+                   limit=limit,
+                   per_page=per_page,
+                   args=serializable_args,
+                   credentials_json=serializable_credentials,
+                   queue='default',
+                   timeout=1200)  # Adjust the timeout as per your needs

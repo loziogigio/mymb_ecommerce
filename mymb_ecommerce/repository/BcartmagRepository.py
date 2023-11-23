@@ -74,7 +74,7 @@ class BcartmagRepository:
 
         # Process results
         if to_dict:
-            return [{"bcartmag": bcartmag.to_dict(), "tprec_darti": tprec_darti} for bcartmag, tprec_darti in results]
+            return [{**bcartmag.to_dict(), "tprec_darti": tprec_darti} for bcartmag, tprec_darti in results]
         else:
             processed_results = []
             for bcartmag, tprec_darti in results:

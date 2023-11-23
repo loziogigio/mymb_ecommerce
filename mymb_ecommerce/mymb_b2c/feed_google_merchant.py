@@ -11,6 +11,9 @@ from urllib.parse import urlparse, parse_qs
 import xml.etree.ElementTree as ET
 from lxml import etree as ET
 import re
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import json
 
 def sanitize_text(text):
     """Remove control characters and NULL bytes from text."""
@@ -218,3 +221,159 @@ def save_and_attach(content, folder, file_name , to_doctype , attached_to_name )
     frappe.db.commit() 
 
     return file
+
+
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def upload_to_google_merchant_create_product(args , merchant_id, credentials_json , per_page, limit=100 , batch_size=None):
+
+    args = json.loads(args) if isinstance(args, str) else args
+    credentials_json = json.loads(credentials_json) if isinstance(credentials_json, str) else credentials_json
+
+
+    credentials = service_account.Credentials.from_service_account_info(credentials_json)
+    service = build('content', 'v2.1', credentials=credentials)
+
+    responses = []
+
+
+    config = Configurations()
+    b2c_name = config.b2c_title if config.b2c_title else 'Shop'
+    b2c_url = config.b2c_url if config.b2c_url else 'https://www.omnicommerce.cloud'
+
+    # Pagination setup
+    page = 1
+    total_count = 0
+    processed_count = 0
+
+    while True:
+        extra_args = {"per_page": per_page, "page": page}
+        unified_args = {**extra_args, **(args or {})}
+        result = catalogue(unified_args)
+
+        products = result.get("products", [])
+        if not products:
+            break
+
+        ids = [product['id'] for product in products]
+        bcartmag_repo = BcartmagRepository()
+        filter_oarti = {"oarti": ids}
+        bcartmags = bcartmag_repo.get_all_records_by_channell_product(filters=filter_oarti, to_dict=True)
+
+        # Create a mapping of product ID to bcartmag
+        bcartmag_map = {bcartmag['oarti']: bcartmag for bcartmag in bcartmags}
+
+        for product in products:
+            google_product  = map_goog_item(product,bcartmag_map , b2c_url)
+
+            # Insert product into Merchant Center
+            try:
+                response = service.products().insert(merchantId=merchant_id, body=google_product).execute()
+                responses.append(response)
+            except Exception as e:
+                print(f"Error uploading product {product['sku']}: {e}")
+                responses.append({'error': str(e), 'product': product['sku']})
+
+            # Increment the count of processed products
+            processed_count += 1
+            if processed_count == limit:
+                return {
+                    "processed_count":processed_count
+                }
+
+        # Increment the page number for the next iteration
+        page += 1
+
+    return {
+        "processed_count":processed_count
+    }
+
+
+def map_goog_item(product,bcartmag_map , b2c_url):
+    # The sorted() function ensures that the fields are processed in order: group_1, group_2, group_3, etc.
+    concatenated_groups=""
+    for field in sorted(product):
+        if field.startswith("group_"):
+            # Replace spaces with hyphens in the current group value
+            group_value_with_hyphens = product[field]
+            
+            # If concatenated_groups is not empty, add a comma before appending the new group value
+            if concatenated_groups:
+                concatenated_groups += " > "
+                
+            # Append the current group value to the concatenated string
+            concatenated_groups += group_value_with_hyphens
+
+    categories = concatenated_groups if concatenated_groups!="" else "DEFAULT > GENERICA" 
+
+    stock = product.get("stock", "0")
+    stock_text = "in_stock" if stock > 0 else "out_of_stock"
+
+    if product.get("is_sale"):
+        g_price = product.get('price', '0')
+        # Convert sale price to string and assign directly
+        final_price = product.get("sale_price")
+    else:
+        final_price = product.get("price")
+
+
+    # Shipping details
+
+    g_shipping_price = 0 if final_price > 300 else 9.90  # Update this as needed
+
+    brand = ""
+    barcode =""
+    bcartmag = bcartmag_map.get(product['id'])
+    if bcartmag:
+        brand = bcartmag.get("brand", "")
+        barcode = bcartmag.get("barcode", "")
+
+        # Add images
+    images = product.get('main_pictures', [])
+    image_link =""
+    additional_image_link = []
+    for img_index, image in enumerate(images, start=1):
+        # Add main or additional_image
+        if img_index == 1:
+            image_link = image.get('url', '')
+        else: 
+            additional_image_link.append( image.get('url', ''))
+
+    google_product = {
+        'offerId': product['sku'],
+        'title': product['name'],
+        'description': product.get("short_description") if product.get("short_description") else product.get("description", ""),
+        'link': f"{b2c_url}/{product['slug']}",
+        'imageLink': image_link,
+        'additionalImageLinks':additional_image_link,
+        'contentLanguage': 'it',
+        'targetCountry': 'IT',
+        'channel': 'online',
+        'availability': stock_text,
+        'condition': 'new',
+        'googleProductCategory': categories,
+        'brand': brand,
+        'gtin': barcode,
+        'price': {
+            'value':final_price ,
+            'currency': 'EUR'
+        },
+        'shipping': [{
+            'country': 'IT',
+            'service': 'Standard shipping',
+            'price': {
+                'value': g_shipping_price,
+                'currency': 'EUR'
+            }
+        }]
+    }
+    ##Adding the sale price
+    if product.get("is_sale"):
+        google_product['salePrice']={
+            'value':g_price ,
+            'currency': 'EUR'
+        }
+    
+    return google_product
