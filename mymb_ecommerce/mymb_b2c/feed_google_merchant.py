@@ -227,7 +227,7 @@ def save_and_attach(content, folder, file_name , to_doctype , attached_to_name )
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def upload_to_google_merchant_create_product(args , merchant_id, credentials_json , per_page, limit=100 , batch_size=None):
+def upload_to_google_merchant_create_product(args , merchant_id, credentials_json , per_page, limit=100 , batch_size=None , starting_page=1):
 
     args = json.loads(args) if isinstance(args, str) else args
     credentials_json = json.loads(credentials_json) if isinstance(credentials_json, str) else credentials_json
@@ -244,7 +244,7 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
     b2c_url = config.b2c_url if config.b2c_url else 'https://www.omnicommerce.cloud'
 
     # Pagination setup
-    page = 240
+    page = starting_page
     total_count = 0
     processed_count = 0
 
@@ -252,6 +252,9 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
         extra_args = {"per_page": per_page, "page": page}
         unified_args = {**extra_args, **(args or {})}
         result = catalogue(unified_args)
+
+        if page ==starting_page:
+                total_count = result.get("totalCount", 0)
 
         products = result.get("products", [])
         if not products:
@@ -267,6 +270,8 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
 
         batch_requests = []
         for i, product in enumerate(products):
+            
+            
             google_product = map_goog_item(product, bcartmag_map, b2c_url)
             batch_requests.append({
                 'batchId': i,
@@ -281,7 +286,7 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
                     # Send batch request
                     batch_response = service.products().custombatch(body={'entries': batch_requests}).execute()
                     responses.extend(batch_response.get('entries', []))
-                    print(batch_response)
+                    print(processed_count)
                 except Exception as e:
                     print(f"Error during batch request: {e}")
                     # Optionally, log the error or handle it as needed
@@ -294,7 +299,9 @@ def upload_to_google_merchant_create_product(args , merchant_id, credentials_jso
                 return {
                     "processed_count":processed_count
                 }
-
+            
+        if total_count==processed_count:
+            break
         # Increment the page number for the next iteration
         page += 1
 
@@ -324,9 +331,9 @@ def map_goog_item(product,bcartmag_map , b2c_url):
     stock_text = "in_stock" if stock > 0 else "out_of_stock"
 
     if product.get("is_sale"):
-        g_price = product.get('price', '0')
+        sale_price = product.get('sale_price', 0)
         # Convert sale price to string and assign directly
-        final_price = product.get("sale_price")
+        final_price = product.get("price")
     else:
         final_price = product.get("price")
 
@@ -384,7 +391,7 @@ def map_goog_item(product,bcartmag_map , b2c_url):
     ##Adding the sale price
     if product.get("is_sale"):
         google_product['salePrice']={
-            'value':g_price ,
+            'value':sale_price ,
             'currency': 'EUR'
         }
     

@@ -43,6 +43,7 @@ def catalogue(args=None):
     wishlist = unified_args.get('wishlist')
     home = unified_args.get('home' , False)
     skus = unified_args.get('skus')
+    is_in_stock = unified_args.get('is_in_stock' , False)
     category_detail = unified_args.get('category_detail')
 
 
@@ -115,6 +116,9 @@ def catalogue(args=None):
     max_discount_percent= frappe.local.request.args.get('max_discount_percent')
     if max_discount_percent and float(max_discount_percent) > 0:
         query += f' AND discount_percent:[* TO {max_discount_percent}]'
+
+    if is_in_stock:
+        query += f' AND availability:[1 TO *]'
 
     order_by = frappe.local.request.args.get('order_by')
 

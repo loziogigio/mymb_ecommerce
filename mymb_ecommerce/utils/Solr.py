@@ -5,6 +5,7 @@ import frappe
 import xml.etree.ElementTree as ET
 import requests
 import json
+import math
 
 
 class Solr:
@@ -69,6 +70,34 @@ class Solr:
 
         params.update(kwargs)
 
+        # search_array = ["sku", "name_nostem"]
+
+        search_array = ["sku", "name_nostem","name", "short_description_nostem","short_description","description_nostem","description"]  # Add more fields if needed
+        boost_factors = self.calculate_exp_boost_factors(search_array) # Boost factors for each type of search
+
+
+
+
+        # Check if the query includes 'text:' and handle it accordingly
+        # Improved regex to handle edge cases
+        match = re.search(r'text:(.*?)(?: AND| OR|$)', q)
+
+        if match:
+            # Extract the value after 'text:'
+            search_term = match.group(1)
+            # Build the boosted query
+            boosted_query = self.build_boosted_query(search_term, search_array, boost_factors)
+
+            # Remove the 'text:value' part from the original query
+            q = re.sub(r'text:.*?( AND| OR|$)', r'\1', q).strip()
+            # Combine the original query with the boosted query
+            final_query = f'({boosted_query}) {q}'
+        else:
+            # Use boosted query for queries not including 'text:'
+            final_query = q
+
+        params['q'] = final_query
+
         response = self.solr.search(**params)
 
         # Get the search results
@@ -84,7 +113,93 @@ class Solr:
             'hits': response.hits,
             'response': response
         }
+    
+    def build_advanced_query(self, query, search_array, term_boost, phrase_boost):
+        """
+        Build an advanced query for partial and phrase matches.
 
+        :param query: str - The search query, e.g., 'alb nat'.
+        :param search_array: list - List of fields to search in.
+        :param term_boost: int - Boost factor for individual term matches.
+        :param phrase_boost: int - Boost factor for the entire phrase match.
+        :return: str - The advanced query.
+        """
+        terms = query.split()
+        term_queries = []
+        phrase_query = '"' + query + '"'
+
+        # Construct queries for individual terms
+        for term in terms:
+            for field in search_array:
+                term_queries.append(f'{field}:{term}*^{term_boost}')
+
+        # Construct a phrase query
+        phrase_queries = [f'{field}:{phrase_query}^{phrase_boost}' for field in search_array]
+
+        # Combine all queries
+        combined_query = ' OR '.join(term_queries + phrase_queries)
+        return combined_query
+
+    def calculate_exp_boost_factors(self, search_array, base_boost=1 , base=5):
+        """
+        Calculate exponential boost factors for fields in the search array.
+
+        :param search_array: list - List of fields to search in.
+        :param base_boost: int - The base boost factor (multiplier for the exponentiation).
+        :return: list - List of calculated boost factors.
+        """
+        boost_factors = [base_boost * math.pow(base, index + 1) for index in range(len(search_array))]
+
+        return boost_factors
+    
+    def build_boosted_query(self, query, search_array, boost_factors):
+        """
+        Build a boosted query based on the search array and boost factors.
+
+        :param query: str - The search query, e.g., 'text:albero'.
+        :param search_array: list - List of fields to search in.
+        :param boost_factors: list - List of boost factors for each search type.
+        :return: str - The boosted query.
+        """
+        search_term = query.split(':', 1)[1].strip() if ':' in query else query.strip()
+        tokens = search_term.split()
+        boosted_query_tuples = []
+        for i, field in enumerate(search_array):
+            boost_index = len(boost_factors) - i - 1
+
+            # Append tuples (query, boost factor)
+            boosted_query_tuples.append((f'{field}:"{search_term}"', boost_factors[boost_index] ))
+            boosted_query_tuples.append((f'{field}:{search_term}*', boost_factors[boost_index]))
+            boosted_query_tuples.append((f'{field}:*{search_term}', boost_factors[boost_index]))
+            boosted_query_tuples.append((f'{field}:*{search_term}*', boost_factors[boost_index] ))
+
+            for token in tokens:
+                boosted_query_tuples.append((f'{field}:"{token}"', boost_factors[boost_index]))
+                boosted_query_tuples.append((f'{field}:{token}*', boost_factors[boost_index]))
+                boosted_query_tuples.append((f'{field}:*{token}', boost_factors[boost_index]))
+                boosted_query_tuples.append((f'{field}:*{token}*', boost_factors[boost_index]))
+
+        # Sort by boost factor in descending order
+        boosted_query_tuples.sort(key=lambda x: x[1], reverse=True)
+
+        # Construct the final query string using formatted tuples
+        boosted_queries = [f'{query_str}^{boost}' for query_str, boost in boosted_query_tuples]
+
+        return ' OR '.join(boosted_queries)
+
+
+
+    def escape_solr_query(self, query):
+        """
+        Escape special characters in the Solr query.
+
+        :param query: str - The query to escape.
+        :return: str - The escaped query.
+        """
+        special_chars = ['+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '"', '~', '*', '?', ':', '\\']
+        escaped_query = "".join([f'\\{char}' if char in special_chars else char for char in query])
+        return escaped_query.replace(' ', '\\ ')
+    
     def get_dynamic_facet_fields(self, group):
         """
         Search for Feature Families with the family_code equal to group.
