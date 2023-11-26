@@ -72,9 +72,9 @@ class Solr:
 
         # search_array = ["sku", "name_nostem"]
 
-        search_array = ["sku","name" , "name_nostem"]  # Add more fields if needed
+        # search_array = ["sku","name" , "name_nostem"]  # Add more fields if needed
 
-        # search_array = ["sku", "name_nostem","name", "short_description_nostem","short_description","description_nostem","description"]  # Add more fields if needed
+        search_array = ["sku", "name_nostem","name", "short_description_nostem","short_description","description_nostem","description"]  # Add more fields if needed
         boost_factors = self.calculate_exp_boost_factors(search_array) # Boost factors for each type of search
 
 
@@ -97,6 +97,7 @@ class Solr:
         else:
             # Use boosted query for queries not including 'text:'
             final_query = q
+
 
         params['q'] = final_query
 

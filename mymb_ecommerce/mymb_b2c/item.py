@@ -207,7 +207,14 @@ def transform_to_solr_document(item):
     name = properties_map.get('title_frontend', item.get('tarti', None))
     name = BeautifulSoup(name, 'html.parser').get_text() if name else None
 
-    slug = "det/"+slugify(name + "-" + sku) if name and sku else None
+    # Truncate the slug to a maximum length (e.g., 75 characters)
+    max_length = 75
+    name_slug=name
+    if len(name_slug) > max_length:
+        name_slug = name_slug[:max_length]
+
+
+    slug = "det/"+slugify(name_slug + "-" + sku) if name and sku else None
     # If slug is None, return None to skip this item
     if slug is None or prices is None or id is None or sku is None:
         return None
@@ -268,11 +275,11 @@ def transform_to_solr_document(item):
         "sku": sku,
         "availability": availability,
         "name": name,
-        "name_nostem": name,
+        "name_nostem": name.lower() if isinstance(name, str) else name,
         "short_description": short_description,
-        "short_description_nostem": short_description,
+        "short_description_nostem": short_description.lower() if isinstance(short_description, str) else short_description,
         "description": description,
-        "description_nostem": description,
+        "description_nostem": description.lower() if isinstance(description, str) else description,
         "sku_father": item.get('sku_father', None),
         "num_images": len(images),
         "images": images,
@@ -280,12 +287,12 @@ def transform_to_solr_document(item):
         "id_father": item.get('id_father', None),
         "keywords": item.get('keywords', None),
         "model": item.get('model', None),
-        "model_nostem": item.get('model_nostem', None),
+        "model_nostem": (item.get('model_nostem', None) or "").lower(),
         "discount_value":discount_value,
         "discount_percent":discount_percent,
         "slug": slug,
         "synonymous": item.get('synonymous', None),
-        "synonymous_nostem": item.get('synonymous_nostem', None),
+        "synonymous_nostem": (item.get('synonymous_nostem', None) or "").lower(),
         "gross_price": gross_price,
         "gross_price_with_vat": gross_price_with_vat,
         "net_price": net_price,
@@ -303,7 +310,6 @@ def transform_to_solr_document(item):
         "pricelist_type": prices.get('pricelist_type', None),
         "created_at": created_at,
         "updated_at": updated_at,
-
     }
 
     ##add not mandatory field

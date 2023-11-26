@@ -45,6 +45,7 @@ def catalogue(args=None):
     skus = unified_args.get('skus')
     is_in_stock = unified_args.get('is_in_stock' , False)
     category_detail = unified_args.get('category_detail')
+    promo_code = unified_args.get('promo_code')
 
 
     start = page*per_page
@@ -116,6 +117,9 @@ def catalogue(args=None):
     max_discount_percent= frappe.local.request.args.get('max_discount_percent')
     if max_discount_percent and float(max_discount_percent) > 0:
         query += f' AND discount_percent:[* TO {max_discount_percent}]'
+    
+    if promo_code:
+        query += f' AND promo_code:{promo_code} '
 
     if is_in_stock:
         query += f' AND availability:[1 TO *]'
