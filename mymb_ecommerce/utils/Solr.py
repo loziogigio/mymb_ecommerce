@@ -72,7 +72,9 @@ class Solr:
 
         # search_array = ["sku", "name_nostem"]
 
-        search_array = ["sku", "name_nostem","name", "short_description_nostem","short_description","description_nostem","description"]  # Add more fields if needed
+        search_array = ["sku","name" , "name_nostem"]  # Add more fields if needed
+
+        # search_array = ["sku", "name_nostem","name", "short_description_nostem","short_description","description_nostem","description"]  # Add more fields if needed
         boost_factors = self.calculate_exp_boost_factors(search_array) # Boost factors for each type of search
 
 
@@ -156,36 +158,65 @@ class Solr:
         """
         Build a boosted query based on the search array and boost factors.
 
-        :param query: str - The search query, e.g., 'text:albero'.
+        :param query: str - The search query, e.g., 'text:Ryža NER'.
         :param search_array: list - List of fields to search in.
         :param boost_factors: list - List of boost factors for each search type.
         :return: str - The boosted query.
         """
         search_term = query.split(':', 1)[1].strip() if ':' in query else query.strip()
         tokens = search_term.split()
+        boosted_queries = []
         boosted_query_tuples = []
+
         for i, field in enumerate(search_array):
             boost_index = len(boost_factors) - i - 1
 
-            # Append tuples (query, boost factor)
-            boosted_query_tuples.append((f'{field}:"{search_term}"', boost_factors[boost_index] ))
-            boosted_query_tuples.append((f'{field}:{search_term}*', boost_factors[boost_index]))
-            boosted_query_tuples.append((f'{field}:*{search_term}', boost_factors[boost_index]))
-            boosted_query_tuples.append((f'{field}:*{search_term}*', boost_factors[boost_index] ))
+            if len(tokens) > 1:
+                # Exact match for multi-token
+                exact_match_query = f'{field}:"{search_term}"'
+                boosted_query_tuples.append((exact_match_query, boost_factors[boost_index]*3))
 
-            for token in tokens:
-                boosted_query_tuples.append((f'{field}:"{token}"', boost_factors[boost_index]))
-                boosted_query_tuples.append((f'{field}:{token}*', boost_factors[boost_index]))
-                boosted_query_tuples.append((f'{field}:*{token}', boost_factors[boost_index]))
-                boosted_query_tuples.append((f'{field}:*{token}*', boost_factors[boost_index]))
+                # Start with condition for each token combined
+                start_with_combined_query = ' AND '.join([f'{field}:{token}*' for token in tokens])
+                boosted_query_tuples.append((start_with_combined_query, boost_factors[boost_index]*2))
+
+                # End with condition for each token combined
+                end_with_combined_query = ' AND '.join([f'{field}:*{token}' for token in tokens])
+                boosted_query_tuples.append((end_with_combined_query, boost_factors[boost_index]))
+
+                # Contains condition for each token combined
+                contains_combined_query = ' AND '.join([f'{field}:*{token}*' for token in tokens])
+                boosted_query_tuples.append((contains_combined_query, boost_factors[boost_index]))
+            else:
+                # Conditions for single token
+                exact_match_query = f'{field}:"{search_term}"'
+                boosted_query_tuples.append((exact_match_query, boost_factors[boost_index]*3))
+
+                starts_with_query = f'{field}:{search_term}*'
+                boosted_query_tuples.append((starts_with_query, boost_factors[boost_index]*3))
+
+                ends_with_query = f'{field}:*{search_term}'
+                boosted_query_tuples.append((ends_with_query, boost_factors[boost_index]))
+
+                contains_query = f'{field}:*{search_term}*'
+                boosted_query_tuples.append((contains_query, boost_factors[boost_index]))
 
         # Sort by boost factor in descending order
         boosted_query_tuples.sort(key=lambda x: x[1], reverse=True)
 
         # Construct the final query string using formatted tuples
-        boosted_queries = [f'{query_str}^{boost}' for query_str, boost in boosted_query_tuples]
+        boosted_queries = [f'({query_str})^{boost}' for query_str, boost in boosted_query_tuples]
 
         return ' OR '.join(boosted_queries)
+
+        # # Sort by boost factor in descending order
+        # boosted_query_tuples.sort(key=lambda x: x[1], reverse=True)
+
+        # # Construct the final query string using formatted tuples
+        # boosted_queries = [f'{query_str}^{boost}' for query_str, boost in boosted_query_tuples]
+
+
+
 
 
 
