@@ -72,7 +72,7 @@ def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 ,
 
         ids = [product['id'] for product in products]
         bcartmag_repo = BcartmagRepository()
-        filter_oarti = {"oarti": ids , "channel_id":"TROVAPREZZI"}
+        filter_oarti = {"oarti": ids}
         bcartmags = bcartmag_repo.get_all_records_by_channell_product(filters=filter_oarti, to_dict=True)
 
         # Create a mapping of product ID to bcartmag

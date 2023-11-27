@@ -7,6 +7,11 @@ from sqlalchemy import desc
 
 class TmpCarrelloRepository(B2BBaseRepository):
 
+    def __init__(self):
+        # Initialize the parent class with necessary arguments
+        super().__init__(is_data_property=False, is_db_transaction=True, is_erp_db=False, external_db_connection_string=None)
+
+
     def get_all_records(self, limit=None, page=None, time_laps=None, to_dict=False, filters=None, sort_by=None, sort_order='asc'):
         query = self.session.query(TmpCarrello)
 

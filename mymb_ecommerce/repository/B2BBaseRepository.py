@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 class B2BBaseRepository:
 
-    def __init__(self, external_db_connection_string=None):
+    def __init__(self, is_data_property=True, is_db_transaction=False , is_erp_db=False, external_db_connection_string=None):
         # Get the Configurations instance
         config = Configurations()
 
@@ -14,7 +14,7 @@ class B2BBaseRepository:
         if external_db_connection_string:
             engine = create_engine(external_db_connection_string)
         else:
-            db = config.get_mysql_connection_b2b()
+            db = config.get_mysql_connection_b2b( is_data_property, is_db_transaction , is_erp_db)
             engine = db.engine
 
         Session = sessionmaker(bind=engine)
