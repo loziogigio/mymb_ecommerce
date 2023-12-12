@@ -262,6 +262,15 @@ def map_solr_response_b2c(search_results ):
         'group_5':'group_5',
     }
 
+    # Loop through each result in the list
+    for i in range(len(search_results)):
+        # Check if the keys exist in the dictionary
+        if 'is_promo' in search_results[i] and 'gross_price' in search_results[i] and 'promo_price' in search_results[i]:
+            # Check your conditions and update the 'is_promo' key
+            search_results[i]['is_promo'] = not (search_results[i]['is_promo'] == False or 
+                                                round(search_results[i]['gross_price'], 2) == round(search_results[i]['promo_price'], 2))
+
+
 
     # Initialize the mapped results list
     mapped_results = []
@@ -281,7 +290,8 @@ def map_solr_response_b2c(search_results ):
                 mapped_result.update(images)
             else:
                 mapped_result[response_field] = result[solr_field]
-
+        
+        
         if mapped_result['is_sale']  and mapped_result['promo_price'] > 0 :
             # Swap price and sale_price if prezzo_iniziale exists and is greater than 0
             mapped_result['price'] = result['gross_price_with_vat']
