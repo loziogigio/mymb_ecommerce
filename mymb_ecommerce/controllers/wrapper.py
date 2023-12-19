@@ -555,9 +555,7 @@ def reset_password(**kwargs):
     result, success = response
 
     if success:
-        recipient_email = result.get('username')
-        recipient_email  = "yiresse.abia@gmail.com"
-        
+        recipient_email = result.get('username')        
         if kwargs.get('password') != None:
             data = f'Email:{recipient_email}'
             send_general_email(recipient_email  , data, email_template="update-password-email")
