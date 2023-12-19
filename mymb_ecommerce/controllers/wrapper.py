@@ -557,13 +557,16 @@ def reset_password(**kwargs):
     if success:
         recipient_email = result.get('username')        
         if kwargs.get('password') != None:
-            data = f'Email:{recipient_email}'
-            send_general_email(recipient_email  , data, email_template="update-password-email")
+            context = f'Email:{recipient_email}'
+            send_general_email(recipient_email  , context, email_template="update-password-email")
         else:
             new_password = result.get('new_password')
-            data = f'Email:{recipient_email} Password:{new_password} '
-            send_general_email(recipient_email  , data, email_template="reset-password-email")
-        return result  # directly return the API response
+            context = f'Email:{recipient_email} Password:{new_password} '
+            send_general_email(recipient_email  , context, email_template="reset-password-email")
+        return  {
+            'success': True,
+            'message': _('Request succes')
+        }, 200
     else:
         return {
             'success': False,
@@ -572,7 +575,7 @@ def reset_password(**kwargs):
 
 
 
-def send_general_email(recipient_email , data, email_template="custom-standard-email" ):
+def send_general_email(recipient_email , context_string, email_template="custom-standard-email" ):
     
     # Check if the custom email template exists
     if frappe.db.exists("Email Template", email_template):
@@ -591,7 +594,7 @@ def send_general_email(recipient_email , data, email_template="custom-standard-e
 
     
     context = {
-        "data":data
+        "context":context_string
         # ... you can add other context variables as needed
     }
     try:

@@ -27,28 +27,33 @@ class Configurations:
             self.solr = Solr(self.solr_url)
 
     def get_api_drupal(self):
-        """Get the Solr image instance from the Mymb b2c Settings DocType"""
+        """Get the Solr image instance from the Mymb Settings DocType"""
         api_drupal = self.doc.get('api_drupal')
         return api_drupal
     
     def get_image_uri_instance(self):
-        """Get the Solr image instance from the Mymb b2c Settings DocType"""
+        """Get the Solr image instance from the Mymb Settings DocType"""
         return self.image_uri
     
     def get_mymb_b2c_payment_success_page(self):
-        """Get Success payment page from the Mymb b2c Settings DocType"""
+        """Get Success payment page from the Mymb Settings DocType"""
 
         return self.mymb_b2c_payment_success_page
     
     def get_mymb_b2c_payment_failed_page(self):
-        """Get Success payment page from the Mymb b2c Settings DocType"""
+        """Get Success payment page from the Mymb Settings DocType"""
 
         return self.mymb_b2c_payment_failed_page
+    
+    def get_email_b2b(self):
+        """Get the email b2b support instance from the Mymb  Settings DocType"""
+        email_b2b = self.doc.get('email_b2b')
+        return email_b2b
     
     
 
     def get_mysql_connection(self):
-        """Get the MySQL connection from the Mymb b2c Settings DocType"""
+        """Get the MySQL connection from the Mymb Settings DocType"""
         if not hasattr(self, 'mysql_connection'):
             username = self.doc.get('db_username')
             db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
