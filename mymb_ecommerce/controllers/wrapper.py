@@ -540,7 +540,7 @@ def reset_password(**kwargs):
     # Making a POST request using the provided keyword arguments (kwargs).
     config = Configurations()
     response = APIClient.request(
-        endpoint='register.php',
+        endpoint='reset_password.php',
         method='POST',
         body=kwargs,
         base_url=config.get_api_drupal()
@@ -555,6 +555,16 @@ def reset_password(**kwargs):
     result, success = response
 
     if success:
+        recipient_email = result.get('username')
+        recipient_email  = "yiresse.abia@gmail.com"
+        
+        if kwargs.get('password') != None:
+            data = f'Email:{recipient_email}'
+            send_general_email(recipient_email  , data, email_template="update-password-email")
+        else:
+            new_password = result.get('new_password')
+            data = f'Email:{recipient_email} Password:{new_password} '
+            send_general_email(recipient_email  , data, email_template="reset-password-email")
         return result  # directly return the API response
     else:
         return {
@@ -570,7 +580,7 @@ def send_general_email(recipient_email , data, email_template="custom-standard-e
     if frappe.db.exists("Email Template", email_template):
         email_template = frappe.get_doc("Email Template", email_template)
     # else if the general email template exists by remove 'custom-'
-    if frappe.db.exists("Email Template",  email_template.replace('custom-', '', 1)):
+    elif frappe.db.exists("Email Template",  email_template.replace('custom-', '', 1)):
         email_template = frappe.get_doc("Email Template",  email_template.replace('custom-', '', 1))
     else:
         default_email_templates = frappe.get_all("Email Template", limit=1)
@@ -578,8 +588,8 @@ def send_general_email(recipient_email , data, email_template="custom-standard-e
             return {"status": "Failed", "message": "No email template found."}
         email_template = frappe.get_doc("Email Template", default_email_templates[0].name)
         
-    if not recipients:
-        recipients = [recipient_email]   # Assuming 'recipient_email' is the field in Sales Order for customer's email
+
+    recipients = [recipient_email]   # Assuming 'recipient_email' is the field in Sales Order for customer's email
 
     
     context = {
