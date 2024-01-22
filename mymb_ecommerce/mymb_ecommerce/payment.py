@@ -502,7 +502,30 @@ def confirm_payment(token):
 
     try:
         custom_redirect_to = None
+        # Fetching PayPal and transaction details
         data, params, url = get_paypal_and_transaction_details(token)
+
+        # Default values
+        default_shop_name = "Default Shop"
+        item_count = 0
+
+        # Fetching shop name from settings
+        mymb_b2c_settings = frappe.get_single('Mymb b2c Settings')
+        shop_name = mymb_b2c_settings.b2c_title if mymb_b2c_settings and mymb_b2c_settings.b2c_title else default_shop_name
+
+        # Fetching the Request Payment Name
+        reference_docname = data.get("reference_docname")
+
+        if reference_docname:
+            # Fetch Sales Order from payment_request_id
+            sales_order_name = frappe.get_doc("Payment Request", reference_docname).reference_name
+            so = frappe.get_doc("Sales Order", sales_order_name)
+            # Counting the number of items in the Sales Order
+            item_count = so.total_qty if so else 0
+
+        # Build the description
+        description = f"Order {sales_order_name} at {shop_name}, Product count: {item_count}" if reference_docname else f"Payment at {shop_name}"
+
 
         params.update(
             {
@@ -512,6 +535,7 @@ def confirm_payment(token):
                 "PAYMENTREQUEST_0_PAYMENTACTION": "SALE",
                 "PAYMENTREQUEST_0_AMT": data.get("amount"),
                 "PAYMENTREQUEST_0_CURRENCYCODE": data.get("currency").upper(),
+                "PAYMENTREQUEST_0_DESC": description
             }
         )
 
