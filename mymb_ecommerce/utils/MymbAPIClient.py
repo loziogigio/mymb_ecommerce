@@ -223,10 +223,48 @@ class MymbAPIClient:
 					product_data = {}
 					# Initialize discount arrays
 
+					# Process packaging options
+					packaging_list = price.get('ImballiArticolo', {}).get('ListaImballoXArticolo', [])
+					packaging_options = []
+
+					for packaging in packaging_list:
+						packaging_option = {
+							"packaging_uom_description": packaging.get('DescrizioneUM'),
+							"packaging_code": packaging.get('CodiceImballo1'),
+							"packaging_is_default": packaging.get('IsImballoDiDefaultXVendita'),
+							"packaging_is_smallest": packaging.get('IsImballoPiuPiccolo'),
+							"qty_x_packaging": packaging.get('QtaXImballo'),
+							"packaging_uom": packaging.get('UM')
+						}
+						packaging_options.append(packaging_option)
+
+					# Assign packaging options to product data
+					product_data["packaging_options"] = packaging_options
+
+					# Default to the first option as a fallback
+					default_packaging = packaging_options[0]
+
+					# Search for packaging_is_default=True
+					for option in packaging_options:
+						if option['packaging_is_default']:
+							default_packaging = option
+							break
+					else:
+						# If no default, search for packaging_is_smallest=True
+						for option in packaging_options:
+							if option['packaging_is_smallest']:
+								default_packaging = option
+								break
+
+					# Now, spread the default packaging into product_data
+					product_data['default_packaging'] = default_packaging
+					qty_x_default_packaging = default_packaging.get('qty_x_packaging',1)
+
+
 					# Assign the product ID, VAT percentage, gross price, and calculate the gross price with VAT
 					product_data['item_code'] = price['CodiceInternoArticolo']
 					product_data['vat_percent'] = price['IVAPercentuale']
-					product_data['gross_price'] = price['Prezzo']
+					product_data['gross_price'] = price['Prezzo']*qty_x_default_packaging
 					product_data['availability'] = price['QtaDisponibile']
 					product_data['gross_price_with_vat'] = round(product_data['gross_price']* (1 + (product_data['vat_percent'] / 100)),4)
 					riga_promozione_migliorativa = price.get('RigaPromozioneMigliorativa', {})
@@ -234,9 +272,9 @@ class MymbAPIClient:
 					# Check if an improving promotional offer exists based on same quantity request for the product and assign the corresponding values
 					if riga_promozione_migliorativa and riga_promozione_migliorativa.get('CodicePromozione') is not None:
 						# Assign all the details related to the improving promotional offer
-						product_data['net_price'] = price['RigaPromozioneMigliorativa']['PrezzoNettoListinoDiRiferimento']
+						product_data['net_price'] = price['RigaPromozioneMigliorativa']['PrezzoNettoListinoDiRiferimento']*qty_x_default_packaging
 						product_data['net_price_with_vat'] = round(product_data['net_price'] * (1 + (product_data['vat_percent'] / 100)),4)
-						product_data['promo_price'] = price['RigaPromozioneMigliorativa']['PrezzoNettoConPromo']
+						product_data['promo_price'] = price['RigaPromozioneMigliorativa']['PrezzoNettoConPromo']*qty_x_default_packaging
 						product_data['promo_price_with_vat'] = round(product_data['promo_price'] * (1 + (product_data['vat_percent'] / 100)),4)
 						product_data['promo_code'] = price['RigaPromozioneMigliorativa']['CodicePromozione']
 						product_data['promo_row'] = price['RigaPromozioneMigliorativa']['RigaPromozione']
@@ -255,8 +293,8 @@ class MymbAPIClient:
 						product_data['discount_extra'][2] = price['RigaPromozioneMigliorativa']['ScontoExtra3']
 					# If no promotional offer exists for the product, assign the net prices (with and without VAT) and set the promo flags to False
 					else:
-						product_data['net_price'] = price['PrezzoNettoXVisualizzazione']
-						product_data['net_price_with_vat'] =  price['PrezzoNettoIvatoXVisualizzazione']
+						product_data['net_price'] = price['PrezzoNettoXVisualizzazione']*qty_x_default_packaging
+						product_data['net_price_with_vat'] =  price['PrezzoNettoIvatoXVisualizzazione']*qty_x_default_packaging
 						product_data['is_best_promo'] = False
 						product_data['is_promo'] = False
 						
@@ -270,7 +308,6 @@ class MymbAPIClient:
 					product_data['discount'][5] = price['ScontoORicarica6']
 					product_data["pricelist_type"] = price['TipoListinoUtilizzato']
 					product_data["pricelist_code"] = price['CodiceListinoUtilizzato'] 
-
 					product_data_list.append(product_data)
 
 				return product_data_list
