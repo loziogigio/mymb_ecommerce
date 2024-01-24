@@ -241,24 +241,29 @@ class MymbAPIClient:
 					# Assign packaging options to product data
 					product_data["packaging_options"] = packaging_options
 
-					# Default to the first option as a fallback
-					default_packaging = packaging_options[0]
+					# Initialize default_packaging with a default value
+					default_packaging = {}
 
-					# Search for packaging_is_default=True
-					for option in packaging_options:
-						if option['packaging_is_default']:
-							default_packaging = option
-							break
-					else:
-						# If no default, search for packaging_is_smallest=True
+					# Check if packaging_options is not empty
+					if packaging_options:
+						# Default to the first option as a fallback
+						default_packaging = packaging_options[0]
+
+						# Search for packaging_is_default=True
 						for option in packaging_options:
-							if option['packaging_is_smallest']:
+							if option['packaging_is_default']:
 								default_packaging = option
 								break
+						else:
+							# If no default, search for packaging_is_smallest=True
+							for option in packaging_options:
+								if option['packaging_is_smallest']:
+									default_packaging = option
+									break
 
 					# Now, spread the default packaging into product_data
 					product_data['default_packaging'] = default_packaging
-					qty_x_default_packaging = default_packaging.get('qty_x_packaging',1)
+					qty_x_default_packaging = default_packaging.get('qty_x_packaging', 1)
 
 
 					# Assign the product ID, VAT percentage, gross price, and calculate the gross price with VAT

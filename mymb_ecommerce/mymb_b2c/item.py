@@ -146,16 +146,72 @@ def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fe
 
     if(items["data"]== 0):
             return items
-    
+
     for item in items["data"]:
         
         solr_document = transform_to_solr_document(item)
-
-        # Skip if solr_document is None, or if item['properties'] or item['medias'] is empty or missing
+        
         if solr_document is None or not item.get('properties') or not item.get('medias'):
             sku = item.get('carti', "No code available")
             skipped_items.append(sku)
-            frappe.log_error(f"Warning: Skipped Item in solr  SKU: {sku} , D: {solr_document['id']}  to Solr", f"Skipped document with SKU: {sku} due to missing slug or prices or properties or medias. {solr_document}")
+            # Log the error without trying to access 'id' in solr_document if it's None
+            log_message = f"Skipped document with SKU: {sku} due to missing slug or prices or properties or medias."
+            if solr_document:
+                log_message += f" Document ID: {solr_document.get('id', 'No ID available')}."
+            else:
+                log_message += " solr_document is None."
+            frappe.log_error(f"Warning: Skipped Item in solr  SKU: {sku}", log_message)
+            continue
+
+        result = add_document_to_solr(solr_document)
+        if result['status'] == 'success':
+            success_items.append(solr_document['sku'])
+        else:
+            failure_items.append(solr_document['sku'])
+            frappe.log_error(title=f"Error: Import Item in solr SKU: {solr_document['sku']} ID: {solr_document['id']} ", message=f"Failed to add document with SKU: {solr_document['sku']} to Solr. Reason: {result['reason']}" )
+
+    return {
+        "data": {
+            "success_items": success_items,
+            "failure_items": failure_items,
+            "skipped_items": skipped_items,
+            "summary": {
+                "success": len(success_items),
+                "failure": len(failure_items),
+                "skipped": len(skipped_items)
+            }
+        }
+    }
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def import_batch_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None):
+    items = get_items_from_external_db(limit=limit, page=page,time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price ,fetch_categories=fetch_categories , channel_id=channel_id)
+
+    success_items = []
+    failure_items = []
+    skipped_items = []
+
+    if(items["data"]== 0):
+            return items
+    counter=0
+    for item in items["data"]:
+        
+        solr_document = transform_to_solr_document(item)
+        print(counter)
+        counter=counter+1
+
+        if solr_document is None or not item.get('properties') or not item.get('medias'):
+            sku = item.get('carti', "No code available")
+            skipped_items.append(sku)
+            # Log the error without trying to access 'id' in solr_document if it's None
+            log_message = f"Skipped document with SKU: {sku} due to missing slug or prices or properties or medias."
+            if solr_document:
+                log_message += f" Document ID: {solr_document.get('id', 'No ID available')}."
+            else:
+                log_message += " solr_document is None."
+            frappe.log_error(f"Warning: Skipped Item in solr  SKU: {sku}", log_message)
             continue
 
         result = add_document_to_solr(solr_document)
