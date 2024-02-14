@@ -79,50 +79,50 @@ def import_all_products_from_mymb_b2c(batch_size: int = 100) -> str:
 def start_import_mymb_b2c_from_external_db(limit=None, time_laps=None, page=1, filters=None, fetch_property=False, fetch_media=False, fetch_price=False, fetch_categories=True, channel_id=None):
     original_user = frappe.session.user  # Store the original user
     set_user('Administrator') 
-    try:
-        items = get_items_from_external_db(
-            limit=limit,
-            time_laps=time_laps,
-            filters=filters,
-            fetch_property=fetch_property,
-            fetch_media=fetch_media,
-            fetch_price=fetch_price,
-            fetch_categories=fetch_categories,
-            channel_id=channel_id
-        )
+    # try:
+    items = get_items_from_external_db(
+        limit=limit,
+        time_laps=time_laps,
+        filters=filters,
+        fetch_property=fetch_property,
+        fetch_media=fetch_media,
+        fetch_price=fetch_price,
+        fetch_categories=fetch_categories,
+        channel_id=channel_id
+    )
 
-        results = {
-            "success_import": [],
-            "fail_import": []
-        }
+    results = {
+        "success_import": [],
+        "fail_import": []
+    }
 
-        if items.get("data") and items.get("count") > 0:
-            # Loop through each SKU in the array
-            for item in items.get("data"):
-                try:
-                    item["sku"] = item.get("carti")
-                    item["id"] = item.get("oarti")
-                    
-                    # Ensure 'dinse_ianag' is a datetime object before converting
-                    if isinstance(item.get("dinse_ianag"), datetime.datetime):
-                        item["dinse_ianag"] = item["dinse_ianag"].isoformat()
-                    
-                    # Check if 'lastoperation' exists and is a datetime object before converting
-                    if "lastoperation" in item and isinstance(item["lastoperation"], datetime.datetime):
-                        item["lastoperation"] = item["lastoperation"].isoformat()
-                    
-                    import_product_from_mymb_b2c(item, item["sku"])  # Pass SKU here
-                    
-                    results["success_import"].append(item.get('carti'))
-                except Exception as e:
-                    # Log the error
-                    error_message = f"Error while importing mymb_b2c item with SKU {item.get('carti')}: {str(e)}"
-                    frappe.log_error(message=f"{item}", title=error_message)
-                    results["fail_import"].append(item.get('carti'))
-                
-        return results
-    finally:
-        set_user(original_user) 
+    if items.get("data") and items.get("count") > 0:
+        # Loop through each SKU in the array
+        for item in items.get("data"):
+            # try:
+            item["sku"] = item.get("carti")
+            item["id"] = item.get("oarti")
+            
+            # Ensure 'dinse_ianag' is a datetime object before converting
+            if isinstance(item.get("dinse_ianag"), datetime.datetime):
+                item["dinse_ianag"] = item["dinse_ianag"].isoformat()
+            
+            # Check if 'lastoperation' exists and is a datetime object before converting
+            if "lastoperation" in item and isinstance(item["lastoperation"], datetime.datetime):
+                item["lastoperation"] = item["lastoperation"].isoformat()
+            
+            import_product_from_mymb_b2c(item, item["sku"])  # Pass SKU here
+            
+            results["success_import"].append(item.get('carti'))
+            # except Exception as e:
+            #     # Log the error
+            #     error_message = f"Error while importing mymb_b2c item with SKU {item.get('carti')}: {str(e)}"
+            #     frappe.log_error(message=f"{item}", title=error_message)
+            #     results["fail_import"].append(item.get('carti'))
+            
+    return results
+    # finally:
+    #     set_user(original_user) 
 
 
 

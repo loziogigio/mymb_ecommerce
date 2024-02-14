@@ -41,6 +41,7 @@ def catalogue(args=None):
     groups = unified_args.get('category')
     features = unified_args.get('features')
     wishlist = unified_args.get('wishlist')
+    family_code = unified_args.get('family_code')
     home = unified_args.get('home' , False)
     skus = unified_args.get('skus')
     is_in_stock = unified_args.get('is_in_stock' , False)
@@ -89,32 +90,32 @@ def catalogue(args=None):
         query = f'text:{text} AND ({" OR ".join([f"sku:{sku}" for sku in skus_array])})'
 
     # Check if min_price is provided in the query string and add it to the query if it is
-    min_price = frappe.local.request.args.get('min_price')
+    min_price = unified_args.get('min_price')
     if min_price and float(min_price) > 0:
         query += f' AND net_price_with_vat:[{min_price} TO *]'
 
     # Check if max_price is provided in the query string and add it to the query if it is
-    max_price = frappe.local.request.args.get('max_price')
+    max_price = unified_args.get('max_price')
     if max_price and float(max_price) > 0:
         query += f' AND net_price_with_vat:[* TO {max_price}]'
 
     # Check if min_discount_value is provided in the query string and add it to the query if it is
-    min_discount_value = frappe.local.request.args.get('min_discount_value')
+    min_discount_value = unified_args.get('min_discount_value')
     if min_discount_value and float(min_discount_value) > 0:
         query += f' AND discount_value:[{min_discount_value} TO *]'
 
     # Check if max_discount_value is provided in the query string and add it to the query if it is
-    max_discount_value= frappe.local.request.args.get('max_discount_value')
+    max_discount_value= unified_args.get('max_discount_value')
     if max_discount_value and float(max_discount_value) > 0:
         query += f' AND discount_value:[* TO {max_discount_value}]'
 
     # Check if min_discount_percent is provided in the query string and add it to the query if it is
-    min_discount_percent = frappe.local.request.args.get('min_discount_percent')
+    min_discount_percent = unified_args.get('min_discount_percent')
     if min_discount_percent and float(min_discount_percent) > 0:
         query += f' AND discount_percent:[{min_discount_percent} TO *]'
 
     # Check if max_discount_percent is provided in the query string and add it to the query if it is
-    max_discount_percent= frappe.local.request.args.get('max_discount_percent')
+    max_discount_percent= unified_args.get('max_discount_percent')
     if max_discount_percent and float(max_discount_percent) > 0:
         query += f' AND discount_percent:[* TO {max_discount_percent}]'
     
@@ -124,7 +125,7 @@ def catalogue(args=None):
     if is_in_stock:
         query += f' AND availability:[1 TO *]'
 
-    order_by = frappe.local.request.args.get('order_by')
+    order_by = unified_args.get('order_by')
 
     # Construct the Solr search parameters
     search_params = {
@@ -138,6 +139,9 @@ def catalogue(args=None):
     if groups:
        search_params["groups"]=groups 
     
+    if family_code:
+       search_params["family_code"]=family_code 
+
     if features:
         search_params["features"]=features
 
@@ -147,17 +151,20 @@ def catalogue(args=None):
     elif order_by == 'price-desc':
         search_params['sort'] = 'net_price_with_vat desc'
     
-    order_by_creation_at = frappe.local.request.args.get('order_by_creation_at')
+    order_by_creation_at = unified_args.get('order_by_creation_at')
     if order_by_creation_at == 'asc':
         search_params['sort'] = 'created_at asc'
     elif order_by_creation_at == 'desc':
         search_params['sort'] = 'created_at desc'
 
-    order_by_updated_at = frappe.local.request.args.get('order_by_updated_at')
+    order_by_updated_at = unified_args.get('order_by_updated_at')
     if order_by_updated_at == 'asc':
         search_params['sort'] = 'updated_at asc'
     elif order_by_updated_at == 'desc':
         search_params['sort'] = 'updated_at desc'
+
+    if unified_args.get('is_random'):
+        search_params['is_random'] = unified_args.get('is_random')
 
     # Get the Solr instance from the Configurations class
     config = Configurations()
@@ -446,6 +453,18 @@ def products():
 
     relatedProducts = catalogue(args)
 
+    #Last item added
+    args_latest_products = frappe._dict()
+    args_latest_products.order_by_creation_at = "desc"
+    args_latest_products.is_random = True
+    latestProducts = catalogue(args_latest_products)
+
+    #Item in discount
+    args_featured_products = frappe._dict()
+    args_featured_products.min_discount_value = 1
+    args_featured_products.is_random = True
+    featuredProducts = catalogue(args_featured_products)
+
     product["features"] = get_features_by_item_name(product["sku"])
     
     data_repo = DataRepository()
@@ -490,9 +509,9 @@ def products():
     response =  {
         'product': product,
         'relatedProducts': relatedProducts['products'],
-        'featuredProducts': relatedProducts['products'],
+        'featuredProducts': featuredProducts['products'],
         'bestSellingProducts': relatedProducts['products'],
-        'latestProducts': relatedProducts['products'],
+        'latestProducts': latestProducts['products'],
         'topRatedProducts': relatedProducts['products'],
         'categories':categories
     }

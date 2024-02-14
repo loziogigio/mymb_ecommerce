@@ -7,6 +7,8 @@ import requests
 import json
 import math
 
+# Generate a random seed for shuffling
+import random
 
 class Solr:
     def __init__(self, url, **kwargs):
@@ -68,7 +70,21 @@ class Solr:
         if feature_filters is not None:
             params['fq'].extend(feature_filters)
 
-        params.update(kwargs)
+        # Check if family_code is in params and add it to the fq parameter
+        family_code = kwargs.get('family_code')
+        if family_code:
+            family_code_filter = f"family_code:{family_code[0]}"
+            params['fq'].append(family_code_filter)
+
+        # Check if random is in params and add it to the fq parameter
+        is_random = kwargs.get('is_random')
+        # Add the shuffle order to the sort parameter
+        if 'sort' not in params and is_random:
+            random_seed = random.randint(0, 1000000)
+            params['sort'] = f'random_{random_seed} asc'  
+        
+
+        # params.update(kwargs)
 
         # search_array = ["sku", "name_nostem"]
 
