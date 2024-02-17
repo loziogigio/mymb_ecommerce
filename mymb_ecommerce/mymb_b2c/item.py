@@ -251,6 +251,21 @@ def import_items_in_erpnext(limit=None, time_laps=None, filters=None, fetch_prop
         "data": response
     }  
 
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def import_items_in_website_item(limit=None, time_laps=None, filters=None, fetch_property=False, fetch_media=False , fetch_price=False):
+    items = get_items_from_external_db(limit=limit, time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price)
+    
+    # Transform each item to a Solr document
+    solr_documents = [transform_to_solr_document(item) for item in items["data"]]
+
+    # Add each document to Solr
+    response = []
+    for document in solr_documents:
+        response.append(add_document_to_solr(document))
+
+    return {
+        "data": response
+    }  
 
 def transform_to_solr_document(item):
     
@@ -504,3 +519,4 @@ def get_categories(last_operation=None, count=False, args=None, item_codes=None,
     #     response['total_results'] = total_results
 
     return response
+

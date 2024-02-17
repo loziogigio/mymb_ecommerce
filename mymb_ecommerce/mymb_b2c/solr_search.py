@@ -456,7 +456,6 @@ def products():
     #Last item added
     args_latest_products = frappe._dict()
     args_latest_products.order_by_creation_at = "desc"
-    args_latest_products.is_random = True
     latestProducts = catalogue(args_latest_products)
 
     #Item in discount
@@ -464,6 +463,9 @@ def products():
     args_featured_products.min_discount_value = 1
     args_featured_products.is_random = True
     featuredProducts = catalogue(args_featured_products)
+
+    #Best selling item in the last 30 days
+    bestSellingProducts= catalogue(args_featured_products)
 
     product["features"] = get_features_by_item_name(product["sku"])
     
@@ -510,7 +512,7 @@ def products():
         'product': product,
         'relatedProducts': relatedProducts['products'],
         'featuredProducts': featuredProducts['products'],
-        'bestSellingProducts': relatedProducts['products'],
+        'bestProducts': bestSellingProducts['products'],
         'latestProducts': latestProducts['products'],
         'topRatedProducts': relatedProducts['products'],
         'categories':categories
