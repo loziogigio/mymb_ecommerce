@@ -101,7 +101,10 @@ doc_events = {
 		],
 	},
 	"Sales Order": {
-		"on_submit": "mymb_ecommerce.mymb_b2c.jobs.job_export_sales_order",
+		"on_submit": [
+            "mymb_ecommerce.mymb_b2c.jobs.job_export_sales_order",
+            "mymb_ecommerce.mymb_b2c.jobs.job_emails_confirm_sales_order",
+		]
 		# "on_cancel": "mymb_ecommerce.unicommerce.status_updater.ignore_pick_list_on_sales_order_cancel",
 	},
 	# "Stock Entry": {

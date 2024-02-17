@@ -3,6 +3,7 @@ from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, impor
 from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order
 from mymb_ecommerce.mymb_b2c.feed_trova_prezzi  import init_feed_generation
 from mymb_ecommerce.mymb_b2c.feed_google_merchant  import upload_to_google_merchant_create_product
+from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 import frappe
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 import json
@@ -93,6 +94,35 @@ def job_export_sales_order(doc, method=None , sales_order_name=None):
                     queue='short',
                     timeout=240)  # Adjust the timeout as per your needs
         
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_emails_confirm_sales_order(doc, method=None, sales_order_name=None):
+    # Enqueue the job to run in the background
+    config = Configurations()
+    email_b2c_bcc = config.email_b2c
+
+    # Fetch the sales_order if sales_order_name is provided
+    if sales_order_name:
+        sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    else:
+        sales_order = doc
+
+    wire_info = ""
+    email_template = "confirm-sales-order-html"
+
+    # Change the template email if a transfer payment has been made
+    if sales_order.payment_mode == "TRANSFER":
+        wire_info = config.get_mymb_b2c_wire_transfer()
+        email_template = "custom-transfer-confirm-sales-order"
+
+    if config.enable_mymb_b2c:
+        frappe.enqueue(method=send_sales_order_confirmation_email_html,
+                    sales_order=sales_order,
+                    email_template=email_template,
+                    bcc=email_b2c_bcc,
+                    wire_info=wire_info,
+                    queue='short',
+                    timeout=240)  # Adjust the timeout as per your needs
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])

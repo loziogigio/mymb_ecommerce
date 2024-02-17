@@ -20,6 +20,7 @@ class Configurations:
         self.mymb_b2c_wire_transfer =   self.doc.get('wire_transfer')
         self.default_item_group =   self.doc.get('default_item_group')
         self.b2c_title =   self.doc.get('b2c_title')
+        self.email_b2c =   self.doc.get('email_b2c')
         self.solr = None
         
         #mysql section

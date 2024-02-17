@@ -56,13 +56,13 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
         # contact = _create_contact(customer, contact_info)
 
         # Create new Address documents and link them to the Contact document
-        billing_address_name = _create_address(customer, contact_info, address_type='Shipping' , full_name=full_name)
+        shipping_address_name = _create_address(customer, contact_info, address_type='Shipping' , full_name=full_name)
 
         if shipping_address_different:
-            shipping_address_name = _create_address(customer, contact_info, address_type='Billing', full_name=full_name)
+            billing_address_name = _create_address(customer, contact_info, address_type='Billing', full_name=full_name)
         else:
             # Use the same address as the billing address if shipping address is not different
-            shipping_address_name = billing_address_name
+            billing_address_name = shipping_address_name
 
 
         # Set the billing and shipping addresses of the Quotation document

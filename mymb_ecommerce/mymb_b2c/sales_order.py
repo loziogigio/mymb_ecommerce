@@ -115,7 +115,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             shipping_city=shipping_address_details.get('city',''),
             shipping_address=safe_concat(shipping_address_details.get('address_line1',''), shipping_address_details.get('address_line2','')),
             shipping_postalcode=shipping_address_details['pincode'],
-            shipping_name=shipping_address_details['name'],
+            shipping_name=sales_order['recipient_full_name'],
             shipping_phone=shipping_address_details['phone'],
 
             channel_id=sales_order['channel']
