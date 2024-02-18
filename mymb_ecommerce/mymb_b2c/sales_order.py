@@ -105,7 +105,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             billing_city=billing_address_details.get('city',''),
             billing_address=safe_concat(billing_address_details.get('address_line1',''), billing_address_details.get('address_line2','')),
             billing_postalcode=billing_address_details['pincode'],
-            billing_name=billing_address_details['name'],
+            billing_name=sales_order['recipient_full_name'],
             billing_phone=billing_address_details['phone'],
 
             shipping_country=shipping_address_details.get('country','IT'),

@@ -167,6 +167,10 @@ def get_addresses_for_current_customer():
     # Fetch the Customer linked to the current user using the "user" field
     customer = frappe.db.get_value("Customer", {"name": user}, "name")
 
+    # If no customer is found, return an empty array
+    if not customer:
+        return []
+
      # Get all the dynamic links associated with the customer record
     dynamic_links = frappe.get_all('Dynamic Link', filters={'link_doctype': 'Customer', 'link_name': customer, 'parenttype': 'Address'}, fields=['parent'])
 
