@@ -113,6 +113,13 @@ def add_item_review(item_code, title, rating, comment=None):
 	"""Add an Item Review by a user if non-existent."""
 	user = frappe.local.jwt_payload['email']
 
+	# Check if the website item exists
+	website_item_exists = frappe.db.exists("Website Item", {"item_code": item_code})
+
+	# If it does not exist, create a new one
+	if not website_item_exists:
+		_create_website_item(item_code)
+
 	if not frappe.db.exists("Item Review", {"user": user, "item": item_code}):
 		doc = frappe.get_doc(
 			{
@@ -132,6 +139,36 @@ def add_item_review(item_code, title, rating, comment=None):
 		# Update cache after adding the review
 		reviews_dict = get_queried_reviews(item_code)
 		set_reviews_in_cache(item_code, reviews_dict)
+
+# def _create_website_item(item_code):
+#     # Find the item by item_code
+#     item = frappe.db.get("Item", {"item_code": item_code})
+# 	config = Configurations()
+	
+#     # Ensure all items exist or import missing ones
+# 	if missing_items:
+# 		# Call your import function for each missing item
+# 		for missing_item_code in missing_items:
+# 			filters = {"carti": missing_item_code}
+# 			# Ensure to handle exceptions or check the result to confirm import success
+# 			start_import_mymb_b2c_from_external_db(filters=filters, fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+
+#     if item:
+#         # Create a new Website Item document with the item's information
+#         website_item = frappe.get_doc({
+#             "doctype": "Website Item",
+#             "item_code": item_code,
+#             "item_name": item_code,
+#             "description": item.description,
+#             # Add more fields from the item as needed
+#         })
+        
+#         # Insert the Website Item document into the database
+#         website_item.insert(ignore_permissions=True)
+        
+#         return {"status": "Success", "message": "Website Item created successfully."}
+#     else:
+#         return {"status": "Failed", "message": "Item not found."}
 
 
 @frappe.whitelist(allow_guest=True)
