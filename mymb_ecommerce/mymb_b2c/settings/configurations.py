@@ -21,6 +21,11 @@ class Configurations:
         self.default_item_group =   self.doc.get('default_item_group')
         self.b2c_title =   self.doc.get('b2c_title')
         self.email_b2c =   self.doc.get('email_b2c')
+        self.emails_confirm_sales_order_on_submit =   self.doc.get('emails_confirm_sales_order_on_submit')
+        self.confirm_sales_order_html_template =   self.doc.get('confirm_sales_order_html_template')
+        self.confirm_sales_order_transfer_html_template =   self.doc.get('confirm_sales_order_transfer_html_template')
+        self.stripe_api_endpoint =   self.doc.get('stripe_api_endpoint')
+        self.gestpay_api_endpoint =   self.doc.get('gestpay_api_endpoint')
         self.solr = None
         
         #mysql section

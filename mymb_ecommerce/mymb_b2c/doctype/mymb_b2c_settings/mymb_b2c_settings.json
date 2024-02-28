@@ -63,7 +63,14 @@
   "mymb_api_username",
   "mymb_api_password",
   "footer_section",
-  "footer_b2c_html"
+  "footer_b2c_html",
+  "payment_getway_tab",
+  "stripe_api_endpoint",
+  "gestpay_api_endpoint",
+  "email_confirmation_tab",
+  "emails_confirm_sales_order_on_submit",
+  "confirm_sales_order_html_template",
+  "confirm_sales_order_transfer_html_template"
  ],
  "fields": [
   {
@@ -380,12 +387,50 @@
    "fieldname": "b2c_title",
    "fieldtype": "Data",
    "label": "B2C Title"
+  },
+  {
+   "fieldname": "payment_getway_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment Getway"
+  },
+  {
+   "fieldname": "stripe_api_endpoint",
+   "fieldtype": "Data",
+   "label": "Stripe Api End Point"
+  },
+  {
+   "fieldname": "gestpay_api_endpoint",
+   "fieldtype": "Data",
+   "label": "GestPay Api End Point"
+  },
+  {
+   "fieldname": "email_confirmation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Email Confirmation"
+  },
+  {
+   "default": "0",
+   "fieldname": "emails_confirm_sales_order_on_submit",
+   "fieldtype": "Check",
+   "label": "Emails confirm sales order on submit"
+  },
+  {
+   "default": "confirm-sales-order",
+   "fieldname": "confirm_sales_order_html_template",
+   "fieldtype": "Data",
+   "label": "Confirm sales order html template"
+  },
+  {
+   "default": "transfer-confirm-sales-order",
+   "fieldname": "confirm_sales_order_transfer_html_template",
+   "fieldtype": "Data",
+   "label": "Confirm sales order TRANSFER html template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-11-16 06:31:43.785714",
+ "modified": "2024-02-28 09:09:13.658057",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

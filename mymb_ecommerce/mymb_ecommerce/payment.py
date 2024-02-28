@@ -385,7 +385,10 @@ def get_gestpay_url(doc):
     amount = doc.grand_total
 
     # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/pay"
+    config = Configurations()
+    gestpay_api_endpoint =  config.gestpay_api_endpoint
+
+    api_url = f"{gestpay_api_endpoint}gestpay/pay"
 
     # Define the headers for the API request
     headers = {
@@ -413,6 +416,7 @@ def get_gestpay_url(doc):
 
 def get_stripe_secret(doc):
 
+
     transactionId = f"{doc.name}"
     item = f"order {doc.reference_name}"
     # stripe_key = 'sk_test_51NfwNVFoxMa9Ie1fdcT5BI2H5Ivqv7uzoOahzBbvpfT6jgvnY7HtlXrfcSxu0xrFWsL3if8281mQ9NL55cenTJbO00QvH2k3J2'
@@ -429,10 +433,11 @@ def get_stripe_secret(doc):
 
 
     # db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
-    
+    config = Configurations()
+    stripe_api_endpoint =  config.stripe_api_endpoint
 
     # Define the API endpoint
-    api_url = "https://crowdechain.com/stripe/create-payment-intent"
+    api_url = f"{stripe_api_endpoint}stripe/create-payment-intent"
 
     # Define the headers for the API request
     headers = {
@@ -598,10 +603,14 @@ def gestpay_transaction_result():
     gestpay_settings = frappe.get_single('GestPay Settings')
 
     testEnv = gestpay_settings.test_environment
+     # db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
+    config = Configurations()
+    gestpay_api_endpoint =  config.gestpay_api_endpoint
+    
     
     try:
         # Define the API endpoint
-        api_url = "https://crowdechain.com/gestpay/response"
+        api_url = f"{gestpay_api_endpoint}gestpay/response"
         
          
         # Get the parameters from the original request
@@ -669,8 +678,12 @@ def gestpay_check_response():
 
     testEnv = gestpay_settings.test_environment
     
-    # Define the API endpoint
-    api_url = "https://crowdechain.com/gestpay/response"
+         # db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
+    config = Configurations()
+    gestpay_api_endpoint =  config.gestpay_api_endpoint
+
+    api_url = f"{gestpay_api_endpoint}gestpay/response"
+
     
     # Get the parameters from the original request
     parameters = frappe.request.args

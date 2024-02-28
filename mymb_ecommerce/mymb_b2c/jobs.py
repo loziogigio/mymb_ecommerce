@@ -96,7 +96,7 @@ def job_export_sales_order(doc, method=None , sales_order_name=None):
         
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def job_emails_confirm_sales_order(doc, method=None, sales_order_name=None):
+def job_emails_confirm_sales_order(doc=None, method=None, sales_order_name=None):
     # Enqueue the job to run in the background
     config = Configurations()
     email_b2c_bcc = config.email_b2c
@@ -108,14 +108,14 @@ def job_emails_confirm_sales_order(doc, method=None, sales_order_name=None):
         sales_order = doc
 
     wire_info = ""
-    email_template = "confirm-sales-order-html"
+    email_template = config.confirm_sales_order_html_template
 
     # Change the template email if a transfer payment has been made
     if sales_order.payment_mode == "TRANSFER":
         wire_info = config.get_mymb_b2c_wire_transfer()
-        email_template = "custom-transfer-confirm-sales-order"
+        email_template = config.confirm_sales_order_transfer_html_template
 
-    if config.enable_mymb_b2c:
+    if config.emails_confirm_sales_order_on_submit:
         frappe.enqueue(method=send_sales_order_confirmation_email_html,
                     sales_order=sales_order,
                     email_template=email_template,
