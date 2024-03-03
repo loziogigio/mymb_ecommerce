@@ -98,9 +98,9 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
             
             #To make it dynamic
-            billing_country=billing_address_details.get('country','IT'),
+            # billing_country=billing_address_details.get('country','IT'),
             billing_prov=billing_address_details.get('state','IT'),
-            # billing_country='IT',
+            billing_country='IT',
             # billing_prov='VC',
             billing_city=billing_address_details.get('city',''),
             billing_address=safe_concat(billing_address_details.get('address_line1',''), billing_address_details.get('address_line2','')),
@@ -108,9 +108,9 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
             billing_name=sales_order['recipient_full_name'],
             billing_phone=billing_address_details['phone'],
 
-            shipping_country=shipping_address_details.get('country','IT'),
+            # shipping_country=shipping_address_details.get('country','IT'),
             shipping_prov=shipping_address_details.get('state','IT'),
-            # shipping_country='IT',
+            shipping_country='IT',
             # shipping_prov='VC',
             shipping_city=shipping_address_details.get('city',''),
             shipping_address=safe_concat(shipping_address_details.get('address_line1',''), shipping_address_details.get('address_line2','')),
