@@ -267,6 +267,7 @@ def map_solr_response_b2c(search_results ):
         'group_3':'group_3',
         'group_4':'group_4',
         'group_5':'group_5',
+        'gtin':'gtin'
     }
 
     # Loop through each result in the list
