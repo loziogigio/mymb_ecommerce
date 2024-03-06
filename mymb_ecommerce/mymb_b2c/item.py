@@ -295,7 +295,7 @@ def transform_to_solr_document(item):
     description = properties_map.get('long_description', None)
     description = BeautifulSoup(description, 'html.parser').get_text() if description else None
 
-    brand = properties_map.get('brand', None)
+    brand = item.get('brand', None)
     images = [item['path'] + '/' + item['filename'] for item in item.get('medias', [])]
 
     
@@ -354,6 +354,7 @@ def transform_to_solr_document(item):
         "sku_father": item.get('sku_father', None),
         "num_images": len(images),
         "images": images,
+        "brand":brand,
         "id_brand": item.get('id_brand', []),
         "id_father": item.get('id_father', None),
         "keywords": item.get('keywords', None),
@@ -361,6 +362,7 @@ def transform_to_solr_document(item):
         "model_nostem": (item.get('model_nostem', None) or "").lower(),
         "discount_value":discount_value,
         "discount_percent":discount_percent,
+        "gtin":item.get('barcode', None),
         "slug": slug,
         "synonymous": item.get('synonymous', None),
         "synonymous_nostem": (item.get('synonymous_nostem', None) or "").lower(),
@@ -381,6 +383,7 @@ def transform_to_solr_document(item):
         "pricelist_type": prices.get('pricelist_type', None),
         "created_at": created_at,
         "updated_at": updated_at,
+        
     }
 
     ##add not mandatory field
