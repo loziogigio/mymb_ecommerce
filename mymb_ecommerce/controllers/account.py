@@ -302,9 +302,9 @@ def get_latest_order_by_item(**kwargs):
         client = _get_mymb_api_client()
         latest_orders_by_item = client.get_latest_order_by_item(args=kwargs)
         if latest_orders_by_item:
-            return latest_orders_by_item
+            return latest_orders_by_item.get("GetUltimoOrdinatoClienteXArticoloResult" , "")
         else:
-            return {"error": _("No orders found with given item.")}
+            return {"error": "No deadline found with given code."}
         
     except Exception as e:
         # Handle exceptions and errors, and return a meaningful message

@@ -90,7 +90,7 @@ class MymbAPIClient:
 
 		# Check if ReturnCode is not 0 in the response and log the error
 		if 'ReturnCode' in result_data and result_data['ReturnCode'] != 0:
-			
+
 			error_message = data[result_key].get('Message', '')
     
 			# Capturing request details
@@ -462,6 +462,9 @@ class MymbAPIClient:
 
 		# Extract parameters from args
 		cod_cliente = args.get('customer_code')
+		if cod_cliente is None:
+			cod_cliente = args.get('client_id')
+			
 		item_id = args.get('item_id')
 
 		item, status = self.request(
