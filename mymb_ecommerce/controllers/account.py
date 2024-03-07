@@ -294,4 +294,20 @@ def pdf_scadenzario(**kwargs):
             "status": "error",
             "message": str(e)
         }
+    
+@frappe.whitelist(allow_guest=True)
+def get_latest_order_by_item(**kwargs):
+    """Fetch orders from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        latest_orders_by_item = client.get_latest_order_by_item(args=kwargs)
+        if latest_orders_by_item:
+            return latest_orders_by_item
+        else:
+            return {"error": _("No orders found with given item.")}
+        
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "GetUltimoOrdinatoClienteXArticolo")
 
+        return {"error": _("No orders found with given code.")}

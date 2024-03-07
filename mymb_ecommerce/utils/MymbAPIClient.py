@@ -86,9 +86,11 @@ class MymbAPIClient:
 		# Get the key of the main result object. This assumes that your response 
 		# always has a single key at the top level.
 		result_key = list(data.keys())[0] if data and isinstance(data, dict) else None
+		result_data = data.get(result_key, {})
 
 		# Check if ReturnCode is not 0 in the response and log the error
-		if result_key and data.get(result_key, {}).get('ReturnCode') != 0:
+		if 'ReturnCode' in result_data and result_data['ReturnCode'] != 0:
+			
 			error_message = data[result_key].get('Message', '')
     
 			# Capturing request details
@@ -452,3 +454,18 @@ class MymbAPIClient:
 			return invoice_data
 
 		return None
+
+
+	def get_latest_order_by_item(self, args: Dict[str, Any] , log_error=True) -> Optional[JsonDict]:
+		"""Fetches the most recent order of a specific article by a customer. 
+		"""
+
+		# Extract parameters from args
+		cod_cliente = args.get('customer_code')
+		item_id = args.get('item_id')
+
+		item, status = self.request(
+			endpoint="/GetUltimoOrdinatoClienteXArticolo", method="GET", params={"CodiceInternoCliente": cod_cliente , "CodiceInternoArticolo":item_id}, log_error=log_error
+		)
+		if status:
+			return item
