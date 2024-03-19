@@ -8,6 +8,9 @@ from mymb_ecommerce.repository.B2COrderRowRepository import B2COrderRowRepositor
 from mymb_ecommerce.repository.B2COrderTransactionRepository import B2COrderTransactionRepository
 from mymb_ecommerce.model.B2COrderRow import B2COrderRow
 from frappe import db
+from datetime import datetime, timedelta
+import uuid
+
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
@@ -139,7 +142,8 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         # Save the B2COrder
         b2c_order_repo.session.add(b2c_order)
         b2c_order_repo.session.commit()
-        export_order_rows(b2c_order, order_rows , sales_taxes_and_charges)
+        transaction_discount_record = build_transaction_discount_row(sales_order)
+        export_order_rows(b2c_order, order_rows , sales_taxes_and_charges , transaction_discount_record)
         if order_transactions:
             if order_transactions[0]:
                 export_order_transactions(b2c_order, order_transactions[0] , sales_order)
@@ -151,7 +155,25 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         "message": f"{len(sales_orders)} sales orders exported successfully."
     }
 
-def export_order_rows(b2c_order, line_items, sales_taxes_and_charges):
+def build_transaction_discount_row( sales_order):
+    build_discount_row = {}  # Initialize as an empty dictionary
+    # Check if 'coupon_code' exists and is not None
+    if sales_order.get('coupon_code') is not None:
+        build_discount_row = {
+            "type": 'commerce_discount',
+            "label": sales_order.get('coupon_code', 0),
+            # Fetch 'discount_amount' from the nested 'sales_order', default to 0 if not found
+            "total_amount": sales_order.get('discount_amount', 0),
+            "unit_amount": sales_order.get('discount_amount', 0),
+            "base_price": 0,
+        }
+    return build_discount_row
+
+
+
+
+
+def export_order_rows(b2c_order, line_items, sales_taxes_and_charges , transaction_discount_record):
     # Assuming B2COrderRowRepository is your class to handle database interactions for order_rows
     b2c_order_row_repo = B2COrderRowRepository()
 
@@ -180,7 +202,28 @@ def export_order_rows(b2c_order, line_items, sales_taxes_and_charges):
                 # Increment row number
                 rn += 1
 
-    # Iterate through line items
+
+    #Create  order_row object for discount (for shipping in this case)
+    if transaction_discount_record:  # Check if there's a discount to process
+        discount_row = B2COrderRow(
+            order_id=b2c_order.order_id,
+            row_id=f"d-{str(uuid.uuid4())[:8]}",
+            row_num=rn,
+            type=transaction_discount_record['type'],  # 'commerce_discount'
+            sku='',
+            label=transaction_discount_record['label'],  # Coupon code or discount label
+            quantity=1,
+            currency=b2c_order.currency,
+            total_amount=-transaction_discount_record['total_amount'],  # Note the negative value for discount
+            base_price=-transaction_discount_record['base_price'],
+            unit_amount=-transaction_discount_record['unit_amount']
+        )
+        # Add discount_row to the session
+        b2c_order_row_repo.session.add(discount_row)
+        # Increment row number
+        rn += 1
+                
+
     for row in line_items:
         # Create order_row object with required details
         order_row = B2COrderRow(
@@ -238,3 +281,24 @@ def export_order_transactions(b2c_order, order_transaction , sales_order):
     b2c_order_transaction_repo.session.commit()
 
     return True
+
+
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def update_sales_order_status(limit=None, page=None, filters=None, last_number_of_days=7):
+    # Calculate the start date based on the current date and the last_number_of_days
+    start_date = datetime.now() - timedelta(days=last_number_of_days)
+    
+    # Ensure filters is a dictionary
+    if not filters:
+        filters = {}
+    
+    # Adding a filter for the 'modified' field to be greater than or equal to start_date
+    filters['modified'] = [">=", start_date.strftime('%Y-%m-%d')]
+    
+    # Retrieve Sales Orders based on the updated filters, including the time-based filter
+    sales_orders = frappe.get_all('Sales Order', fields=['*'], filters=filters, limit_page_length=limit, start=(page-1)*limit if page else 0)
+    
+    return {
+        "data": sales_orders
+    }
