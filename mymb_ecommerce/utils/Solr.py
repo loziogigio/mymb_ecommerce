@@ -76,6 +76,12 @@ class Solr:
             family_code_filter = f"family_code:{family_code[0]}"
             params['fq'].append(family_code_filter)
 
+        # Check if family_name is in params and add it to the fq parameter
+        family_name = kwargs.get('family_name')
+        if family_name:
+            family_name_filter = f"family_name:{family_name[0]}"
+            params['fq'].append(family_name_filter)
+
         # Check if random is in params and add it to the fq parameter
         is_random = kwargs.get('is_random')
         # Add the shuffle order to the sort parameter

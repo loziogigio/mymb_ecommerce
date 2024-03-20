@@ -338,11 +338,6 @@ class MymbAPIClient:
 		date_to = args.get('date_to')
 		rif_cliente = args.get('rif_cliente', '0')  # '0' as default
 		
-		# Handling the type 'T' case to determine date_from and date_to
-		if type == 'T':
-			current_date = datetime.now().strftime('%d%m%Y')
-			date_from = current_date
-			date_to = current_date
 
 		endpoint = f"/GetTestateConInfoConsegna?CodiceInternoCliente={cod_cliente}&TipoEstrazione={type}&CodiceIndirizzo={address_code}"
 

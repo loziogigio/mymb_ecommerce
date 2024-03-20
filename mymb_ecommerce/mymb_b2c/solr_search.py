@@ -217,9 +217,27 @@ def catalogue(args=None):
         'max_price_all': int(max_price_all) if max_price_all is not None else None,
         "category": category,
         "features": features,
-        "menu_category_detail": get_menu_category_detail(category_detail)
+        "menu_category_detail": get_menu_category_detail(category_detail),
+        "category_tree": get_category_tree(groups , search_results)
     }
     return response
+
+def get_category_tree(groups, search_results_mapped):
+    if search_results_mapped and len(search_results_mapped) > 0 and groups is not None and len(groups) > 0:
+        item = search_results_mapped[0]
+        groups_array = groups.split(',')
+        max_depth = len(groups_array)
+        category_tree = []
+
+        for i in range(max_depth):
+            if f'group_{i+1}' in item:
+                group_label = item[f'group_{i+1}']
+                url = ','.join(groups_array[:i+1])
+                category_tree.append({"label": group_label, "url": url})
+
+        return category_tree
+    else:
+        return []
   
 def get_menu_category_detail(category_detail):
     web_site_domain = get_website_domain()
