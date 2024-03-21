@@ -139,7 +139,7 @@ def _create_sales_order(quotation, payment_gateway):
         payment_mode="PAYPAL"
         frappe.throw(f"The payment mode {payment_mode} is not allowed. Please choose from {', '.join(allowed_payment_modes)}.")
 
-    customer_address_name, customer_address, shipping_address_name, shipping_address = get_quotation_addresses(quotation.name)
+    # customer_address_name, customer_address, shipping_address_name, shipping_address = get_quotation_addresses(quotation.name)
     order = frappe.get_doc({ 
         "doctype": "Sales Order",
         "naming_series": frappe.db.get_value("Selling Settings", None, "so_naming_series"),
@@ -149,10 +149,9 @@ def _create_sales_order(quotation, payment_gateway):
         "taxes": quotation.taxes,
         "payment_schedule": quotation.payment_schedule,
         "terms": quotation.terms,
-        "shipping_address_name": shipping_address_name,
-        "shipping_address": shipping_address,
-        "customer_address_name": customer_address_name,
-        "customer_address": customer_address,
+        "shipping_address_name": quotation.shipping_address_name,
+        "shipping_address": quotation.shipping_address,
+        "customer_address": quotation.customer_address,
         "contact_person": quotation.contact_person,
         "contact_email": quotation.contact_email,
         "contact_mobile": quotation.contact_mobile,
@@ -719,17 +718,17 @@ def gestpay_check_response():
     
   
 
-# @frappe.whitelist(allow_guest=True, xss_safe=True)
-# def stripe_transaction_result(event):
+@frappe.whitelist(allow_guest=True, xss_safe=True)
+def stripe_transaction_result(event):
     
-#     # Fetch the stripe_key from Stripe Settings in ERPNext
-#     stripe_settings = frappe.get_all('Stripe Settings', limit_page_length=1)
-#     if stripe_settings:
-#         first_stripe_setting = frappe.get_doc('Stripe Settings', stripe_settings[0].name)
-#         # You can now use first_stripe_setting to access the fields
-#         publishable_key = first_stripe_setting.publishable_key
-#         stripe_key_encrypetd = first_stripe_setting.secret_key
-#         stripe_key = stripe_key = get_decrypted_password("Stripe Settings", first_stripe_setting.name, 'secret_key') # Decrypt the password
+    # Fetch the stripe_key from Stripe Settings in ERPNext
+    stripe_settings = frappe.get_all('Stripe Settings', limit_page_length=1)
+    if stripe_settings:
+        first_stripe_setting = frappe.get_doc('Stripe Settings', stripe_settings[0].name)
+        # You can now use first_stripe_setting to access the fields
+        publishable_key = first_stripe_setting.publishable_key
+        stripe_key_encrypetd = first_stripe_setting.secret_key
+        stripe_key = stripe_key = get_decrypted_password("Stripe Settings", first_stripe_setting.name, 'secret_key') # Decrypt the password
 
 
     
