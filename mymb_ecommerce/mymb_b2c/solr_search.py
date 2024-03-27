@@ -6,6 +6,7 @@ from mymb_ecommerce.mymb_ecommerce.item_review import get_item_reviews
 from mymb_ecommerce.mymb_ecommerce.wishlist import get_from_wishlist
 from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.utils.media import get_website_domain
+from omnicommerce.controllers.item_best_selling import get_top_items
 import frappe
 from frappe import _
 from urllib.parse import urlparse, parse_qs
@@ -484,7 +485,12 @@ def products():
     featuredProducts = catalogue(args_featured_products)
 
     #Best selling item in the last 30 days
-    bestSellingProducts= catalogue(args_featured_products)
+    args_best_selling_products = frappe._dict()
+    get_top_items_code = get_top_items(30, 30) 
+    skus_list = [item['item_code'] for item in get_top_items_code]
+    skus_string = ';'.join(skus_list)
+    args_best_selling_products.skus = skus_string
+    bestSellingProducts= catalogue(args_best_selling_products)
 
     product["features"] = get_features_by_item_name(product["sku"])
     
