@@ -69,6 +69,7 @@
   "gestpay_api_endpoint",
   "email_confirmation_tab",
   "emails_confirm_sales_order_on_submit",
+  "send_confirmation_email_to_admin",
   "confirm_sales_order_html_template",
   "confirm_sales_order_transfer_html_template"
  ],
@@ -425,12 +426,18 @@
    "fieldname": "confirm_sales_order_transfer_html_template",
    "fieldtype": "Data",
    "label": "Confirm sales order TRANSFER html template"
+  },
+  {
+   "default": "0",
+   "fieldname": "send_confirmation_email_to_admin",
+   "fieldtype": "Check",
+   "label": "Send confirmation email to admin"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-02-28 09:09:13.658057",
+ "modified": "2024-03-27 06:40:39.873748",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

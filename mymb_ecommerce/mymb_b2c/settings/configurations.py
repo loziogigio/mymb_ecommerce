@@ -27,6 +27,7 @@ class Configurations:
         self.stripe_api_endpoint =   self.doc.get('stripe_api_endpoint')
         self.gestpay_api_endpoint =   self.doc.get('gestpay_api_endpoint')
         self.solr = None
+        self.send_confirmation_email_to_admin = self.doc.get('send_confirmation_email_to_admin')
         
         #mysql section
         # self.mysql_settings = self.doc.get('mysql_settings').as_dict()

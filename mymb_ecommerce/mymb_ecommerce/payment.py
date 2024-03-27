@@ -210,8 +210,31 @@ def _create_sales_order(quotation, payment_gateway):
         })
 
     order.insert(ignore_permissions=True)
+
+        # Fetch comments from the quotation
+    quotation_comments = get_comments_for_quotation(quotation.name)
+    
+    # Add comments to the sales order, if any
+    for comment in quotation_comments:
+        frappe.get_doc({
+            "doctype": "Comment",
+            "comment_type": "Comment",
+            "reference_doctype": "Sales Order",
+            "reference_name": order.name,  # Assuming `order` is the variable holding the newly created Sales Order object
+            "content": comment["content"],
+            "comment_email": frappe.session.user
+        }).insert(ignore_permissions=True)
+        
     # order.submit()
     return order
+
+def get_comments_for_quotation(quotation_name):
+    comments = frappe.get_all("Comment",
+                              filters={"reference_name": quotation_name,
+                                       "reference_doctype": "Quotation",
+                                       "comment_type": "Comment"},
+                              fields=["name", "content"])
+    return comments
 
 def get_quotation_addresses(quotation_name):
     # Retrieve the Quotation document

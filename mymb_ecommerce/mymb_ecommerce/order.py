@@ -7,7 +7,7 @@ from mymb_ecommerce.mymb_b2c.product import start_import_mymb_b2c_from_external_
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 
 @frappe.whitelist(allow_guest=True)
-def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None):
+def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None , order_comment=None):
 
     # Fetch the customer from request
     if not customer_id:
@@ -110,6 +110,17 @@ def create_quotation(items, customer_type="Individual",customer_id=None, contact
         return {
             "error": "Invalid Shipping Rule provided. Please check and try again."
         }
+
+    # Add a comment to the quotation
+    if order_comment:
+        frappe.get_doc({
+            "doctype": "Comment",
+            "comment_type": "Comment",
+            "reference_doctype": "Quotation",
+            "reference_name": quotation.name,
+            "content": order_comment,
+            "comment_email": frappe.session.user
+        }).insert(ignore_permissions=True)
 
     # Return the Quotation document ID
     return quotation.name

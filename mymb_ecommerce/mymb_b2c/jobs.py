@@ -99,7 +99,9 @@ def job_export_sales_order(doc, method=None , sales_order_name=None):
 def job_emails_confirm_sales_order(doc=None, method=None, sales_order_name=None):
     # Enqueue the job to run in the background
     config = Configurations()
-    email_b2c_bcc = config.email_b2c
+    email_b2c_bcc=None
+    if(config.send_confirmation_email_to_admin):
+        email_b2c_bcc = config.email_b2c
 
     # Fetch the sales_order if sales_order_name is provided
     if sales_order_name:
@@ -123,6 +125,23 @@ def job_emails_confirm_sales_order(doc=None, method=None, sales_order_name=None)
                     wire_info=wire_info,
                     queue='short',
                     timeout=240)  # Adjust the timeout as per your needs
+    
+    # Check if order has comments, then send them via email
+    comments = frappe.get_all("Comment",
+                              filters={"reference_name": sales_order.name,
+                                       "reference_doctype": "Sales Order",
+                                       "comment_type": "Comment"},
+                              fields=["content"])
+   
+    if comments and config.email_b2c:
+        # Combine all comments into a single string message
+        comments_str = "\n\n".join([comment["content"] for comment in comments])
+        frappe.sendmail(
+            recipients=config.email_b2c,
+            subject=f"Order Comments for {sales_order.name}",
+            message=f"Comments for Sales Order {sales_order.name}:\n\n{comments_str}",
+        )
+        
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
