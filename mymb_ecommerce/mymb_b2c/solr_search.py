@@ -486,7 +486,7 @@ def products():
 
     #Best selling item in the last 30 days
     args_best_selling_products = frappe._dict()
-    get_top_items_code = get_top_items(30, 30) 
+    get_top_items_code = get_top_items(30, 7) 
     skus_list = [item['item_code'] for item in get_top_items_code]
     skus_string = ';'.join(skus_list)
     args_best_selling_products.skus = skus_string
