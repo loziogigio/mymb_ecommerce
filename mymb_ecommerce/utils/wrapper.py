@@ -127,6 +127,10 @@ def build_filter_list(erp_data):
 
 def wrap_product_detail(data):
 
+    prices = data.get('prices', {}) or {}
+    promo = prices.get('promo', False)
+    price_info = prices.get('price_info', {}) or {}
+
     
     result = {
         'developer': None,
@@ -136,7 +140,7 @@ def wrap_product_detail(data):
         'is_hot': False,
         'is_new': None,
         'is_out_of_stock': None,
-        'is_sale': data['prices'].get('promo', False),
+        'is_sale': promo,
         'large_pictures': build_picture_array(data['product']['images'], 800, 800),
         'name': data['product']['title'],
         'pictures': build_picture_array(data['product']['images'], 300, 300),
@@ -160,7 +164,7 @@ def wrap_product_detail(data):
         'stock': 54,
         'until': None,
         'variants': [],
-        'price_info': data['prices'].get(data['product']['id'], None),
+        'price_info': price_info,
         'promo_list': data['promo'],
         'extra_info': data,
         'listino_type': data.get('listino_type', None),
@@ -168,7 +172,7 @@ def wrap_product_detail(data):
     }
 
     # Adding 'is_rate_promo' key for conditions met in 'all_promo' list
-    all_promo_list = result.get('price_info', {}).get('all_promo', [])
+    all_promo_list = price_info.get('all_promo', [])
     for promo in all_promo_list:
         if promo.get("TipoPromozione") == "RigaPrezzoNettoQuantitaMinima":
             promo['is_rate_promo'] = True
@@ -178,6 +182,7 @@ def wrap_product_detail(data):
     return result
 
 def wrap_child_product_detail(data):
+    prices = data.get('prices', {}) or {}
     result = {
         'developer': None,
         'game_mode': None,
@@ -188,11 +193,11 @@ def wrap_child_product_detail(data):
         'is_hot': False,
         'is_new': None,
         'is_out_of_stock': None,
-        'is_sale': data['prices'].get('promo', False),
+        'is_sale': prices.get('promo', False),
         'large_pictures': build_picture_array(data['data']['images'], 800, 800),
         'name': data['data']['title'],
         'pictures': build_picture_array(data['data']['images'], 300, 300),
-        'price': data['prices'].get('price', None),
+        'price': prices.get('price', None),
         'product_brands': [],
         'product_categories': [],
         'product_tags': [],
@@ -202,7 +207,7 @@ def wrap_child_product_detail(data):
         'release_date': None,
         'reviews': "0",
         'sale_count': 0,
-        'sale_price': data['prices'].get('price_discount', None),
+        'sale_price': prices.get('price_discount', None),
         'short_description': data['data']['long_descr'],
         'sku': data['data']['carti'],
         'slug': data['data']['id'],
@@ -210,7 +215,7 @@ def wrap_child_product_detail(data):
         'stock': 54,
         'until': None,
         'variants': [],
-        'price_info': data['prices'] if 'prices' in data else None,
+        'price_info': prices,
         'listino_type': data.get('listino_type', None),
         'listino_code': data.get('listino_code', None),
         'promo_list': data['promo'],
