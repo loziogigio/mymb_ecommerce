@@ -128,8 +128,11 @@ def build_filter_list(erp_data):
 def wrap_product_detail(data):
 
     prices = data.get('prices', {}) or {}
-    promo = prices.get('promo', False)
-    price_info = prices.get('price_info', {}) or {}
+    product_id = data['product']['id']
+    price_info = prices.get(product_id, {})
+    promo = price_info.get('promo', False)
+    
+    
 
     
     result = {
