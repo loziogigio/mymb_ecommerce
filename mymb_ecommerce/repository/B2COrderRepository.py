@@ -24,7 +24,7 @@ class B2COrderRepository(BaseRepository):
                     query = query.filter(getattr(B2COrder, key) == value)
 
         # Order by desired attribute in descending order (modify as needed)
-        query = query.order_by(describe(B2COrder.creation_date)) # Adjust the attribute if needed
+        query = query.order_by(B2COrder.creation_date) # Adjust the attribute if needed
         
         # Apply limit and offset for pagination
         if limit is not None:

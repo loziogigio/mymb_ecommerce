@@ -71,7 +71,11 @@
   "emails_confirm_sales_order_on_submit",
   "send_confirmation_email_to_admin",
   "confirm_sales_order_html_template",
-  "confirm_sales_order_transfer_html_template"
+  "confirm_sales_order_transfer_html_template",
+  "order_configuration_tab",
+  "order_shipped_label",
+  "channel_id_lablel",
+  "sync_the_last_number_of_days"
  ],
  "fields": [
   {
@@ -432,12 +436,35 @@
    "fieldname": "send_confirmation_email_to_admin",
    "fieldtype": "Check",
    "label": "Send confirmation email to admin"
+  },
+  {
+   "fieldname": "order_configuration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Order configuration"
+  },
+  {
+   "default": "Spedito",
+   "fieldname": "order_shipped_label",
+   "fieldtype": "Data",
+   "label": "Order shipped label"
+  },
+  {
+   "default": "B2C",
+   "fieldname": "channel_id_lablel",
+   "fieldtype": "Data",
+   "label": "Channel id lablel"
+  },
+  {
+   "default": "7",
+   "fieldname": "sync_the_last_number_of_days",
+   "fieldtype": "Int",
+   "label": "Sync the last number of days"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-27 06:40:39.873748",
+ "modified": "2024-04-09 16:46:29.817384",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

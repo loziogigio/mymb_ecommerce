@@ -1,6 +1,6 @@
 from mymb_ecommerce.mymb_b2c.product import import_all_products_from_mymb_b2c, start_import_mymb_b2c_from_external_db
 from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, import_items_in_solr
-from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order
+from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order, close_and_submit_orderstatus
 from mymb_ecommerce.mymb_b2c.feed_trova_prezzi  import init_feed_generation
 from mymb_ecommerce.mymb_b2c.feed_google_merchant  import upload_to_google_merchant_create_product
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
@@ -184,3 +184,23 @@ def job_export_feed_google_merchant_init(args, merchant_id, per_page, limit, cre
                    credentials_json=serializable_credentials,
                    queue='default',
                    timeout=1200)  # Adjust the timeout as per your needs
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_update_order_from_mymb_to_erpnext(args=None):
+
+    config = Configurations()
+    if config.enable_mymb_b2c and args==None:
+        order_shipped_label = config.order_shipped_label
+        channel_id_lablel = config.channel_id_lablel
+        sync_the_last_number_of_days = config.sync_the_last_number_of_days
+        filters = {
+            "channel_id":channel_id_lablel,
+            "status":order_shipped_label
+        }
+        
+        # Enqueue the job to run in the background
+        frappe.enqueue(method=close_and_submit_orderstatus,
+                    queue='default',
+                    filters=filters, 
+                    last_number_of_days=sync_the_last_number_of_days,
+                    timeout=1200)  # Adjust the timeout as per your needs

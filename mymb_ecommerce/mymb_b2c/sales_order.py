@@ -9,6 +9,9 @@ from mymb_ecommerce.repository.B2COrderTransactionRepository import B2COrderTran
 from mymb_ecommerce.model.B2COrderRow import B2COrderRow
 from frappe import db
 from datetime import datetime, timedelta
+from erpnext.selling.doctype.sales_order.sales_order import close_or_unclose_sales_orders
+import json  
+
 import uuid
 
 
@@ -285,20 +288,61 @@ def export_order_transactions(b2c_order, order_transaction , sales_order):
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def update_sales_order_status(limit=None, page=None, filters=None, last_number_of_days=7):
-    # Calculate the start date based on the current date and the last_number_of_days
+def close_and_submit_orderstatus(limit=None, page=None, filters=None, last_number_of_days=3):
+    # Calculate the start date
     start_date = datetime.now() - timedelta(days=last_number_of_days)
     
-    # Ensure filters is a dictionary
-    if not filters:
-        filters = {}
+    # Initialize the repository
+    repository = B2COrderRepository()
     
-    # Adding a filter for the 'modified' field to be greater than or equal to start_date
-    filters['modified'] = [">=", start_date.strftime('%Y-%m-%d')]
-    
-    # Retrieve Sales Orders based on the updated filters, including the time-based filter
-    sales_orders = frappe.get_all('Sales Order', fields=['*'], filters=filters, limit_page_length=limit, start=(page-1)*limit if page else 0)
-    
-    return {
-        "data": sales_orders
-    }
+    # Calculate time lapse in minutes
+    time_laps = (datetime.now() - start_date).total_seconds() / 60
+
+    # Fetch updated orders
+    updated_orders = repository.get_all_records(limit=limit, page=page, time_laps=time_laps, to_dict=True, filters=filters)
+    order_names_to_close = []
+    for order in updated_orders:
+        # Assuming `external_ref` maps to an ERPNext document's name or another identifiable field
+        order['external_ref'] = "SAL-ORD-2024-00093"
+        try:
+            # Attempt to fetch the Sales Order using external_ref as the identifier
+            erpnext_doc = frappe.get_doc('Sales Order', order['external_ref'])
+        except frappe.DoesNotExistError:
+            # Handle cases where the Sales Order is not found
+            continue  # Skip to the next order
+
+
+        # Proceed only if the order is not already closed
+
+        if erpnext_doc.status != "Closed":
+            # Dynamically update the order with information from the order object
+            erpnext_doc.erp_document_number = f"{order['ccaus_sdocu_g']}/{order['ycale_dgest']}/{order['nprot_ddocu_g']}"
+
+            # Assume all other updates here are correct and just focus on the problematic section
+            custom_info = {
+                "terro_dproc": order['terro_dproc'],
+                "ccaus_sdocu_g": order['ccaus_sdocu_g'],
+                "ycale_dgest": order['ycale_dgest'],
+                "nprot_ddocu_g": order['nprot_ddocu_g'],
+                "mail_link_vett_sent": order['mail_link_vett_sent'],
+                "link_vett": order['link_vett'],
+                "date_link_vett": str(order['date_link_vett'])  # Ensure dates are serialized to string
+            }
+            # Serialize the dictionary to a JSON string
+            erpnext_doc.custom_mymb_order_extra_info = json.dumps(custom_info)
+            erpnext_doc.transaction_status="Shipped"
+            erpnext_doc.paid="YES"
+            
+            #  Update the status to Closed or another terminal status, depending on your workflow
+            # Save the updated Sales Order
+            erpnext_doc.save(ignore_permissions=True)
+            frappe.db.commit() 
+            order_names_to_close.append(order['external_ref'])
+            # Now, close all collected orders in one go
+            break
+
+    if order_names_to_close:
+        names_json = json.dumps(order_names_to_close)
+        close_or_unclose_sales_orders(names_json, 'Closed')
+
+    return {'status': 'success', 'message': f'Processed and closed {len(updated_orders)} orders not previously closed.'}

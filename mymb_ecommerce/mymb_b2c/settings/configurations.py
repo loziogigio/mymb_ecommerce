@@ -28,6 +28,9 @@ class Configurations:
         self.gestpay_api_endpoint =   self.doc.get('gestpay_api_endpoint')
         self.solr = None
         self.send_confirmation_email_to_admin = self.doc.get('send_confirmation_email_to_admin')
+        self.order_shipped_label = self.doc.get('order_shipped_label')
+        self.channel_id_lablel = self.doc.get('channel_id_lablel')
+        self.sync_the_last_number_of_days = self.doc.get('sync_the_last_number_of_days')
         
         #mysql section
         # self.mysql_settings = self.doc.get('mysql_settings').as_dict()
