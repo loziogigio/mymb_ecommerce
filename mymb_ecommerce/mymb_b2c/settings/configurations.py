@@ -31,6 +31,7 @@ class Configurations:
         self.order_shipped_label = self.doc.get('order_shipped_label')
         self.channel_id_lablel = self.doc.get('channel_id_lablel')
         self.sync_the_last_number_of_days = self.doc.get('sync_the_last_number_of_days')
+        self.url_doc_public_service = self.doc.get('url_doc_public_service')
         
         #mysql section
         # self.mysql_settings = self.doc.get('mysql_settings').as_dict()

@@ -137,11 +137,11 @@ scheduler_events = {
 	"weekly": [],
 	"monthly": [],
 	"cron": {
-		# Every five minutes
-		# "*/5 * * * *": [
-		# 	# "mymb_ecommerce.unicommerce.order.sync_new_orders",
+		# Every 6 hours
+		"* */1 * * *": [
+			"mymb_ecommerce.mymb_b2c.jobs.job_update_order_from_mymb_to_erpnext",
 		# 	# "mymb_ecommerce.unicommerce.inventory.update_inventory_on_unicommerce",
-		# ],
+		],
 	},
 }
 

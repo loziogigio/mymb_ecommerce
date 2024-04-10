@@ -75,7 +75,8 @@
   "order_configuration_tab",
   "order_shipped_label",
   "channel_id_lablel",
-  "sync_the_last_number_of_days"
+  "sync_the_last_number_of_days",
+  "url_doc_public_service"
  ],
  "fields": [
   {
@@ -459,12 +460,17 @@
    "fieldname": "sync_the_last_number_of_days",
    "fieldtype": "Int",
    "label": "Sync the last number of days"
+  },
+  {
+   "fieldname": "url_doc_public_service",
+   "fieldtype": "Data",
+   "label": "Url Doc Public Service"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-09 16:46:29.817384",
+ "modified": "2024-04-10 08:20:27.047670",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

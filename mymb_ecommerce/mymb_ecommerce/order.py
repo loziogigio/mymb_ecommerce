@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 from frappe import _
 from mymb_ecommerce.mymb_b2c.product import start_import_mymb_b2c_from_external_db
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from frappe.utils.data import cint
+import json  
 
 @frappe.whitelist(allow_guest=True)
 def create_quotation(items, customer_type="Individual",customer_id=None, contact_info=None, shipping_address_different=False , invoice=False, business_info=None , channel="B2C" ,shipping_rule=None , order_comment=None):
@@ -244,45 +246,71 @@ def get_sales_orders_for_current_customer(page_num, page_size):
     customer = frappe.db.get_value("Customer", {"name": user}, "name")
 
     if not customer:
-        return {"error": "No customer found for the current user"}
+        return frappe.throw(_("No customer found for the current user"))
 
-    # Calculate the offset based on the current page number and page size
-    offset = (page_num - 1) * page_size
+    # Calculate start and end for pagination
+    start = cint(page_size) * (cint(page_num) - 1)
+    end = start + cint(page_size)
 
-    # Fetch the Sales Orders related to the customer using a custom SQL query with pagination
-    sales_orders = frappe.db.sql("""
-        SELECT
-            name,status,creation,modified, total, shipping_address, total_qty, address_display as billing_address
-        FROM
-            `tabSales Order`
-        WHERE
-            `tabSales Order`.`customer` = %s
-            AND `tabSales Order`.`docstatus` = 1
-        ORDER BY `tabSales Order`.`creation` DESC
-        LIMIT %s OFFSET %s
-    """, (customer, page_size, offset), as_dict=True)
+    # Find all sales orders belonging to the customer with pagination
+    sales_orders = frappe.get_all('Sales Order',
+                                  fields=[
+                                      'name',
+                                      'status',
+                                      'transaction_status',
+                                      'creation',
+                                      'modified',
+                                      'grand_total',
+                                      'customer_address',
+                                      'shipping_address_name',
+                                      'total_qty',
+                                      'custom_mymb_order_extra_info',
+                                      'paid',
+                                      'erp_document_number',
+                                      'invoice_requested',
+                                      'customer_type'
+                                      ],
+                                  filters={'customer': customer},
+                                  start=start,
+                                  limit=page_size,
+                                  order_by='creation desc')
 
-    # Fetch the details for each item associated with each sales order
+    # List to store orders with additional details
+    detailed_sales_orders = []
+
     for order in sales_orders:
-        order_items = frappe.db.sql("""
-            SELECT item_code, item_name, qty, rate, image
-            FROM `tabSales Order Item`
-            WHERE parent=%s
-        """, order['name'], as_dict=True)
-        order['items'] = order_items
+        # Retrieve the Address for each Sales Order
+        customer_address = frappe.get_doc('Address', order.get('customer_address'))
+        shipping_address = frappe.get_doc('Address', order.get('shipping_address_name'))
 
-        # Clean the address field
-        soup_shipping = BeautifulSoup(order['shipping_address'], "html.parser")
-        order['shipping_address'] = soup_shipping.prettify().replace("<br/>", " ")
-        soup_shipping = BeautifulSoup(order['shipping_address'], "html.parser")
-        order['shipping_address'] = soup_shipping.get_text()
+        # Retrieve the items for the Sales Order
+        items = frappe.get_all('Sales Order Item',
+                               fields=['item_code', 'item_name', 'qty', 'rate', 'image'],
+                               filters={'parent': order.get('name')})
 
-        soup_billing = BeautifulSoup(order['billing_address'], "html.parser")
-        order['billing_address'] = soup_billing.prettify().replace("<br/>", " ")
-        soup_billing = BeautifulSoup(order['shipping_address'], "html.parser")
-        order['billing_address'] = soup_billing.get_text()
+        # Append additional information to the order details
+        detailed_sales_orders.append({
+            'name': order.get('name'),
+            'status': order.get('status'),
+            'transaction_status': order.get('transaction_status'),
+            'creation': order.get('creation'),
+            'modified': order.get('modified'),
+            'total': order.get('grand_total'),
+            'invoice_requested': order.get('invoice_requested'),
+            'customer_type': order.get('customer_type'),
+            'shipping_address': shipping_address,
+            'total_qty': order.get('total_qty'),
+            'billing_address': customer_address,
+            'items': items,
+            'custom_mymb_order_extra_info': json.loads(order.get('custom_mymb_order_extra_info') or '{}'),
+            'paid': order.get('paid'),
+            'erp_document_number': order.get('erp_document_number')
+        })
 
-    return sales_orders
+    # Convert the detailed sales orders to JSON
+    return detailed_sales_orders
+
+
 
 @frappe.whitelist(allow_guest=True)
 @JWTManager.jwt_required

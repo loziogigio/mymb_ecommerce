@@ -303,7 +303,6 @@ def close_and_submit_orderstatus(limit=None, page=None, filters=None, last_numbe
     order_names_to_close = []
     for order in updated_orders:
         # Assuming `external_ref` maps to an ERPNext document's name or another identifiable field
-        order['external_ref'] = "SAL-ORD-2024-00093"
         try:
             # Attempt to fetch the Sales Order using external_ref as the identifier
             erpnext_doc = frappe.get_doc('Sales Order', order['external_ref'])
@@ -339,10 +338,14 @@ def close_and_submit_orderstatus(limit=None, page=None, filters=None, last_numbe
             frappe.db.commit() 
             order_names_to_close.append(order['external_ref'])
             # Now, close all collected orders in one go
-            break
 
     if order_names_to_close:
         names_json = json.dumps(order_names_to_close)
         close_or_unclose_sales_orders(names_json, 'Closed')
 
-    return {'status': 'success', 'message': f'Processed and closed {len(updated_orders)} orders not previously closed.'}
+    return {
+        'status': 'success',
+        'message': f'Processed and closed {len(updated_orders)} orders not previously closed.',
+        'updated_orders':updated_orders , 
+        'order_names_to_close':order_names_to_close
+    }
