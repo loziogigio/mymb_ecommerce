@@ -2,7 +2,6 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "field:cap",
  "creation": "2024-04-09 17:25:37.949401",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -25,8 +24,7 @@
   {
    "fieldname": "cap",
    "fieldtype": "Data",
-   "label": "Cap",
-   "unique": 1
+   "label": "Cap"
   },
   {
    "fieldname": "regione",
@@ -52,11 +50,10 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-04-09 17:57:23.372963",
+ "modified": "2024-04-10 10:36:17.990939",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Cap",
- "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
