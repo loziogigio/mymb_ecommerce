@@ -467,3 +467,42 @@ class MymbAPIClient:
 		)
 		if status:
 			return item
+		
+	def get_check_updated_exposition(self, args: Dict[str, Any] , log_error=True) -> Optional[JsonDict]:
+		"""Fetches the updated exposition. 
+		"""
+
+		# Extract parameters from args
+		cod_cliente = args.get('customer_code')
+		if cod_cliente is None:
+			cod_cliente = args.get('client_id')
+			
+
+		exposition, status = self.request(
+			endpoint="/GetEsposizioneAggiornataB2B", method="GET", params={"CodiceInternoCliente": cod_cliente}, log_error=log_error
+		)
+		if status:
+			return exposition
+		
+
+	def get_check_updated_deadlines(self, args: Dict[str, Any] , log_error=True) -> Optional[JsonDict]:
+		"""Fetches updated deadlines. 
+		"""
+
+		# Extract parameters from args
+		cod_cliente = args.get('customer_code')
+		if cod_cliente is None:
+			cod_cliente = args.get('client_id')
+			
+
+		exposition, status = self.request(
+			endpoint="/GetScadenzeAggiornateB2B", method="GET", params={"CodiceInternoCliente": cod_cliente}, log_error=log_error
+		)
+		if status:
+			return exposition
+
+
+
+
+
+			

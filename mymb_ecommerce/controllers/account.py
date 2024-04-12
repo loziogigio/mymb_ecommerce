@@ -311,3 +311,44 @@ def get_latest_order_by_item(**kwargs):
         frappe.log_error(f"Error while fetching orders: {e}", "GetUltimoOrdinatoClienteXArticolo")
 
         return {"error": _("No orders found with given code.")}
+    
+
+@frappe.whitelist(allow_guest=True)
+def check_updated_exposition(**kwargs):
+    """Fetch orders from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        updated_exposition = client.get_check_updated_exposition(args=kwargs)
+        result = updated_exposition.get("GetEsposizioneAggiornataB2BResult" , "")
+        m_item2 = result.get("m_Item2", None)
+        if m_item2:
+            return m_item2
+        else:
+            return {"error": "m_Item2 not found in the GetEsposizioneAggiornataB2BResult."}
+        
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "GetEsposizioneAggiornataB2BResult")
+
+        return {"error": _("No orders found with given code.")}
+    
+
+@frappe.whitelist(allow_guest=True)
+def check_updated_deadlines(**kwargs):
+    """Fetch orders from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        updated_deadlines = client.get_check_updated_deadlines(args=kwargs)
+        result = updated_deadlines.get("GetScadenzeAggiornateB2BResult", {})
+        # Accessing m_Item2 from the result
+        m_item2 = result.get("m_Item2", None)
+        if m_item2:
+            return m_item2
+        else:
+            return {"error": "m_Item2 not found in the GetScadenzeAggiornateB2BResult."}
+        
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "GetScadenzeAggiornateB2BResult")
+
+        return {"error": _("No orders found with given code.")}
