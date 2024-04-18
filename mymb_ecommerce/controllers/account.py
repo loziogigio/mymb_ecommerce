@@ -244,7 +244,31 @@ def invoice_pdf(**kwargs):
             "message": str(e)
         }
 
+@frappe.whitelist(allow_guest=True)
+def invoice_pdf_arxivar(**kwargs):
+    config = Configurations()
+    try:
+        result = APIClient.request(
+            endpoint='get_invoice_from_arxivar_ix_pdf',
+            method='POST',
+            body=kwargs,
+            base_url=config.get_api_drupal()
+        )
 
+        # Check if there's a result at index 0
+        if result[0]:
+            return result[0]
+        else:
+            raise ValueError("No valid data found in the result.")
+            
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching invoice PDF: {e}", "Invoice PDF Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    
 @frappe.whitelist(allow_guest=True)
 def csv_invoice_document(**kwargs):
     config = Configurations()
