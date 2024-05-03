@@ -151,7 +151,7 @@ def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fe
         
         solr_document = transform_to_solr_document(item)
         
-        if solr_document is None or not item.get('properties') or not item.get('medias'):
+        if solr_document is None or not item.get('medias'):
             sku = item.get('carti', "No code available")
             skipped_items.append(sku)
             # Log the error without trying to access 'id' in solr_document if it's None

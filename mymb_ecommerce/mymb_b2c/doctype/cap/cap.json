@@ -6,11 +6,13 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "deliverable_column",
   "comune",
   "cap",
   "codice_provincia",
   "provincia",
-  "regione"
+  "regione",
+  "block"
  ],
  "fields": [
   {
@@ -46,11 +48,22 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Provincia"
+  },
+  {
+   "fieldname": "deliverable_column",
+   "fieldtype": "Column Break",
+   "label": "deliverable"
+  },
+  {
+   "default": "0",
+   "fieldname": "block",
+   "fieldtype": "Check",
+   "label": "block"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-04-10 10:36:17.990939",
+ "modified": "2024-05-02 14:04:47.059750",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Cap",

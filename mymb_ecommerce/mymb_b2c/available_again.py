@@ -2,7 +2,8 @@
 import frappe
 from datetime import datetime
 from frappe import _
-
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.mymb_b2c.product import start_import_mymb_b2c_from_external_db
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def add_record_to_available_again():
@@ -17,6 +18,19 @@ def add_record_to_available_again():
     # Get the request data
     data = frappe.local.form_dict
 
+    try:
+        # Check if the item exists in the database
+        config = Configurations()
+        # Ensure all items exist or import missing ones
+        if not frappe.db.exists('Item', data.item_name) and config.enable_mymb_b2c:
+            filters = {"carti": data.item_name}
+            start_import_mymb_b2c_from_external_db(filters=filters, fetch_categories=True, fetch_media=True, fetch_price=True, fetch_property=True)
+    except Exception as e:
+        # Log the exception for debugging
+        frappe.log_error(f"Error in creating website item: {e}")
+        return {"status": "Failed", "message": f"An error occurred: {e}"}
+
+
     # Avoid replication: Check if a record with the same email and item already exists
     existing_record = frappe.db.exists("Available Again", {
         "email": user_email if user_email else data.email,
@@ -24,7 +38,7 @@ def add_record_to_available_again():
     })
     if existing_record:
         return {
-            "message": "A record with this email and item already exists",
+            "error": "A record with this email and item already exists",
         }
 
     # If not found, use the 'Guest' customer
