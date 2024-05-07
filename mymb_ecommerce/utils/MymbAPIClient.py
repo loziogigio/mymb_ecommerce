@@ -500,9 +500,54 @@ class MymbAPIClient:
 		)
 		if status:
 			return exposition
+		
+	def get_check_cart_anomalies(self, args: Dict[str, Any] , log_error=True) -> Optional[JsonDict]:
+		"""Fetches anomalies in the cart. 
+		"""
+		# Extract parameters from args
+		id_cart = args.get('id_cart')
+		keep_issue_flag = args.get('keep_issue_flag', True)
 
+		# Prepare the service URL, if true it does not fix anomalies in the cart
+		if keep_issue_flag:
+			endpoint = "/RisolviAnomalieDocumento"
+			params = {"idElaborazione": id_cart, "isEstraiSoloAnomalie": keep_issue_flag}
+		else:
+			endpoint = "/RisolviAnomalieDocumento"
+			params = {"idElaborazione": id_cart}
 
+		# Make the GET request to the service
+		anomalies_result, status = self.request(
+			endpoint=endpoint, method="GET", params=params, log_error=log_error
+		)
 
+		if status:
+			return anomalies_result
+		
+	def get_info_promotion_in_cart(self, args: Dict[str, Any], log_error: bool = True) -> Optional[Dict]:
+		"""Fetches anomalies in the cart based on cart ID and promo details."""
+		# Extract parameters from args
+		id_cart = args.get('id_cart')
+		promo_code = args.get('promo_code')
+		promo_row = args.get('promo_row')
+		row_id = args.get('row_id')
 
+		# Define the endpoint and parameters for the API request
+		endpoint = "/GetInfoPromozioneCarrello"
+		params = {
+			"IdElaborazione": id_cart,
+			"IdRiga": row_id,
+			"CodicePromozione": promo_code,
+			"IdRigaPromozione": promo_row
+		}
 
-			
+		# Make the GET request to the service
+		anomalies_result, status = self.request(
+			endpoint=endpoint, method="GET", params=params, log_error=log_error
+		)
+
+		# Check if the request was successful
+		if status:
+			return anomalies_result
+		else:
+			return None
