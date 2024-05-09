@@ -76,7 +76,12 @@
   "order_shipped_label",
   "channel_id_lablel",
   "sync_the_last_number_of_days",
-  "url_doc_public_service"
+  "url_doc_public_service",
+  "column_break_qbvy",
+  "payments_mapping_code",
+  "transfer",
+  "paypal",
+  "credit_card"
  ],
  "fields": [
   {
@@ -465,12 +470,39 @@
    "fieldname": "url_doc_public_service",
    "fieldtype": "Data",
    "label": "Url Doc Public Service"
+  },
+  {
+   "fieldname": "column_break_qbvy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payments_mapping_code",
+   "fieldtype": "Heading",
+   "label": "Payments Mapping Code"
+  },
+  {
+   "default": "BONA",
+   "fieldname": "transfer",
+   "fieldtype": "Data",
+   "label": "Transfer"
+  },
+  {
+   "default": "PayPal",
+   "fieldname": "paypal",
+   "fieldtype": "Data",
+   "label": "PayPal"
+  },
+  {
+   "default": "CreditCard",
+   "fieldname": "credit_card",
+   "fieldtype": "Data",
+   "label": "Credit Card"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-10 08:20:27.047670",
+ "modified": "2024-05-09 14:12:53.690438",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",

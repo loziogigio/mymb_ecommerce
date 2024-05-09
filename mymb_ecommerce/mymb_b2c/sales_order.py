@@ -10,6 +10,7 @@ from mymb_ecommerce.model.B2COrderRow import B2COrderRow
 from frappe import db
 from datetime import datetime, timedelta
 from erpnext.selling.doctype.sales_order.sales_order import close_or_unclose_sales_orders
+from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 import json  
 
 import uuid
@@ -69,6 +70,7 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
 
     # Instantiate B2COrderRepository
     b2c_order_repo = B2COrderRepository()
+    config = Configurations()
 
     # Iterate through Sales Orders to export to new schema
     for sales_order in sales_orders:
@@ -84,8 +86,15 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         order_rows =sales_order['items']
         order_transactions = sales_order['payment_requests']
 
-       
-        payment_method = "BONA" if sales_order['payment_mode'] == "TRANSFER" else sales_order['payment_mode']
+        config = Configurations()
+        
+        if sales_order['payment_mode'] == "TRANSFER":
+            payment_method=config.transfer
+        elif sales_order['payment_mode'] == "PAYPAL":
+            payment_method=config.paypal
+        else:
+            payment_method=config.credit_card
+
         transaction_status = "Nuovo" if sales_order['transaction_status'] == "New" else sales_order['transaction_status']
 
         if sales_order['paid'] == "SI":
@@ -263,6 +272,11 @@ def export_order_transactions(b2c_order, order_transaction , sales_order):
     if payload is not None:
         payload = payload.encode('utf-8')
     # Create transaction object with required details
+    config = Configurations()
+    email_template = config.confirm_sales_order_transfer_html_template
+    transfer
+    paypal
+    credit_card
     transaction_name = sales_order['payment_code'] if sales_order['payment_mode'] == "PAYPAL" else order_transaction['name']
 
     transaction = B2COrderTransaction(

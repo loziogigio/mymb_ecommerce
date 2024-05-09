@@ -11,6 +11,9 @@ class Configurations:
         self.image_uri = self.doc.get('image_uri')
         #solr section
         self.enable_mymb_b2c = self.doc.get('enable_mymb_b2c')
+        self.transfer = self.doc.get('transfer')
+        self.paypal = self.doc.get('paypal')
+        self.credit_card = self.doc.get('credit_card')
         self.solr_url = self.doc.get('solr_url')
         self.b2c_url = self.doc.get('b2c_url')
         self.customer_code = self.doc.get('customer_code')
