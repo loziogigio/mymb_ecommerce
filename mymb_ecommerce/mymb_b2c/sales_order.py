@@ -272,11 +272,6 @@ def export_order_transactions(b2c_order, order_transaction , sales_order):
     if payload is not None:
         payload = payload.encode('utf-8')
     # Create transaction object with required details
-    config = Configurations()
-    email_template = config.confirm_sales_order_transfer_html_template
-    transfer
-    paypal
-    credit_card
     transaction_name = sales_order['payment_code'] if sales_order['payment_mode'] == "PAYPAL" else order_transaction['name']
 
     transaction = B2COrderTransaction(
