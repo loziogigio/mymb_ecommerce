@@ -8,9 +8,9 @@ from typing import List, Dict, Any
 def check_if_any_promotion(items_code: List[Any]) -> bool:
     # Extract the item codes from the list of QuotationItem objects
     item_codes_list = [item.item_code for item in items_code]
-
+    
     # Generate the filter string for the API call
-    filters = {'carti': ','.join(item_codes_list)}
+    filters = {'carti':item_codes_list}
     
     # Retrieve items from the external database
     items = get_items_from_external_db(
