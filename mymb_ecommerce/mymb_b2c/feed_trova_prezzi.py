@@ -96,6 +96,9 @@ def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 ,
 
             # Use the mapping to get the corresponding bcartmag
             bcartmag = bcartmag_map.get(product['id'])
+
+            brand = ""  # Initialize brand with a default value
+            barcode = ""  # Initialize barcode with a default value
             if bcartmag:
                 brand = bcartmag.get("brand", "")
                 barcode = bcartmag.get("barcode", "")
