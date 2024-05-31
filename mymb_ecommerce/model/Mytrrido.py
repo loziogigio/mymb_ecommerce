@@ -9,7 +9,7 @@ def get_mytrrido_full_tablename():
     return f"{db}.mytrrido"
 
 class Mytrrido(Base):
-    __tablename__ = get_mytrrido_full_tablename()
+    __tablename__ = "mytrrido"  
 
     csoci = Column(String(4), primary_key=True, nullable=False)
     nprog_ielen = Column(Integer, primary_key=True, nullable=False)

@@ -60,7 +60,10 @@
   "mymb_api_username",
   "mymb_api_password",
   "section_break_fzce",
-  "footer_b2b_html"
+  "footer_b2b_html",
+  "email_config_tab",
+  "welcome_email",
+  "request_template"
  ],
  "fields": [
   {
@@ -300,7 +303,7 @@
    "label": "Enable Mymb"
   },
   {
-   "description": "E.g. frappe.mymbb2c.com",
+   "description": "E.g. shop.omnicommerce.cloud",
    "fieldname": "mymb_site",
    "fieldtype": "Data",
    "label": "Mymb  Site"
@@ -359,12 +362,29 @@
    "fieldname": "db_erp",
    "fieldtype": "Data",
    "label": "db erp"
+  },
+  {
+   "fieldname": "email_config_tab",
+   "fieldtype": "Tab Break",
+   "label": "Email Config"
+  },
+  {
+   "fieldname": "welcome_email",
+   "fieldtype": "Link",
+   "label": "Welcome, password, recovery template",
+   "options": "Email Template"
+  },
+  {
+   "fieldname": "request_template",
+   "fieldtype": "Link",
+   "label": "Request template",
+   "options": "Email Template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-11-27 13:26:42.713047",
+ "modified": "2024-05-14 05:54:11.627128",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",
