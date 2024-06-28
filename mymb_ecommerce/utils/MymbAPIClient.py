@@ -1,5 +1,6 @@
 import base64
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
 
 import frappe
 import requests
@@ -467,7 +468,54 @@ class MymbAPIClient:
 		)
 		if status:
 			return item
+	
+	def get_latest_order_by_list(self, args: Dict[str, Any], log_error=True) -> Optional[JsonDict]:
+		"""Fetches the most recent order from the specified client and address code."""
 		
+		# Extract parameters from args
+		client_id = args.get('client_id')
+		address_code = args.get('address_code')
+
+		# Check mandatory fields
+		if not client_id or not address_code:
+			raise ValueError("client_id and address_code are mandatory fields")
+
+		# Set default values for start_date and end_date if not provided
+		if not args.get('start_date'):
+			start_date = (datetime.now() - timedelta(days=90)).strftime('%d%m%Y')
+		else:
+			start_date = args.get('start_date')
+
+		if not args.get('end_date'):
+			end_date = datetime.now().strftime('%d%m%Y')
+		else:
+			end_date = args.get('end_date')
+
+		sku = args.get('sku', '')
+		text_search = args.get('text_search', '')
+		page = args.get('page', 1)
+		per_page = args.get('per_page', 12)
+
+		item, status = self.request(
+			endpoint="/GetUltimoOrdinatoPerPeriodo",
+			method="GET",
+			params={
+				"codiceInternoCliente": client_id,
+				"codiceIndirizzo": address_code,
+				"dataInizio": start_date,
+				"dataFine": end_date,
+				"codiceArticolo": sku,
+				"descrizioneArticolo": text_search,
+				"pagina": page,
+				"elementiXPagina": per_page
+			},
+			log_error=log_error
+		)
+
+		if status:
+			return item
+		return None
+	
 	def get_check_updated_exposition(self, args: Dict[str, Any] , log_error=True) -> Optional[JsonDict]:
 		"""Fetches the updated exposition. 
 		"""

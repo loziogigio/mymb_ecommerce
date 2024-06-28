@@ -7,11 +7,14 @@ from frappe import _
 from frappe.utils import cint, cstr, get_datetime, now_datetime
 from frappe.utils.password import get_decrypted_password
 from pytz import timezone
+import math
 
 from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.MymbAPIClient import MymbAPIClient
 from mymb_ecommerce.utils.APIClient import APIClient
+
+from mymb_ecommerce.controllers.wrapper import product_list
 
 JsonDict = Dict[str, Any]
 
@@ -376,3 +379,56 @@ def check_updated_deadlines(**kwargs):
         frappe.log_error(f"Error while fetching orders: {e}", "GetScadenzeAggiornateB2BResult")
 
         return {"error": _("No orders found with given code.")}
+    
+
+@frappe.whitelist(allow_guest=True)
+def get_latest_order_list(**kwargs):
+    """Fetch orders from the mymb_api_client using the provided kwargs."""
+    try:
+        client = _get_mymb_api_client()
+        latest_orders_by_list = client.get_latest_order_by_list(args=kwargs)
+        
+        if latest_orders_by_list:
+            result = latest_orders_by_list.get("GetUltimoOrdinatoPerPeriodoResult", {})
+            if not result:
+                return {"error": "No orders found with given code."}
+            
+            page = int(kwargs.get('page', 1))
+            per_page = int(kwargs.get('per_page', 12))
+            
+            orders = result.get("m_Item2", {}).get("m_Item1", [])
+            total_results = result.get("m_Item2", {}).get("m_Item2", 0)
+            total_pages = math.ceil(total_results / per_page)
+            current_page = page
+            
+            art_codes = [order.get("art_CodiceInterno") for order in orders]
+            product_list_data = []
+
+            if art_codes:
+                art_codes_str = ",".join(art_codes)
+                payload = {
+                    "address_code": 0,
+                    "client_id": 0,
+                    "ext_call": True,
+                    "id": art_codes_str
+                }
+                product_list_response = product_list(**payload)
+                if product_list_response.get("success"):
+                    product_list_data = product_list_response.get("product_list", {}).get("data", [])
+
+            
+            return {
+                "orders": orders,
+                "total_results": total_results,
+                "total_pages": total_pages,
+                "current_page": current_page,
+                "art_codes": art_codes,
+                "product_list": product_list_data
+            }
+        else:
+            return {"error": "No orders found with given code."}
+        
+    except Exception as e:
+        # Handle exceptions and errors, and return a meaningful message
+        frappe.log_error(f"Error while fetching orders: {e}", "GetUltimoOrdinatoPerPeriodoResult")
+        return {"error": _("An error occurred while fetching orders.")}
