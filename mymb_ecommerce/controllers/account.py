@@ -384,6 +384,16 @@ def check_updated_deadlines(**kwargs):
 @frappe.whitelist(allow_guest=True)
 def get_latest_order_list(**kwargs):
     """Fetch orders from the mymb_api_client using the provided kwargs."""
+    address_code = kwargs.get('address_code')
+    client_id = kwargs.get('client_id')
+    
+    # Ensure address_code and client_id are provided and not zero
+    if not address_code or address_code == 0:
+        return {"error": "address_code cannot be empty or zero."}
+    
+    if not client_id or client_id == 0:
+        return {"error": "client_id cannot be empty or zero."}
+
     try:
         client = _get_mymb_api_client()
         latest_orders_by_list = client.get_latest_order_by_list(args=kwargs)
@@ -395,6 +405,7 @@ def get_latest_order_list(**kwargs):
             
             page = int(kwargs.get('page', 1))
             per_page = int(kwargs.get('per_page', 12))
+
             
             orders = result.get("m_Item2", {}).get("m_Item1", [])
             total_results = result.get("m_Item2", {}).get("m_Item2", 0)
@@ -407,14 +418,14 @@ def get_latest_order_list(**kwargs):
             if art_codes:
                 art_codes_str = ",".join(art_codes)
                 payload = {
-                    "address_code": 0,
-                    "client_id": 0,
+                    "address_code": address_code,
+                    "client_id": client_id,
                     "ext_call": True,
                     "id": art_codes_str
                 }
                 product_list_response = product_list(**payload)
                 if product_list_response.get("success"):
-                    product_list_data = product_list_response.get("product_list", {}).get("data", [])
+                    product_list_data = product_list_response
 
             
             return {
@@ -423,7 +434,7 @@ def get_latest_order_list(**kwargs):
                 "total_pages": total_pages,
                 "current_page": current_page,
                 "art_codes": art_codes,
-                "product_list": product_list_data
+                "data": product_list_data
             }
         else:
             return {"error": "No orders found with given code."}

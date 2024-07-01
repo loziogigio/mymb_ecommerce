@@ -474,11 +474,11 @@ class MymbAPIClient:
 		
 		# Extract parameters from args
 		client_id = args.get('client_id')
-		address_code = args.get('address_code')
+		address_code = args.get('latest_order_adress_code')
 
 		# Check mandatory fields
-		if not client_id or not address_code:
-			raise ValueError("client_id and address_code are mandatory fields")
+		if not client_id:
+			raise ValueError("client_id is a mandatory field")
 
 		# Set default values for start_date and end_date if not provided
 		if not args.get('start_date'):
