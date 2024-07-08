@@ -491,6 +491,9 @@ class MymbAPIClient:
 		else:
 			end_date = args.get('end_date')
 
+		is_only_latest = args.get('is_only_latest' , False)
+
+
 		sku = args.get('sku', '')
 		text_search = args.get('text_search', '')
 		page = args.get('page', 1)
@@ -507,7 +510,8 @@ class MymbAPIClient:
 				"codiceArticolo": sku,
 				"descrizioneArticolo": text_search,
 				"pagina": page,
-				"elementiXPagina": per_page
+				"elementiXPagina": per_page,
+				"isCercaUltimoOrdine":is_only_latest
 			},
 			log_error=log_error
 		)
