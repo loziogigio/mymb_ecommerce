@@ -120,7 +120,9 @@ doc_events = {
 
 scheduler_events = {
 	# "all": ["mymb_ecommerce.mymb_b2c.inventory.update_inventory_on_shopify"],
-	"daily": [],
+	"daily": [
+        "mymb_ecommerce.mymb_b2c.jobs.job_process_available_again_email",
+	],
 	"daily_long": [
 		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_stocks"
 	],

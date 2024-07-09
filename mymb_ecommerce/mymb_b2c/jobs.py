@@ -3,6 +3,7 @@ from mymb_ecommerce.mymb_b2c.item import get_count_items_from_external_db, impor
 from mymb_ecommerce.mymb_b2c.sales_order  import export_sales_order, close_and_submit_orderstatus
 from mymb_ecommerce.mymb_b2c.feed_trova_prezzi  import init_feed_generation
 from mymb_ecommerce.mymb_b2c.feed_google_merchant  import upload_to_google_merchant_create_product
+from mymb_ecommerce.mymb_b2c.available_again  import action_job_process_available_again_email
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 import frappe
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
@@ -204,3 +205,25 @@ def job_update_order_from_mymb_to_erpnext(args=None):
                     filters=filters, 
                     last_number_of_days=sync_the_last_number_of_days,
                     timeout=1200)  # Adjust the timeout as per your needs
+
+@frappe.whitelist(allow_guest=True, methods=['POST'])
+def job_process_available_again_email(args=None):
+    try:
+        # Parse args to get the email
+        if args:
+            args = json.loads(args)
+            email = args.get('email')
+        else:
+            email = None
+        
+        # Enqueue the job to run in the background
+        frappe.enqueue(method=action_job_process_available_again_email,
+                       email=email,
+                       queue='default',
+                       timeout=1200)  # Adjust the timeout as per your needs
+
+        return {"status": "Success", "message": "Job has been enqueued."}
+    
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Job Enqueue Error")
+        return {"status": "Failed", "message": f"Error encountered: {str(e)}"}

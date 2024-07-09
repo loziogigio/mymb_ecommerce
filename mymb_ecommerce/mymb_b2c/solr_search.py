@@ -24,12 +24,20 @@ def shop(args=None):
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 def catalogue(args=None):
     # Get the "start" and "per_page" parameters from the query string
-    args = args or {}  # If args is None, make it an empty dictionary
+    # Ensure args is a dictionary
+    args = args or {}
 
-    request_args = {key: frappe.local.request.args.get(key) for key in frappe.local.request.args}
+    # Initialize request_args as an empty dictionary
+    request_args = {}
+
+    # Check if `frappe.local.request` exists and has `args`
+    if hasattr(frappe.local, 'request') and hasattr(frappe.local.request, 'args'):
+        request_args = {key: frappe.local.request.args.get(key) for key in frappe.local.request.args}
 
     # Merge dictionaries with args taking precedence
     unified_args = {**request_args, **args}
+
+
 
     per_page_value = unified_args.get('per_page', 12)
     per_page = int(per_page_value) if per_page_value else 1
