@@ -121,7 +121,7 @@ doc_events = {
 scheduler_events = {
 	# "all": ["mymb_ecommerce.mymb_b2c.inventory.update_inventory_on_shopify"],
 	"daily": [
-        "mymb_ecommerce.mymb_b2c.jobs.job_process_available_again_email",
+        # "mymb_ecommerce.mymb_b2c.jobs.job_process_available_again_email",
 	],
 	"daily_long": [
 		# "mymb_ecommerce.zenoti.doctype.zenoti_settings.zenoti_settings.sync_stocks"
@@ -142,6 +142,11 @@ scheduler_events = {
 		# Every 3 hours
 		"* */3 * * *": [
 			"mymb_ecommerce.mymb_b2c.jobs.job_update_order_from_mymb_to_erpnext",
+		# 	# "mymb_ecommerce.unicommerce.inventory.update_inventory_on_unicommerce",
+		],
+		# Every day at  12
+		"00 12 * * *": [
+			"mymb_ecommerce.mymb_b2c.jobs.job_process_available_again_email",
 		# 	# "mymb_ecommerce.unicommerce.inventory.update_inventory_on_unicommerce",
 		],
 	},

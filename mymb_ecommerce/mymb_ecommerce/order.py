@@ -254,26 +254,29 @@ def get_sales_orders_for_current_customer(page_num, page_size):
 
     # Find all sales orders belonging to the customer with pagination
     sales_orders = frappe.get_all('Sales Order',
-                                  fields=[
-                                      'name',
-                                      'status',
-                                      'transaction_status',
-                                      'creation',
-                                      'modified',
-                                      'grand_total',
-                                      'customer_address',
-                                      'shipping_address_name',
-                                      'total_qty',
-                                      'custom_mymb_order_extra_info',
-                                      'paid',
-                                      'erp_document_number',
-                                      'invoice_requested',
-                                      'customer_type'
-                                      ],
-                                  filters={'customer': customer},
-                                  start=start,
-                                  limit=page_size,
-                                  order_by='creation desc')
+                                    fields=[
+                                        'name',
+                                        'status',
+                                        'transaction_status',
+                                        'creation',
+                                        'modified',
+                                        'grand_total',
+                                        'customer_address',
+                                        'shipping_address_name',
+                                        'total_qty',
+                                        'custom_mymb_order_extra_info',
+                                        'paid',
+                                        'erp_document_number',
+                                        'invoice_requested',
+                                        'customer_type'
+                                        ],
+                                    filters={
+                                        'customer': customer,
+                                        'status': ['not in', ['Draft']]
+                                    },
+                                    start=start,
+                                    limit=page_size,
+                                    order_by='creation desc')
 
     # List to store orders with additional details
     detailed_sales_orders = []
