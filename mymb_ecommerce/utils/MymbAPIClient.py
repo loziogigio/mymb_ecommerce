@@ -368,7 +368,7 @@ class MymbAPIClient:
 		date_to = args.get('date_to')
 
 		# Construct the service URL
-		endpoint = (f"/GetTestateFATTConInfo?CodiceInternoCliente={cod_cliente}"
+		endpoint = (f"/GetTestateDDTConInfo?CodiceInternoCliente={cod_cliente}"
 					f"&TipoEstrazione={type}&CodiceIndirizzo={address_code}")
 
 		# Adding the date parameters if they're present
@@ -378,7 +378,7 @@ class MymbAPIClient:
 		data, status = self.request(endpoint=endpoint, method="GET", log_error=True)
 
 		if status:
-			ddt_data = data.get("GetTestateFATTConInfoResult", {}).get("ListaTestateDDTFATTConInfo", [])
+			ddt_data = data.get("GetTestateDDTConInfoResult", {}).get("ListaTestateDDTFATTConInfo", [])
 
 			# Process the data
 			for item in ddt_data:
@@ -397,7 +397,7 @@ class MymbAPIClient:
 				item["year"] = anno_def
 				item["number"] = num_def
 				item["type"] = item.get("TipoDocumento", "")
-				item["type_bar_code"] = "I"
+				item["type_bar_code"] = "D"
 				item["bar_code_request"] = f"{doc_def}/{anno_def}/{num_def}/D"
 
 			return ddt_data
