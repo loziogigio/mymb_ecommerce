@@ -406,7 +406,7 @@ def prepare_order(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def get_order_pdf(**kwargs):
-    data = prepare_order(**kwargs)
+    data = get_cart_items(**kwargs)
         # Check if the custom email template exists
     email_template_name = 'custom-order-template'
     if frappe.db.exists("Email Template", email_template_name):
