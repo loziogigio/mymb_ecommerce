@@ -14,6 +14,9 @@ from mymb_ecommerce.utils.APIClient import APIClient
 from mymb_ecommerce.utils.email_lib import sendmail
 from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, wrap_product_detail, wrap_child_product_detail
 
+from frappe.utils.pdf import get_pdf
+import os
+
 JsonDict = Dict[str, Any]
 
 
@@ -401,6 +404,47 @@ def prepare_order(**kwargs):
 
     return result
 
+@frappe.whitelist(allow_guest=True)
+def get_order_pdf(**kwargs):
+    data = prepare_order(**kwargs)
+        # Check if the custom email template exists
+    email_template_name = 'custom-order-template'
+    if frappe.db.exists("Email Template", email_template_name):
+        email_template = frappe.get_doc("Email Template", email_template_name)
+    # Else if the general email template exists by removing 'custom-'
+    elif frappe.db.exists("Email Template", email_template_name.replace('custom-', '', 1)):
+        email_template = frappe.get_doc("Email Template", email_template_name.replace('custom-', '', 1))
+    # Use any available template as the last resort
+    else:
+        default_email_templates = frappe.get_all("Email Template", limit=1)
+        if not default_email_templates:
+            return {"status": "Failed", "message": "No email template found."}
+        email_template = frappe.get_doc("Email Template", default_email_templates[0].name)
+
+    # If the first element of the tuple is the actual dictionary, do this:
+    if isinstance(data, tuple):
+        data = data[0]  # Extract the first element which should be the dictionary
+    # Prepare the email context
+    context = {
+        'data':data
+    }
+    rendered_email_content = frappe.render_template(email_template.response_, context)
+
+    # Generate the PDF from the rendered content
+    pdf_content = get_pdf(rendered_email_content)
+
+    # Encode the PDF content in base64
+    pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+
+    # Return the base64 PDF as part of the JSON response
+    return {
+        "status": "Success",
+        "pdf_base64": pdf_base64,
+        "filename": f"order_{kwargs.get('id_cart') or 'unknown'}.pdf"
+    }
+
+
+
 # Send Order
 @frappe.whitelist(allow_guest=True)
 def send_order(**kwargs):
@@ -444,6 +488,7 @@ def get_order_detail(**kwargs):
         result = result
 
     return result
+
 
 # Get Autocomplete Items
 @frappe.whitelist(allow_guest=True)
