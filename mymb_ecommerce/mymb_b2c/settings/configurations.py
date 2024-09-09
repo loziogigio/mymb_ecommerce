@@ -12,6 +12,7 @@ class Configurations:
         #solr section
         self.enable_mymb_b2c = self.doc.get('enable_mymb_b2c')
         self.transfer = self.doc.get('transfer')
+        self.cash_on_delivery = self.doc.get('cash_on_delivery')
         self.paypal = self.doc.get('paypal')
         self.credit_card = self.doc.get('credit_card')
         self.solr_url = self.doc.get('solr_url')
@@ -27,6 +28,7 @@ class Configurations:
         self.emails_confirm_sales_order_on_submit =   self.doc.get('emails_confirm_sales_order_on_submit')
         self.confirm_sales_order_html_template =   self.doc.get('confirm_sales_order_html_template')
         self.confirm_sales_order_transfer_html_template =   self.doc.get('confirm_sales_order_transfer_html_template')
+        self.confirm_sales_order_cash_on_delivery_html_template = self.doc.get('confirm_sales_order_cash_on_delivery_html_template') 
         self.stripe_api_endpoint =   self.doc.get('stripe_api_endpoint')
         self.gestpay_api_endpoint =   self.doc.get('gestpay_api_endpoint')
         self.solr = None

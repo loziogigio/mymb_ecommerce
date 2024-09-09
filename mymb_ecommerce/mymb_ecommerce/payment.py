@@ -80,6 +80,10 @@ def payment_request(quotation_name, payment_gateway="paypal"):
         payment_url = "/pages/payment-success?paymentgateway=transfer"
         submit_sales_order(sales_order.name)
         wired_transfer_data = f"{config.get_mymb_b2c_wire_transfer()}<h2>{sales_order.name}</h2>"
+    elif payment_gateway == "cash_on_delivery":
+        config = Configurations()
+        payment_url = "/pages/payment-success?paymentgateway=cash_on_delivery"
+        submit_sales_order(sales_order.name)
     else:
         payment_url = doc.get_default_url()  # Define this function to provide a default URL
 
@@ -134,7 +138,7 @@ def _create_sales_order(quotation, payment_gateway):
 
     # Convert the payment gateway string to uppercase and check if it's in the allowed list
     payment_mode = payment_gateway.upper()
-    allowed_payment_modes = ["PAYPAL", "TRANSFER", "STRIPE", "GESTPAY"]
+    allowed_payment_modes = ["PAYPAL", "TRANSFER", "STRIPE", "GESTPAY" , "CASH_ON_DELIVERY"]
     if payment_mode not in allowed_payment_modes:
         payment_mode="PAYPAL"
         frappe.throw(f"The payment mode {payment_mode} is not allowed. Please choose from {', '.join(allowed_payment_modes)}.")

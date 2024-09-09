@@ -117,6 +117,8 @@ def job_emails_confirm_sales_order(doc=None, method=None, sales_order_name=None)
     if sales_order.payment_mode == "TRANSFER":
         wire_info = config.get_mymb_b2c_wire_transfer()
         email_template = config.confirm_sales_order_transfer_html_template
+    if sales_order.payment_mode == "CASH_ON_DELIVERY":
+        email_template = config.confirm_sales_order_cash_on_delivery_html_template
 
     if config.emails_confirm_sales_order_on_submit:
         frappe.enqueue(method=send_sales_order_confirmation_email_html,

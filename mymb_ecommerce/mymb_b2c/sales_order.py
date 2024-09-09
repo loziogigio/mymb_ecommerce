@@ -90,6 +90,8 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         
         if sales_order['payment_mode'] == "TRANSFER":
             payment_method=config.transfer
+        elif sales_order['payment_mode'] == "CASH_ON_DELIVERY":
+            payment_method=config.cash_on_delivery
         elif sales_order['payment_mode'] == "PAYPAL":
             payment_method=config.paypal
         else:
