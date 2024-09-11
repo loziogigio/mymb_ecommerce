@@ -1595,7 +1595,7 @@
    "name": "Sales Order-payment_mode",
    "no_copy": 0,
    "non_negative": 0,
-   "options": "PAYPAL\nTRANSFER\nSTRIPE\nGESTPAY\nCASH_ON_DELIVERY",
+   "options": "PAYPAL\nTRANSFER\nSTRIPE\nGESTPAY\nCASH_ON_DELIVERY\nOTHER",
    "owner": "Administrator",
    "permlevel": 0,
    "precision": "",
