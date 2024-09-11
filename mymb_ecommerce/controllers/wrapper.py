@@ -339,6 +339,7 @@ def update_cart(**kwargs):
 
     return result
 
+
 # Remove Cart Item
 @frappe.whitelist(allow_guest=True)
 def remove_cart_item(**kwargs):
