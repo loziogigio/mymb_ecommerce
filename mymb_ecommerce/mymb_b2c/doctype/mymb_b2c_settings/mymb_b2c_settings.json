@@ -83,7 +83,7 @@
   "transfer",
   "paypal",
   "credit_card",
-  "contrassegno"
+  "cash_on_delivery"
  ],
  "fields": [
   {
@@ -501,21 +501,21 @@
    "label": "Credit Card"
   },
   {
-   "fieldname": "contrassegno",
-   "fieldtype": "Data",
-   "label": "Contrassegno"
-  },
-  {
    "default": "transfer-confirm-sales-order",
    "fieldname": "confirm_sales_order_cash_on_delivery_html_template",
    "fieldtype": "Data",
    "label": "Confirm sales order CASH_ON_DELIVERY html template"
+  },
+  {
+   "fieldname": "cash_on_delivery",
+   "fieldtype": "Data",
+   "label": "Contrassegno"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-09-09 08:47:09.463362",
+ "modified": "2024-09-12 13:55:17.174855",
  "modified_by": "Administrator",
  "module": "mymb b2c",
  "name": "Mymb b2c Settings",
