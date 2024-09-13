@@ -152,12 +152,7 @@ def get_invoices(**kwargs):
         client = _get_mymb_api_client()
         invoices = client.get_invoices(args=kwargs)
         if invoices:
-            # Filter out invoices where CausaleDocDefinitivo is "SC"
-            filtered_invoices = [invoice for invoice in invoices if invoice.get('CausaleDocDefinitivo') != "V1"]
-            if filtered_invoices:
-                return filtered_invoices
-            else:
-                return {"error": _("No invoices found with given code.")}
+            return invoices
         else:
             return {"error": _("No invoices found with given code.")}
         
