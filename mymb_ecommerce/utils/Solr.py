@@ -33,9 +33,12 @@ class Solr:
             'rows': rows
         }
 
+
         if sort:
             params['sort'] = sort
         
+        # Ensure 'fq' exists in params
+        params['fq'] = []
 
         if groups:
             group_list = groups.split(',')
@@ -48,14 +51,7 @@ class Solr:
 
             group_facet_fields = [f'group_{i+1}' for i in range(len(group_list) + 1)]
             
-             # Fetch dynamic facet fields based on group faceting
-            last_group = group_list[-1]
-            if not self.has_subgroups(len(group_list),last_group):
-                dynamic_facet_fields = self.get_dynamic_facet_fields(last_group)
-            else:
-                dynamic_facet_fields = []
-
-            params['facet.field'] = group_facet_fields + dynamic_facet_fields
+            params['facet.field'] = group_facet_fields
             
         else:
             params['facet'] = 'on'
@@ -72,7 +68,7 @@ class Solr:
         # Initialize feature filters as an empty list
         feature_filters = []
         feature_dict= None
-        
+
         # Parse the JSON-encoded features into a dictionary
         # Check if features is not None and then parse the JSON-encoded features into a dictionary
         if features:
