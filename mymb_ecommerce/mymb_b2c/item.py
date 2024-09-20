@@ -2,6 +2,7 @@ import frappe
 from mymb_ecommerce.repository.BcartmagRepository import BcartmagRepository
 from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.repository.MediaRepository import MediaRepository
+from mymb_ecommerce.repository.FeatureRepository import FeatureRepository
 from mymb_ecommerce.utils.MymbAPIClient import MymbAPIClient
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from datetime import datetime
@@ -22,7 +23,7 @@ def get_count_items_from_external_db( time_laps=None, filters=None , channel_id=
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None):
+def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None , fetch_features=True):
     # Initialize the BcartmagRepository
     item_repo = BcartmagRepository()
     config = Configurations()
@@ -80,7 +81,17 @@ def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None
             record['properties'] = all_properties.get(record['oarti'], [])
             record['properties'] = [property.to_dict() for property in record['properties']]
             
-            
+    if fetch_features:
+        feature_repo = FeatureRepository()
+
+        # Fetch Data records for all entity_codes
+        feature_records = feature_repo.get_features_by_entity_codes(entity_codes , channel_id=channel_id)
+
+        # For each record, match associated Feature from the fetched Feature records
+        for record in external_items:
+            record['features'] = feature_records.get(record['oarti'], [])
+
+
     if fetch_media:
         media_repo = MediaRepository()
 
@@ -397,6 +408,11 @@ def transform_to_solr_document(item):
                 clean_label = h['label'].strip().replace("\t", "").replace("\n", "").replace(",", " ")
                 clean_label = re.sub(' +', ' ', clean_label)
                 solr_document[f"group_{h['depth']}"] = clean_label  # Use the "set" modifier for partial updates
+
+    ##add not mandatory field
+    features = item.get('features', None)
+    if  features:
+        solr_document.update(features)
 
     return solr_document
 

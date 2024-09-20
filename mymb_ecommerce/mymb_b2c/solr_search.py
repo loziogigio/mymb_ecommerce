@@ -7,6 +7,7 @@ from mymb_ecommerce.mymb_ecommerce.wishlist import get_from_wishlist
 from mymb_ecommerce.repository.DataRepository import DataRepository
 from mymb_ecommerce.utils.media import get_website_domain
 from omnicommerce.controllers.item_best_selling import get_top_items
+from mymb_ecommerce.repository.FeatureRepository import FeatureRepository
 import frappe
 from frappe import _
 from urllib.parse import urlparse, parse_qs
@@ -212,7 +213,8 @@ def catalogue(args=None):
         category = facet.get('category')
         features = facet.get('features')
         #We have map features with their uom
-        features = map_feature_with_uom_via_family_code(features , search_results_mapped)
+        # features = map_feature_with_uom_via_family_code(features , search_results_mapped)
+        # features = get_features(facet , search_results_mapped)
     response =  {
         'totalCount': count,
         'current_page': page + 1,
@@ -247,7 +249,7 @@ def get_category_tree(groups, search_results_mapped):
         return category_tree
     else:
         return []
-  
+
 def get_menu_category_detail(category_detail):
     web_site_domain = get_website_domain()
     try:
@@ -500,10 +502,13 @@ def products():
     args_best_selling_products.skus = skus_string
     bestSellingProducts= catalogue(args_best_selling_products)
 
-    product["features"] = get_features_by_item_name(product["sku"])
+    features_repo = FeatureRepository()
+    feature_records = features_repo.get_features_by_entity_codes( entity_codes=[product["id"]] , channel_id=None , return_result=True)
+    
+    product["features"] =  feature_records
     
     data_repo = DataRepository()
-    data = data_repo.get_data_by_entity_code(product["id"])
+    data = data_repo.get_data_by_entity_code(product["id"], [])
     # Convert data into a format suitable for your use case (e.g., a list of dictionaries)
     product_data = {row.property_id: row.value for row in data}
     product['product_data'] = product_data

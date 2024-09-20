@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 import math
-
+# from mymb_ecommerce.repository.FeatureRepository import FeatureRepository
 # Generate a random seed for shuffling
 import random
 
@@ -56,20 +56,45 @@ class Solr:
                 dynamic_facet_fields = []
 
             params['facet.field'] = group_facet_fields + dynamic_facet_fields
+            
         else:
             params['facet'] = 'on'
             params['facet.field'] = ['group_1']
             params['facet.mincount'] = 1
 
-        # Initialize feature filters as an empty list
-        feature_filters = Solr.get_features(features)
+        #whne we ae going to have just one family_Coe we wil do the faceting
+        params['facet.field'].append('family_code')
 
-        # Add the feature filters to the fq parameter
-        if 'fq' not in params:
-            params['fq'] = []
-        if feature_filters is not None:
+
+
+        # Feature Filters Section
+        # -----------------------
+        # Initialize feature filters as an empty list
+        feature_filters = []
+        feature_dict= None
+        
+        # Parse the JSON-encoded features into a dictionary
+        # Check if features is not None and then parse the JSON-encoded features into a dictionary
+        if features:
+            try:
+                feature_dict = json.loads(features)
+            except json.JSONDecodeError as e:
+                print(f"Error decoding features: {e}")
+                feature_dict = {}
+
+        # If the feature dictionary is not empty, construct the feature filters
+        if feature_dict:
+            for key, value in feature_dict.items():
+                # Create the Solr filter query (fq) for each feature
+                feature_filter = f'{key}:"{value}"'
+                feature_filters.append(feature_filter)
+
+        # Add feature filters to the 'fq' parameter
+        if feature_filters:
             params['fq'].extend(feature_filters)
 
+        # Family Code and Family Name Filters
+        # -----------------------------------
         # Check if family_code is in params and add it to the fq parameter
         family_code = kwargs.get('family_code')
         if family_code:
@@ -82,13 +107,14 @@ class Solr:
             family_name_filter = f"family_name:{family_name[0]}"
             params['fq'].append(family_name_filter)
 
-        # Check if random is in params and add it to the fq parameter
+        # Random Sorting Section
+        # ----------------------
+        # Check if random sorting is required and apply random seed-based sorting
         is_random = kwargs.get('is_random')
-        # Add the shuffle order to the sort parameter
         if 'sort' not in params and is_random:
             random_seed = random.randint(0, 1000000)
-            params['sort'] = f'random_{random_seed} asc'  
-        
+            params['sort'] = f'random_{random_seed} asc'
+                
 
         # params.update(kwargs)
 
@@ -131,7 +157,21 @@ class Solr:
         # Get the facet counts
         facet_counts = Solr.get_facet(response=response, groups=groups, features=features)
 
-        # Return the results and facet counts as a dictionary
+        # If family_code has more than one array object, add dynamic facet fields
+        family_code_list = facet_counts.get("family_code", [])
+        if len(family_code_list) == 1:
+            family_features = self.get_dynamic_facet_fields_by_family_code( family_code_list[0] )
+            # Ensure family_features is not empty
+            if len(family_features) > 0:
+                # Iterate over the family_features and append the keys (facet field names)
+                for family_feature_key, family_feature_value in family_features.items():
+                    # Append the key to the params['facet.field']
+                    params['facet.field'].append(family_feature_key)
+
+                response_facet_family_features = self.solr.search(**params)
+                # Get the facet counts
+                facet_counts = Solr.get_facet(response=response_facet_family_features, groups=groups, features=family_features)
+
         return {
             'results': results,
             'facet_counts': facet_counts,
@@ -254,6 +294,26 @@ class Solr:
         escaped_query = "".join([f'\\{char}' if char in special_chars else char for char in query])
         return escaped_query.replace(' ', '\\ ')
     
+    
+    
+    @staticmethod
+    def get_dynamic_facet_fields_by_family_code( family_code ):
+        """
+        Search for Feature Families with the family_code equal to the given family_code.
+        :param family_code: str - The family_code value.
+        :return: list - The dynamic facet fields based on the family_code.
+        """
+        # Normalize the family_code (replace dashes with spaces and convert to lowercase)
+        from mymb_ecommerce.repository.FeatureRepository import FeatureRepository
+        feature_repo = FeatureRepository()
+        # Fetch feature families based on the family_code
+        feature_families = {}
+        # Use the FeatureRepository to fetch features by family_code
+        family_features = feature_repo.get_features_by_family_id_b2c(family_code.get("code" , 0))
+        
+
+        return family_features
+
     def get_dynamic_facet_fields(self, group):
         """
         Search for Feature Families with the family_code equal to group.
@@ -388,31 +448,14 @@ class Solr:
             print(f"Request failed: {e}")
             return {"status": "failure", "reason": str(e)}
 
-    
-
-    @staticmethod
-    def get_feature_suffix(feature_type):
-        """
-        Helper function to accept the feature type and return the appropriate suffix.
-        Supported feature types are: 'int', 'float', and 'string'.
-        Returns None if the feature type is not recognized.
-        """
-        if feature_type == 'int':
-            return '_feature_i'
-        elif feature_type == 'float':
-            return '_feature_f'
-        elif feature_type == 'string':
-            return '_feature_s'
-        else:
-            return None
-
 
     @staticmethod
     def get_facet(response, groups, features):
         # Get the facet counts
         facet_counts = {
             "category": [],
-            "features": []
+            "features": [],
+            "family_code": [],
         }
         if 'facet_counts' in response.raw_response:
             for field, counts in response.raw_response['facet_counts']['facet_fields'].items():
@@ -420,25 +463,26 @@ class Solr:
                     # Use "categories" as the field name for group fields
                     field = "category"
                     facet_counts[field] = [{'label': label, 'count': count, "url": f"{groups},{label.replace(' ', '-')}" if groups else label.replace(' ', '-')} for label, count in zip(counts[::2], counts[1::2])]
+                elif field == 'family_code':
+                    # Handle family_code specifically
+                    facet_counts["family_code"] = [{'code': code, 'count': count} for code, count in zip(counts[::2], counts[1::2])]
                 else:
                     # Extract the facet name from the field name for feature fields
                     match = re.match(r'(.*)_feature_(\w)', field)
                     if match:
-                        clean_field = match.group(1).replace(" ", "-")
-                        label_field = match.group(1)
-                        feature_type = match.group(2)
-
-                        facet_results = [{"value": value, "count": count} for value, count in zip(counts[::2], counts[1::2])]
                         
+                        facet_results = [{"value": value, "count": count} for value, count in zip(counts[::2], counts[1::2])]
+                        feature = features[field]
                         # Skip the feature if there are no facet results
                         if not facet_results:
                             continue
 
                         facet_counts["features"].append({
-                            "key": clean_field,
-                            "label_field": Solr.unclean_feature_name(label_field),
-                            "type": feature_type,
-                            "facet_results": facet_results
+                            "key": field,
+                            "label_field": feature.get('label',''),
+                            "type": feature.get('feature_type',''),
+                            "facet_results": facet_results,
+                            "uom" : feature.get('uom_id','')
                         })
                     # For other fields, use the original field name
                     else:
@@ -501,6 +545,8 @@ class Solr:
             return '_feature_s'
         elif feature_type == 'boolean':
             return '_feature_b'
+        elif feature_type == 'date':
+            return '_feature_dt'
         else:
             return None
 
