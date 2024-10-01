@@ -34,7 +34,7 @@ def add_cdata_lxml(text, parent_element):
     parent_element.text = cdata
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 , max_item=None):
+def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 , max_item=None , filters=None):
     config = Configurations()
     b2c_name = config.b2c_title if config.b2c_title else 'Shop'
     b2c_url = config.b2c_url if config.b2c_url else 'https://www.omnicommerce.cloud'
@@ -58,22 +58,34 @@ def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 ,
     total_count = 0
     processed_count = 0
 
+    # Fetch and process data from bcartmag and catalogue in the same loop
+    bcartmag_repo = BcartmagRepository()
+
     while True:
-        extra_args = {"per_page": per_page, "page": page}
+        # Step 1: Fetch data from bcartmag
+        bcartmags = bcartmag_repo.get_all_records_by_channell_product(limit=per_page, page=page, to_dict=True , filters=filters)
+
+        if not bcartmags:
+            break  # Exit loop if no more bcartmag records
+
+
+        # Step 2: Extract oarti values (SKUs) from bcartmag
+        skus_list = [bcartmag['carti'] for bcartmag in bcartmags]
+
+        # Step 3: Query the catalogue using the SKUs from bcartmag
+        skus = ";".join(skus_list)  # Create SKUs filter
+        extra_args = {"per_page": per_page, "skus": skus}
         unified_args = {**extra_args, **(args or {})}
         result = catalogue(unified_args)
 
-        if page == 1:
-            total_count = result.get("totalCount", 0)
+        # Step 4: Process the products returned from catalogue
+
+       
 
         products = result.get("products", [])
         if not products:
-            break
-
-        ids = [product['id'] for product in products]
-        bcartmag_repo = BcartmagRepository()
-        filter_oarti = {"oarti": ids}
-        bcartmags = bcartmag_repo.get_all_records_by_channell_product(filters=filter_oarti, to_dict=True)
+            page += 1
+            continue  # Skip to the next iteration (next page of bcartmag)
 
         # Create a mapping of product ID to bcartmag
         bcartmag_map = {bcartmag['oarti']: bcartmag for bcartmag in bcartmags}
@@ -173,13 +185,11 @@ def init_feed_generation(folder, file_name, feed_type, args=None, per_page=100 ,
 
             processed_count += 1
         
-        # Check if processed_count has reached max_item
-        if max_item and processed_count >= max_item:
-            break
+
 
         # Check if all items have been processed
         print(processed_count)
-        if processed_count >= total_count:
+        if processed_count >= max_item:
             break
 
         page += 1
