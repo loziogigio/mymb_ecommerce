@@ -444,7 +444,7 @@ def get_stripe_secret(doc):
 
 
     transactionId = f"{doc.name}"
-    item = f"order {doc.reference_name}"
+    item = f"{doc.reference_name}"
     # stripe_key = 'sk_test_51NfwNVFoxMa9Ie1fdcT5BI2H5Ivqv7uzoOahzBbvpfT6jgvnY7HtlXrfcSxu0xrFWsL3if8281mQ9NL55cenTJbO00QvH2k3J2'
     amount = doc.grand_total
 
@@ -473,16 +473,24 @@ def get_stripe_secret(doc):
     # Define the payload for the API request
     payload = {
         "amount": int(amount*100), #amount in cent
-        "transactionId": transactionId,
+        "transactionId": item,
         "stripe_key":stripe_key
     }
 
     # Make the POST request and get the response
     response = requests.post(api_url, headers=headers, data=json.dumps(payload))
 
-    # If the request was successful, return the URL
+    # If the request was successful, return the clientSecret and update the Sales Order
     if response.status_code == 200:
-        return response.json()['clientSecret']  # Assuming the URL is returned in the 'clientSecret' key of the JSON response
+        client_secret = response.json().get('clientSecret')
+        custom_payment_code = response.json().get('id')
+
+        # Update the Sales Order with the payment code
+        sales_order = frappe.get_doc("Sales Order", doc.reference_name)
+        sales_order.custom_payment_code = custom_payment_code
+        sales_order.save()
+
+        return client_secret
     else:
         frappe.log_error(message=f"An error occurred while getting the Gestpay URL: {response.text}", title=f"Get Gestpay URL Error transactionID:{transactionId}")
         return None
@@ -607,9 +615,10 @@ def confirm_payment(token):
     except Exception:
         frappe.log_error(frappe.get_traceback())
 
-def _confirm_sales_order(payment_request_id, status, payment_code=None):
-    # Fetch Sales Order from payment_request_id
-    sales_order_doc = frappe.get_doc("Payment Request", payment_request_id).reference_name
+def _confirm_sales_order(payment_request_id=None, status='No', payment_code=None, sales_order_doc=None):
+    # Fetch Sales Order from payment_request_id if not provided
+    if not sales_order_doc:
+        sales_order_doc = frappe.get_doc("Payment Request", payment_request_id).reference_name
 
     # Update Sales Order
     so = frappe.get_doc("Sales Order", sales_order_doc)
@@ -746,51 +755,50 @@ def gestpay_check_response():
   
 
 @frappe.whitelist(allow_guest=True, xss_safe=True)
-def stripe_transaction_result(event):
+def stripe_webhook():
+    try:
+        # Get the JSON data from the request
+        event_data = frappe.request.get_data(as_text=True)
+        event_json = json.loads(event_data)
+
+        # Verify event type
+        event_type = event_json.get('type')
+
+        if event_type == "payment_intent.succeeded":
+            # Extract payment intent details
+            payment_intent = event_json.get('data', {}).get('object', {})
+            payment_id = payment_intent.get('id')
+
+            # Find the related Sales Order by custom_payment_code (which equals payment_id)
+            sales_order = frappe.get_all('Sales Order', filters={'custom_payment_code': payment_id}, limit=1)
+            
+            if sales_order:
+                sales_order_doc = sales_order[0].name
+                so = frappe.get_doc("Sales Order", sales_order_doc)
+
+                # Check if the Sales Order is already submitted
+                if so.docstatus == 1:
+                    return {"status": "Ignored", "message": f"Sales Order {sales_order_doc} is already submitted."}
+
     
-    # Fetch the stripe_key from Stripe Settings in ERPNext
-    stripe_settings = frappe.get_all('Stripe Settings', limit_page_length=1)
-    if stripe_settings:
-        first_stripe_setting = frappe.get_doc('Stripe Settings', stripe_settings[0].name)
-        # You can now use first_stripe_setting to access the fields
-        publishable_key = first_stripe_setting.publishable_key
-        stripe_key_encrypetd = first_stripe_setting.secret_key
-        stripe_key = stripe_key = get_decrypted_password("Stripe Settings", first_stripe_setting.name, 'secret_key') # Decrypt the password
+                try:
+                    # Confirm Sales Order
+                    _confirm_sales_order( status="Success", sales_order_doc=sales_order_doc)
+                    return {"status": "Success", "message": f"Payment succeeded for Sales Order {sales_order_doc}"}
+                except Exception as e:
+                    error_msg = f"Failed Payment Stripe: {payment_id} "
+                    frappe.log_error(message=frappe.get_traceback(), title=error_msg)
+                    return {"status": "Error", "message": f"Error confirming sales order for Payment ID: {payment_id}"}
+            else:
+                error_msg = f"Failed Payment Stripe: No Sales Order found for Payment ID {payment_id}"
+                frappe.log_error(message=event_json, title=error_msg)
+                return {"status": "Error", "message": f"No Sales Order found for Payment ID: {payment_id}"}
+        else:
+            return {"status": "Ignored", "message": "Event type not handled"}
+
+    except Exception as e:
+        error_msg = f"Failed Payment Stripe: General error"
+        frappe.log_error(message=frappe.get_traceback(), title=error_msg)
+        return {"status": "Error", "message": "An error occurred while processing the webhook"}
 
 
-    
-    
-
-#     payment_request_id = data.get("ShopTransactionID")
-
-#     # Fetch the related Payment Request Document
-#     payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
-
-#     # If the status is 'Requested', proceed to update the Payment Request
-#     if payment_request_doc.status == 'Requested' or 'Paid':
-#         # Check the TransactionResult to determine the status
-#         status = 'Success' if data.get("TransactionResult") == 'OK' else 'Failed'
-
-#         # Update Payment Request
-#         new_status = 'Paid' if status == "Success" else 'Failed'
-#         frappe.db.set_value("Payment Request", payment_request_id, "status", new_status)
-#         frappe.db.commit()  # Commit the transaction
-#         updated_payment_request_doc = frappe.get_doc("Payment Request", payment_request_id)
-
-#         # If payment was successful, confirm the sales order
-#         if updated_payment_request_doc.status == 'Paid':
-#             try:
-#                 _confirm_sales_order(payment_request_id=payment_request_id, status=status, payment_code=payment_request_id)
-#                 return {"status": "Success"}
-
-#             except Exception:
-#                 frappe.log_error(frappe.get_traceback())
-#                 return {"status": "Failed"}
-#         # If payment was unsuccessful, log the error
-#         else:
-#             error_msg = f"Failed: {payment_request_id} gest pay"
-#             frappe.log_error(message=data, title=error_msg)
-#             return {"status": "Failed"}
-#     else:
-#         # If the status is not 'Requested', do not make any changes and return a message
-#         return {"status": "Failed", "message": f"Payment Request status already updated'. No updates were made."}
