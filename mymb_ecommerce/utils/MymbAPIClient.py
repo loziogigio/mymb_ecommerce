@@ -603,3 +603,106 @@ class MymbAPIClient:
 			return anomalies_result
 		else:
 			return None
+
+	
+	def info_availability_for_item(self, args: Dict[str, Any], log_error: bool = True) -> Optional[Dict[str, Any]]:
+		"""Fetches availability information for items."""
+		# Prepare the infoDisponibilitaXArticoloList payload
+		item_list = args.get('item_list', [])
+		endpoint = "/GetInfoDisponibilitaATPXArticolo"
+		params = {
+			"infoDisponibilitaXArticoloList": item_list
+		}
+
+		try:
+			# Attempt to make the request
+			data, status = self.request(
+				endpoint=endpoint,
+				method="POST",
+				body=params,
+				log_error=log_error
+			)
+
+			if status:
+				# Success case, return data
+				return data
+			else:
+				# Log error if request did not succeed
+				frappe.log_error(
+					message=f"Failed to fetch availability info; Parameters: {params}",
+					title="info_availability_for_item Error"
+				)
+				return {
+					"error": "Failed to fetch availability info",
+					"params": params
+				}
+		except Exception as e:
+			# Catch any unexpected exceptions and log them
+			frappe.log_error(
+				message=f"An error occurred while processing availability info: {str(e)}; Parameters: {params}",
+				title="info_availability_for_item Processing Error"
+			)
+			return {
+				"error": "Processing Error",
+				"message": str(e),
+				"params": params
+			}
+		
+	def update_cart_row_with_date(self, args: Dict[str, Any], log_error: bool = True) -> Optional[Dict[str, Any]]:
+		"""
+		Updates the cart rows with availability information and date details for each item.
+
+		This method prepares a payload with a list of items, including their respective availability dates and quantities,
+		and sends it to the specified endpoint to update the cart rows with the latest data.
+
+		Args:
+			args (Dict[str, Any]): A dictionary containing 'item_list' (list of items) and 'id_cart' (cart identifier).
+			log_error (bool): Flag to indicate if errors should be logged in the system (default is True).
+
+		Returns:
+			Optional[Dict[str, Any]]: Response data from the API or an error message in case of failure.
+		"""
+		# Prepare the payload with item availability information and cart ID
+		item_list = args.get('item_list', [])
+		id_cart = args.get('id_cart', 0)
+		endpoint = "/UpdateRigheDocumentoConDatiATP"
+		params = {
+			"infoDisponibilitaXArticoloList": item_list,
+			"idElaborazione": id_cart
+		}
+
+		try:
+			# Attempt to make the request
+			data, status = self.request(
+				endpoint=endpoint,
+				method="POST",
+				body=params,
+				log_error=log_error
+			)
+
+			if status:
+				# Success case, return data
+				return data
+			else:
+				# Log error if the request did not succeed
+				frappe.log_error(
+					message=f"Failed to update cart row with date; Parameters: {params}",
+					title="update_cart_row_with_date Error"
+				)
+				return {
+					"error": "Failed to update cart row with date",
+					"params": params
+				}
+		except Exception as e:
+			# Catch any unexpected exceptions and log them
+			frappe.log_error(
+				message=f"An error occurred while updating cart row with date: {str(e)}; Parameters: {params}",
+				title="update_cart_row_with_date Processing Error"
+			)
+			return {
+				"error": "Processing Error",
+				"message": str(e),
+				"params": params
+			}
+
+		

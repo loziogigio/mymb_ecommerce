@@ -57,6 +57,7 @@
   "api_drupal",
   "mymb_api_info_section",
   "mymb_base_api_url",
+  "mymb_api_house",
   "mymb_api_username",
   "mymb_api_password",
   "section_break_fzce",
@@ -379,12 +380,17 @@
    "fieldtype": "Link",
    "label": "Request template",
    "options": "Email Template"
+  },
+  {
+   "fieldname": "mymb_api_house",
+   "fieldtype": "Data",
+   "label": "Mymb base api url in house"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-05-14 05:54:11.627128",
+ "modified": "2024-11-04 17:22:59.624350",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",

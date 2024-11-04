@@ -50,7 +50,10 @@ class Configurations:
         email_b2b = self.doc.get('email_b2b')
         return email_b2b
     
-    
+    def get_mymb_api_house(self):
+        """Get the email b2b support instance from the Mymb  Settings DocType"""
+        mymb_api_house = self.doc.get('mymb_api_house')
+        return mymb_api_house
 
     def get_mysql_connection(self):
         """Get the MySQL connection from the Mymb Settings DocType"""
