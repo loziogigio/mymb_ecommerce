@@ -80,23 +80,77 @@ def check_info_promotion_in_cart(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def check_info_availability_for_item(**kwargs):
-    """Fetch item availability information from the mymb_api_client using the provided kwargs."""
+    """
+    Fetch item availability information from the mymb_api_client using the provided kwargs
+    and check if items are available by the date specified for each item in the request.
+    
+    Args:
+        **kwargs: Parameters containing 'item_list' with items and their details, each with a specific date.
+
+    Returns:
+        Dict[str, Any]: List of available items and an array of items not available by the specified date.
+    """
     try:
         client = _get_mymb_api_client_house()
         result = client.info_availability_for_item(args=kwargs)
         
         # Accessing 'GetInfoDisponibilitaATPXArticoloResult' based on the response structure
-        info_availability = result.get("GetInfoDisponibilitaATPXArticoloResult", {}).get("Item", None)
+        info_availability = result.get("GetInfoDisponibilitaATPXArticoloResult", {}).get("Item", [])
         
-        if info_availability:
-            return info_availability
-        else:
+        if not info_availability:
             return {"error": "'Item' not found in 'GetInfoDisponibilitaATPXArticoloResult'"}
         
+        # Parse item_list from kwargs to get the requested dates for each internalCode
+        item_list = kwargs.get("item_list", [])
+        
+        # Convert item_list to a dictionary for easy lookup by internalCode
+        requested_items = {item["internalCode"]: item["date"] for item in item_list}
+        
+        from datetime import datetime
+        items_not_available = []
+        
+        # Check each item's availability against the requested date in item_list
+        for item in info_availability:
+            item_code = item.get("internalCode")
+            item_date_str = item.get("date", None)
+            
+            # Only proceed if the item_code exists in the requested_items dictionary
+            if item_code in requested_items:
+                # Get the requested date for this item
+                requested_date_str = requested_items[item_code]
+                requested_date_obj = datetime.strptime(requested_date_str, "%d/%m/%Y")
+                
+                # If there is no available date, add to items_not_available
+                if not item_date_str:
+                    items_not_available.append({
+                        "internalCode": item_code,
+                        "available_date": _("Not available"),
+                        "requested_date": requested_date_str
+                    })
+                    continue
+                
+                # Parse the item's available date
+                item_date_obj = datetime.strptime(item_date_str, "%d/%m/%Y %H:%M:%S")
+                
+                # If the item's available date is after the requested date, add it to items_not_available
+                if item_date_obj > requested_date_obj:
+                    items_not_available.append({
+                        "internalCode": item_code,
+                        "available_date": item_date_str,
+                        "requested_date": requested_date_str
+                    })
+        
+        # Return available items and items not available by the specified date
+        return {
+            "available_items": info_availability,
+            "items_not_available": items_not_available
+        }
+    
     except Exception as e:
         # Handle exceptions and log errors with a meaningful message
         frappe.log_error(f"Error while fetching item availability: {e}", "GetInfoDisponibilitaATPXArticolo")
         return {"error": f"An error occurred: {str(e)}"}
+
 
 @frappe.whitelist(allow_guest=True)
 def update_cart_row_with_date(**kwargs):
@@ -114,20 +168,26 @@ def update_cart_row_with_date(**kwargs):
         # Accessing 'UpdateRigheDocumentoConDatiATPResult' based on the response structure
         update_result = result.get("UpdateRigheDocumentoConDatiATPResult", {})
         return_code = update_result.get("ReturnCode")
+        message_text = update_result.get("Message", "No additional message provided")
         
         if return_code == 0:
             # Success case
-            return {"message": "Cart row updated successfully"}
+            return {
+                "status": "success",
+                "message": "Cart row updated successfully",
+                "details": message_text
+            }
         else:
             # Log error if ReturnCode is not 0
             frappe.log_error(
-                message=f"Failed to update cart row with date; ReturnCode: {return_code}, Message: {update_result.get('Message')}",
+                message=f"Failed to update cart row with date; ReturnCode: {return_code}, Message: {message_text}",
                 title="update_cart_row_with_date Error"
             )
             return {
+                "status": "error",
                 "error": "Failed to update cart row with date",
                 "return_code": return_code,
-                "message": update_result.get("Message", "No additional message provided")
+                "message": message_text
             }
         
     except Exception as e:
@@ -137,6 +197,7 @@ def update_cart_row_with_date(**kwargs):
             title="update_cart_row_with_date Processing Error"
         )
         return {
+            "status": "error",
             "error": "Processing Error",
             "message": str(e),
             "params": kwargs
