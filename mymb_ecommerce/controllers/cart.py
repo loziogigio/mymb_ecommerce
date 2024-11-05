@@ -124,6 +124,7 @@ def check_info_availability_for_item(**kwargs):
                 if not item_date_str:
                     items_not_available.append({
                         "internalCode": item_code,
+                        "test": "test",
                         "available_date": _("Not available"),
                         "requested_date": requested_date_str
                     })
@@ -136,6 +137,7 @@ def check_info_availability_for_item(**kwargs):
                 if item_date_obj > requested_date_obj:
                     items_not_available.append({
                         "internalCode": item_code,
+                        "test": "test",
                         "available_date": item_date_str,
                         "requested_date": requested_date_str
                     })
