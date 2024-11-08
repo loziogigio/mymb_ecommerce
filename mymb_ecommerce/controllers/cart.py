@@ -109,6 +109,8 @@ def check_info_availability_for_item(**kwargs):
         # Initialize repository to retrieve cart rows and set delivery dates
         repository = TmpCarrelloDettagliRepository()
         cart_rows = repository.get_all_records(id_carrello=id_cart, to_dict=True)
+        # Check if all delivery_date fields are empty
+        first_update = not any(row['delivery_date'] for row in cart_rows)
 
         items_not_available = []
 
@@ -125,7 +127,32 @@ def check_info_availability_for_item(**kwargs):
                         if  not row['delivery_date']:
                             delivery_date_obj = datetime.strptime(item_date_str, "%d/%m/%Y %H:%M:%S")
                             delivery_date_str = delivery_date_obj.strftime("%d/%m/%Y")
+                            
+                            #first we update the client 
+                            client = _get_mymb_api_client_house()
+                              # Format delivery_option for the single item request
+                            delivery_option = {
+                                "item_list": [
+                                    {
+                                        "internalCode": item_code,
+                                        "quantity": row.get("quantity", 1),  # Use a default quantity if not available
+                                        "date": delivery_date_str
+                                    }
+                                ],
+                                "id_cart": id_cart
+                            }
+                            result = client.update_cart_row_with_date(args=delivery_option)
+                            # Check and log if ReturnCode is not 0
+                            return_code = result.get("ReturnCode")
+                            if return_code != 0:
+                                message_text = result.get("Message", f"No additional message provided {delivery_option}" )
+                                frappe.log_error(
+                                    message=f"Failed to update cart row with date; ReturnCode: {return_code}, Message: {message_text} {delivery_option}",
+                                    title="update_cart_row_with_date Error"
+                                )
+        
                             repository.update_delivery_date(id_carrello=id_cart, internal_code=item_code, delivery_date=delivery_date_str)
+
                         else:
                             delivery_date_str=row['delivery_date'].strftime("%d/%m/%Y")
                 
@@ -136,14 +163,10 @@ def check_info_availability_for_item(**kwargs):
                 requested_date_str = requested_items[item_code]
                 requested_date_obj = datetime.strptime(requested_date_str, "%d/%m/%Y")
                 
+                #We skip item with not date
                 if not item_date_str:
-                    items_not_available.append({
-                        "internalCode": item_code,
-                        "available_date": _("Not available"),
-                        "requested_date": requested_date_str,
-                        "delivery_date": delivery_date_str
-                    })
                     continue
+                    
 
                 # Parse available date and check against requested date
                 item_date_obj = datetime.strptime(item_date_str, "%d/%m/%Y %H:%M:%S")
@@ -158,7 +181,8 @@ def check_info_availability_for_item(**kwargs):
             
         return {
             "available_items": info_availability,
-            "items_not_available": items_not_available
+            "items_not_available": items_not_available,
+            "first_update":first_update
         }
 
     except Exception as e:
@@ -207,11 +231,13 @@ def update_cart_row_with_date(**kwargs):
                 date_str = item.get("date")
                 if date_str:
                     repository.update_delivery_date(id_carrello=id_cart, internal_code=internal_code, delivery_date=date_str)
-                        
-
+            # Prepare arguments to retrieve updated cart rows
+            id_cart_dic = {"id_cart": id_cart}
+            item_list_with_delivery_date = get_cart_rows_by_id_cart(**id_cart_dic)
             return {
                 "status": "success",
                 "message": "Cart row updated successfully",
+                "item_list_with_delivery_date" : item_list_with_delivery_date,
                 "details": message_text
             }
         else:
