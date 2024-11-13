@@ -91,8 +91,8 @@ def check_info_availability_for_item(**kwargs):
     and add 'delivery_date' to the response based on existing data or item date, or "N/A" if not available.
     """
     try:
-        client = _get_mymb_api_client_house()
-        result = client.info_availability_for_item(args=kwargs)
+        client_house = _get_mymb_api_client_house()
+        result = client_house.info_availability_for_item(args=kwargs)
         id_cart = kwargs.get("id_cart")
         if not id_cart:
             frappe.throw("Cart ID (id_cart) is required", frappe.MandatoryError)
@@ -129,7 +129,7 @@ def check_info_availability_for_item(**kwargs):
                             delivery_date_str = delivery_date_obj.strftime("%d/%m/%Y")
                             
                             #first we update the client 
-                            client = _get_mymb_api_client_house()
+                            client_cloud = _get_mymb_api_client()
                               # Format delivery_option for the single item request
                             delivery_option = {
                                 "item_list": [
@@ -141,7 +141,7 @@ def check_info_availability_for_item(**kwargs):
                                 ],
                                 "id_cart": id_cart
                             }
-                            result = client.update_cart_row_with_date(args=delivery_option)
+                            result = client_cloud.update_cart_row_with_date(args=delivery_option)
                             # Check and log if ReturnCode is not 0
                             return_code = result.get("ReturnCode")
                             if return_code != 0:
@@ -210,8 +210,8 @@ def update_cart_row_with_date(**kwargs):
         if not id_cart:
             frappe.throw("Cart ID (id_cart) is required", frappe.MandatoryError)
 
-        client = _get_mymb_api_client_house()
-        result = client.update_cart_row_with_date(args=kwargs)
+        client_cloud = _get_mymb_api_client()
+        result = client_cloud.update_cart_row_with_date(args=kwargs)
 
         # Accessing 'UpdateRigheDocumentoConDatiATPResult' based on the response structure
         update_result = result.get("UpdateRigheDocumentoConDatiATPResult", {})
