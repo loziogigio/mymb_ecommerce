@@ -62,6 +62,8 @@ class B2COrder(Base):
     date_link_vett = Column(Date)
     mail_link_vett_sent = Column(Integer, default=0)
     receipt_mail_sent = Column(Integer, default=0)
+    order_note = Column(String(4000), nullable=True)  # New column added, optional
+
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

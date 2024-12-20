@@ -307,7 +307,10 @@ def transform_to_solr_document(item):
     description = BeautifulSoup(description, 'html.parser').get_text() if description else None
 
     brand = item.get('brand', None)
-    images = [item['path'] + '/' + item['filename'] for item in item.get('medias', [])]
+    images_cdn = [item.get('cdn', '') for item in item.get('medias', [])]
+    images = images_cdn if images_cdn else [item['path'] + '/' + item['filename'] for item in item.get('medias', [])]
+    
+    
 
     
 

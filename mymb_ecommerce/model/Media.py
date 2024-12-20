@@ -21,6 +21,7 @@ class Media(Base):
     created_date = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     user_id = Column(Integer, default=0, nullable=False)
     lastoperation = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    cdn = Column(String(255), nullable=True, default=None)
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

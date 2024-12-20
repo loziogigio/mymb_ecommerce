@@ -151,7 +151,10 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
                 b2c_order.private_invoice = True
                 b2c_order.codfisc = sales_order.get('tax_code','')
 
-
+        #check for comment
+        order_note = get_comment(sales_order)
+        if order_note:
+            b2c_order.order_note = order_note
 
         # Save the B2COrder
         b2c_order_repo.session.add(b2c_order)
@@ -168,6 +171,22 @@ def export_new_sales_order(limit=None, page=None, time_laps=None, filters=None):
         "status": "success",
         "message": f"{len(sales_orders)} sales orders exported successfully."
     }
+
+def get_comment(sales_order):
+    # Get comments
+    comments = frappe.get_all(
+        'Comment',
+        fields=['content'],
+        filters={
+            'reference_name': sales_order.name,
+            'reference_doctype': 'Sales Order'
+        }
+    )
+    # Concatenate all comment contents into a single string
+    return ' '.join(comment['content'] for comment in comments) if comments else None
+
+
+
 
 def build_transaction_discount_row( sales_order):
     build_discount_row = {}  # Initialize as an empty dictionary
