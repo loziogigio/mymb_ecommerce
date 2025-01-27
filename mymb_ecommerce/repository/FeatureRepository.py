@@ -36,7 +36,9 @@ class FeatureRepository:
             ChannelFamilyProductFeature.usedforsearch.label('used_search'),
             ChannelFamilyProductFeature.usedforfacet.label('used_search_default'),
             ChannelFamilyProductFeature.featureidusedinsearch.label('ft_id_search'),
-            ChannelFamilyProductFeature.featureidusedinsearch.label('ft_id_search_default')
+            ChannelFamilyProductFeature.featureidusedinsearch.label('ft_id_search_default'),
+            ChannelFamilyProductFeature.usedforvariant.label('ft_used_for_variant'),
+            ChannelFamilyProductFeature.usedforfacet.label('ft_used_for_facet'),
         ).join(
             SubmenuProduct, SubmenuProduct.product_code == ProductFeature.product_code
         ).join(
@@ -70,6 +72,10 @@ class FeatureRepository:
                 product_code = row_dict['product_code']
                 label = row_dict['label']
                 uom_id = row_dict['uom_id']
+                used_search = row_dict['used_search']
+                used_search_default = row_dict['used_search_default']
+                ft_used_for_variant = row_dict['ft_used_for_variant']
+                ft_used_for_facet = row_dict['ft_used_for_facet']
 
                 # Determine the value (string, numeric, or boolean)
                 value = row_dict['stringdata'] or row_dict['numericdata'] or ('true' if row_dict['booleandata'] else 'false')
@@ -77,7 +83,12 @@ class FeatureRepository:
                 # Add the feature to the dictionary
                 features_by_product[label] = {
                     "value": value,
-                    "default_uom": uom_id
+                    "default_uom": uom_id,
+                    "used_search": used_search,
+                    "used_search_default": used_search_default,
+                    "used_search_default": used_search_default,
+                    "ft_used_for_variant": ft_used_for_variant,
+                    "ft_used_for_facet":ft_used_for_facet
                 }
 
             return features_by_product

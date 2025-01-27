@@ -503,7 +503,12 @@ def products():
     bestSellingProducts= catalogue(args_best_selling_products)
 
     features_repo = FeatureRepository()
-    feature_records = features_repo.get_features_by_entity_codes( entity_codes=[product["id"]] , channel_id=None , return_result=True)
+
+    features_channel_id= "DEFAULT,B2C"
+    if frappe.local.request.args.get('features_channel_id'):
+        features_channel_id = frappe.local.request.args.get('features_channel_id')
+
+    feature_records = features_repo.get_features_by_entity_codes( entity_codes=[product["id"]] , channel_id=features_channel_id , return_result=True)
     
     product["features"] =  feature_records
     

@@ -16,12 +16,12 @@ def import_mymb_b2c_products():
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None , batch_size=None):
+def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None , batch_size=None , feature_channel_id='DEFAULT'):
 
 
     # total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id)
     if not total_item:
-        total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id)
+        total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id , feature_channel_id=feature_channel_id)
     
     # Define the batch size
     if not batch_size:

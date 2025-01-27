@@ -23,7 +23,7 @@ def get_count_items_from_external_db( time_laps=None, filters=None , channel_id=
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None , fetch_features=True):
+def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None , fetch_features=True , feature_channel_id='DEFAULT'):
     # Initialize the BcartmagRepository
     item_repo = BcartmagRepository()
     config = Configurations()
@@ -85,7 +85,7 @@ def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None
         feature_repo = FeatureRepository()
 
         # Fetch Data records for all entity_codes
-        feature_records = feature_repo.get_features_by_entity_codes(entity_codes , channel_id=channel_id)
+        feature_records = feature_repo.get_features_by_entity_codes(entity_codes , channel_id=feature_channel_id)
 
         # For each record, match associated Feature from the fetched Feature records
         for record in external_items:
