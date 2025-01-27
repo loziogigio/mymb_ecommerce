@@ -41,7 +41,7 @@ class FeatureRepository:
             SubmenuProduct, SubmenuProduct.product_code == ProductFeature.product_code
         ).join(
             Feature, Feature.feature_id == ProductFeature.feature_id
-        ).outerjoin(
+        ).join(
             ChannelFamilyProductFeature, 
             and_(
                 ChannelFamilyProductFeature.family_id == SubmenuProduct.submenu_id,
