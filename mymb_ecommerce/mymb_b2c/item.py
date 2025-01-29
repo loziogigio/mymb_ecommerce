@@ -148,8 +148,8 @@ def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None
     }
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None):
-    items = get_items_from_external_db(limit=limit, page=page,time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price ,fetch_categories=fetch_categories , channel_id=channel_id)
+def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None , feature_channel_id=None):
+    items = get_items_from_external_db(limit=limit, page=page,time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price ,fetch_categories=fetch_categories , channel_id=channel_id , feature_channel_id=feature_channel_id)
 
     success_items = []
     failure_items = []

@@ -21,7 +21,7 @@ def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None 
 
     # total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id)
     if not total_item:
-        total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id , feature_channel_id=feature_channel_id)
+        total_item = get_count_items_from_external_db(time_laps=time_laps, filters=filters, channel_id=channel_id )
     
     # Define the batch size
     if not batch_size:
@@ -43,6 +43,7 @@ def update_solr(time_laps=None, filters=None, channel_id=None , total_item=None 
             fetch_price=True,
             fetch_categories=True,
             channel_id=channel_id,
+            feature_channel_id=feature_channel_id,
             queue='short',
             timeout=600
         )
