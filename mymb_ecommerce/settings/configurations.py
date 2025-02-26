@@ -25,6 +25,10 @@ class Configurations:
             self.solr = Solr(self.solr_mymb_backoffice)
         else:
             self.solr = Solr(self.solr_url)
+    
+    def get_no_reply_email(self):
+        """Get the no-reply email from the document, ensuring it doesn't raise an error if the field is missing."""
+        return getattr(self.doc, 'no_reply_email_b2b', None)  # Returns None if field doesn't exist
 
     def get_api_drupal(self):
         """Get the Solr image instance from the Mymb Settings DocType"""

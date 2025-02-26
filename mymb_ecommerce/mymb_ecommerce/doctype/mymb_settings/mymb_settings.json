@@ -13,6 +13,7 @@
   "image_uri",
   "column_break_79ic",
   "email_b2b",
+  "no_reply_email_b2b",
   "mymb_site",
   "mymb_payment_success_page",
   "mymb_payment_failed_page",
@@ -385,12 +386,18 @@
    "fieldname": "mymb_api_house",
    "fieldtype": "Data",
    "label": "Mymb base api url in house"
+  },
+  {
+   "description": "E.g. noreply@omnicommerce.cloud",
+   "fieldname": "no_reply_email_b2b",
+   "fieldtype": "Data",
+   "label": "No reply email B2B"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-11-04 17:22:59.624350",
+ "modified": "2025-02-26 05:47:31.951916",
  "modified_by": "Administrator",
  "module": "Mymb Ecommerce",
  "name": "Mymb Settings",
