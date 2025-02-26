@@ -621,8 +621,15 @@ def reset_password(**kwargs):
 
 
 
-def send_general_email(recipient_email , context_string, email_template="custom-standard-email" ):
+def send_general_email(recipient_email, context_string, email_template="custom-standard-email"):
+    config = Configurations()
     
+    # Fetch sender email from Configurations or fallback to Email Account settings
+    sender_email = config.get_no_reply_email()
+    
+    if not sender_email:
+        sender_email = frappe.db.get_single_value("Email Account", "email_id")
+
     # Check if the custom email template exists
     if frappe.db.exists("Email Template", email_template):
         email_template = frappe.get_doc("Email Template", email_template)
@@ -649,16 +656,194 @@ def send_general_email(recipient_email , context_string, email_template="custom-
         rendered_subject = frappe.render_template(email_template.subject, context)
 
         # Send email
-        frappe.sendmail(
-            recipients=recipients,
-            subject=rendered_subject,
-            message=rendered_email_content
-        )
+        # Prepare email arguments
+        email_args = {
+            "recipients": recipients,
+            "subject": rendered_subject,
+            "message": rendered_email_content,
+        }
+
+        if sender_email:
+            email_args["sender"] = sender_email
+
+        # Send email
+        frappe.sendmail(**email_args)
 
         return {"status": "Success", "message": "Email sent successfully."}
     except Exception as e:
         # Log the error
         frappe.log_error(message=f"Error sending sales order confirmation email for context: {context}: {str(e)}", title=f"Email Error {recipient_email}")
+
+        # Return a response indicating that there was an error
+        return {"status": "Failed", "message": f"Error encountered: {str(e)}"}
+    
+
+@frappe.whitelist(allow_guest=True)
+def send_generic_email(data={}, email_template_name="generic_email", recipients=None):
+
+    config = Configurations()
+    
+    # Fetch sender email from Configurations or fallback to Email Account settings
+    sender_email = config.get_no_reply_email()
+    
+    if not sender_email:
+        sender_email = frappe.db.get_single_value("Email Account", "email_id")
+
+    # Check if recipients are provided; if not, do not send the email.
+    if not recipients:
+        return {"status": "Failed", "message": "No recipients provided. Email not sent."}
+
+    # Attempt to fetch the specified email template.
+    if frappe.db.exists("Email Template", email_template_name):
+        email_template = frappe.get_doc("Email Template", email_template_name)
+    else:
+        # If the specified template doesn't exist, fetch a default one.
+        default_email_templates = frappe.get_all("Email Template", limit=1)
+        if not default_email_templates:
+            return {"status": "Failed", "message": "No email template found."}
+        email_template = frappe.get_doc("Email Template", default_email_templates[0].name)
+
+    # Prepare the context for rendering the template.
+    context = {
+        "data": data,
+        # ... add other context variables as needed.
+    }
+
+    try:
+        # Render the email content and subject using the context.
+        rendered_email_content = frappe.render_template(email_template.response_, context)
+        rendered_subject = frappe.render_template(email_template.subject, context)
+
+        # Prepare email arguments
+        email_args = {
+            "recipients": recipients,
+            "subject": rendered_subject,
+            "message": rendered_email_content,
+        }
+
+        if sender_email:
+            email_args["sender"] = sender_email
+
+        # Send email
+        frappe.sendmail(**email_args)
+
+        return {"status": "Success", "message": "Email sent successfully."}
+    except Exception as e:
+        # Log any errors encountered while sending the email.
+        frappe.log_error(
+            message=f"Error sending generic email with context {context}: {str(e)}",
+            title="Generic Email Send Error"
+        )
+        return {"status": "Failed", "message": f"Error encountered: {str(e)}"}
+    
+from frappe.utils.file_manager import save_file
+
+@frappe.whitelist(allow_guest=True)
+def request_form(**kwargs):
+
+    config = Configurations()
+    
+    # Fetch sender email from Configurations or fallback to Email Account settings
+    sender_email = config.get_no_reply_email()
+    
+    if not sender_email:
+        sender_email = frappe.db.get_single_value("Email Account", "email_id")
+
+
+    # Extract form data from the request
+    form_data = dict(frappe.request.form)
+    
+    # Merge form_data into kwargs. This will allow form fields to override any matching kwargs, if necessary.
+    kwargs.update(form_data)
+    
+    request_id = kwargs.get('request_id', '')
+
+    email_template_name="request-form"
+
+    # Check if the custom email template exists
+    if frappe.db.exists("Email Template", f"custom-{email_template_name}"):
+        email_template = frappe.get_doc("Email Template", f"custom-{email_template_name}")
+    # Check if the specified email template exists
+    elif frappe.db.exists("Email Template", email_template_name):
+        email_template = frappe.get_doc("Email Template", email_template_name)
+    else:
+        default_email_templates = frappe.get_all("Email Template", limit=1)
+        if not default_email_templates:
+            return {"status": "Failed", "message": "No email template found."}
+        email_template = frappe.get_doc("Email Template", default_email_templates[0].name)
+
+    # Handle attachment data
+    attachments_to_send = []
+    if hasattr(frappe.request, 'files') and frappe.request.files:
+        for file_key in frappe.request.files:
+            uploaded_file = frappe.request.files[file_key]
+            
+            file_content = uploaded_file.stream.read()  # Read the content from the stream
+
+            file_data = save_file(
+                fname=uploaded_file.filename,
+                content=file_content,  # passing the content as bytes
+                dt="Email Template",
+                dn=email_template.name,  
+                is_private=0
+            )
+
+            attachments_to_send.append({
+                "fname": file_data.file_name,
+                "fcontent": file_content  # You may need to base64 encode this if the email sending function expects it
+            })
+    else:
+        attachments_to_send = None
+
+    # Spread kwargs into context and replace underscores with spaces
+    query_args = {key.replace('_', ' '): value for key, value in kwargs.items() if key not in ('cmd')}
+    # This is your string representation
+    context_string = ''
+    if query_args:
+        context_string += '<br/>'.join([f'{key}={value}' for key, value in query_args.items()]) + '<br/>'
+
+    config = Configurations()   
+    email_b2b = config.get_email_b2b()
+    recipient = kwargs.get('recipient', email_b2b)
+    
+    recipients = [recipient]
+
+    context = {
+        "context":context_string,
+        "request_id":request_id,
+        "data":kwargs
+        # ... you can add other context variables as needed
+    }
+    try:
+        # Render the email content with the context
+        rendered_email_content = frappe.render_template(email_template.response_, context)
+        rendered_subject = frappe.render_template(email_template.subject, context)
+
+         # Prepare email arguments
+        email_args = {
+            "recipients": recipients,
+            "subject": rendered_subject,
+            "message": rendered_email_content,
+            "attachments":attachments_to_send
+        }
+
+        if sender_email:
+            email_args["sender"] = sender_email
+
+        # Send email
+        frappe.sendmail(**email_args)
+
+        # Optionally, you can delete the saved files after sending the email if you no longer need them.
+        # if isinstance(attachments_to_send, list):
+        #     for file_data.file_url in attachments_to_send:
+        #         file_doc = frappe.get_doc("File", {"file_url": file_data.file_url})
+        #         file_doc.flags.ignore_permissions = True
+        #         file_doc.delete()
+
+        return {"status": "Success", "message": "Email inviata con successo."}
+    except Exception as e:
+        # Log the error
+        frappe.log_error(message=f"Error sending sales order confirmation email for {context}: {str(e)}", title=f"Request Form  Email Error ")
 
         # Return a response indicating that there was an error
         return {"status": "Failed", "message": f"Error encountered: {str(e)}"}
