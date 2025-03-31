@@ -94,7 +94,14 @@ class Solr:
         # Check if family_code is in params and add it to the fq parameter
         family_code = kwargs.get('family_code')
         if family_code:
-            family_code_filter = f"family_code:{family_code}"
+            if isinstance(family_code, list):
+                if len(family_code) == 1:
+                    family_code_filter = f"family_code:{family_code[0]}"
+                else:
+                    family_code_filter = f"family_code:({' '.join(map(str, family_code))})"
+            else:
+                family_code_filter = f"family_code:{family_code}"
+
             params['fq'].append(family_code_filter)
 
         # Check if family_name is in params and add it to the fq parameter
