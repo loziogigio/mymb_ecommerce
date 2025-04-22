@@ -85,62 +85,61 @@ def register(**kwargs):
         }
 
 
-# Get Product List
 @frappe.whitelist(allow_guest=True)
 def product_list(**kwargs):
-    config = Configurations()
-    per_page = kwargs.get('per_page')
+    try:
+        config = Configurations()
+        per_page = kwargs.get('per_page')
 
-    # Check if 'cmd' exists in kwargs and if so, remove 'cmd'
-    if 'cmd' in kwargs:
+        # Remove 'cmd' if present
         kwargs.pop('cmd', None)
-    
-    
-    if any(key in kwargs for key in ['purchased','disponibili','promo_list','new','next_insert']):
-        kwargs.pop('text', None)
 
+        # Remove 'text' if any of these keys are present
+        if any(key in kwargs for key in ['purchased', 'disponibili', 'promo_list', 'new', 'next_insert']):
+            kwargs.pop('text', None)
 
-    # Specified keys for the body
-    body_keys = ['client_id', 'address_code', 'ext_call', 'per_page', 'page']
+        # Define which keys go in the body of the request
+        body_keys = ['client_id', 'address_code', 'ext_call', 'per_page', 'page']
+        body_args = {key: value for key, value in kwargs.items() if key in body_keys}
+        query_args = {key: value for key, value in kwargs.items() if key not in body_keys}
 
-    # Extract the keys for the body and for the query string from kwargs
-    body_args = {key: value for key, value in kwargs.items() if key in body_keys}
-    query_args = {key: value for key, value in kwargs.items() if key not in body_keys}
+        # Build query string
+        query_string = '?' + '&'.join([f'{key}={value}' for key, value in query_args.items()]) if query_args else ''
 
-    # Build the query string
-    query_string = '?' + '&'.join([f'{key}={value}' for key, value in query_args.items()]) if query_args else ''
+        # Make the API request
+        result = APIClient.request(
+            endpoint=f'catalogo{query_string}',
+            method='POST',
+            body=body_args,
+            base_url=config.get_api_drupal()
+        )
 
-    #in the case we have purchase we have just to pass the value as follow
+        if isinstance(result, tuple):
+            result = result[0]
 
-    # Make the request
-    result = APIClient.request(
-        endpoint=f'catalogo{query_string}',
-        method='POST',
-        body=body_args,
-        base_url=config.get_api_drupal()
-    )
+        if 'response' in result and result['response'] == 'no result':
+            return {'success': False}
 
-    if isinstance(result, tuple):
-        result = result[0]
-    else:
-        result = result
+        build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
+        filter_list = build_filter_list(result)
+        build_tab_list = result['tabs']
 
-    if 'response' in result and result['response'] == 'no result':
         return {
-            'success': False
-        }   
+            'success': True,
+            'product_list': build_result,
+            'filters': filter_list,
+            'tab_list': build_tab_list,
+            'api': config.get_api_drupal()
+        }
 
-    build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
-    filter_list = build_filter_list(result)
-    build_tab_list = result['tabs']
+    except Exception as e:
+        # Log full details: error, input kwargs, and result if available
+        frappe.log_error(
+            title="product_list error",
+            message=f"Exception: {str(e)}\n\nRequest kwargs:\n{kwargs}"
+        )
+        return {'success': False, 'error': 'Internal Server Error'}
 
-    return {
-        'success': True,
-        'product_list': build_result,
-        'filters': filter_list,
-        'tab_list': build_tab_list,
-        "api":config.get_api_drupal()
-    }
 
 # Get Child List
 @frappe.whitelist(allow_guest=True)
