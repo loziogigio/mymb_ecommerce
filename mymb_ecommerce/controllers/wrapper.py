@@ -95,8 +95,8 @@ def product_list(**kwargs):
         kwargs.pop('cmd', None)
 
         # Remove 'text' if any of these keys are present
-        if any(key in kwargs for key in ['purchased', 'disponibili', 'promo_list', 'new', 'next_insert']):
-            kwargs.pop('text', None)
+        # if any(key in kwargs for key in ['purchased', 'disponibili', 'promo_list', 'new', 'next_insert']):
+        #     kwargs.pop('text', None)
 
         # Define which keys go in the body of the request
         body_keys = ['client_id', 'address_code', 'ext_call', 'per_page', 'page']
