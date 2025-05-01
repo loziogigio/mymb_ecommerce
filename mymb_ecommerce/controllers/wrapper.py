@@ -12,7 +12,7 @@ from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.APIClient import APIClient
 from mymb_ecommerce.utils.email_lib import sendmail
-from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, wrap_product_detail, wrap_child_product_detail
+from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, build_filter_group_list,  wrap_product_detail, wrap_child_product_detail , build_category_breadcrumbs
 
 from frappe.utils.pdf import get_pdf
 import os
@@ -122,7 +122,14 @@ def product_list(**kwargs):
 
         build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
         filter_list = build_filter_list(result)
+        filter_list = build_filter_group_list(filter_list)
         build_tab_list = result['tabs']
+        #Add category breadcrumbs only if present
+        category_query = kwargs.get('category')
+        if category_query:
+            breadcrumbs = build_category_breadcrumbs(category_query)
+            if breadcrumbs:
+                build_tab_list["category"] = breadcrumbs
 
         return {
             'success': True,

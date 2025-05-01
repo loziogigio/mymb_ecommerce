@@ -1,4 +1,11 @@
 # For product_list
+from typing import Any, Dict, List
+import frappe
+import re
+
+JsonDict = Dict[str, Any]
+
+from mymb_ecommerce.controllers.groups import get_flatten_group_tree
 
 def paginate(items, per_page=5, total=None, page=None, pages=None, options=None):
     if not items:
@@ -120,9 +127,91 @@ def build_filter_list(erp_data):
    result = {
       'facets_results': erp_data['facets_results'],
       'facets_link_results': erp_data['facets_link_results'],
-      'facets_check_results': erp_data.get('facets_check_results ',[]),
+      'facets_check_results': erp_data.get('facets_check_results',[])
    }
    return result
+
+def extract_category_ids(filter_str: str) -> List[str]:
+    """Extract category values from a filter string."""
+    match = re.search(r'category=(?:and-)?([0-9,]+)', filter_str)
+    if match:
+        return match.group(1).split(',')
+    return []
+
+def build_filter_group_list(data: JsonDict) -> JsonDict:
+    csoci = "DIMA"
+
+    # Get flattened tree from cache
+    tree_data = get_flatten_group_tree(csoci=csoci)
+    if not tree_data.get("success"):
+        frappe.log_error("Could not get flattened group tree for DIMA", "build_filter_group_list")
+        return data  # fallback: return original data
+
+    flat_paths = tree_data["paths"]
+    label_map = tree_data["labels"]
+
+    # Validate each item in facets_results['category']['results']
+    if "facets_results" in data and "category" in data["facets_results"]:
+        valid_results = {}
+        for node_id, item in data["facets_results"]["category"]["results"].items():
+            filter_url = item.get("filter", "")
+            path_ids = extract_category_ids(filter_url)
+
+            # We only consider valid if the node_id is the last part of the path
+            if not path_ids or path_ids[-1] != node_id:
+                continue
+
+            # Now check if the full path exists and is correct
+            flat_path = flat_paths.get(node_id)
+            if flat_path and flat_path == path_ids:
+                item["label"] = label_map.get(node_id, node_id)
+                valid_results[node_id] = item
+
+        # Overwrite with filtered and validated list
+        data["facets_results"]["category"]["results"] = valid_results
+
+    # Final return
+    result = {
+        'facets_results': data['facets_results'],
+        'facets_link_results': data['facets_link_results'],
+        'facets_check_results': data.get('facets_check_results',[])
+    }
+    return result
+
+def build_category_breadcrumbs(category_query: str, csoci: str = "DIMA") -> List[Dict[str, str]]:
+    # Step 1: Extract path from query (e.g. and-0001,0011 → ['0001', '0011'])
+    if not category_query:
+        return []
+
+    if category_query.startswith("and-"):
+        path = category_query.replace("and-", "").split(",")
+    else:
+        path = category_query.split(",")
+
+    if not path:
+        return []
+
+    # Step 2: Load flattened tree
+    tree_data = get_flatten_group_tree(csoci=csoci)
+    if not tree_data.get("success"):
+        return []
+
+    labels = tree_data["labels"]
+
+    # Step 3: Build breadcrumb objects
+    breadcrumbs = []
+    for i, node_id in enumerate(path):
+        label = labels.get(node_id, node_id)
+        if i == 0:
+            submenu_id = f"and-{','.join(path)}"
+        else:
+            submenu_id = ",".join(path[i:])
+        breadcrumbs.append({
+            "label": label,
+            "submenu_id": submenu_id
+        })
+
+    return breadcrumbs
 
 
 def wrap_product_detail(data):
