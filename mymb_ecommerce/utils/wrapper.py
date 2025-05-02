@@ -138,13 +138,12 @@ def extract_category_ids(filter_str: str) -> List[str]:
         return match.group(1).split(',')
     return []
 
-def build_filter_group_list(data: JsonDict) -> JsonDict:
-    csoci = "DIMA"
+def build_filter_group_list(data: JsonDict , csoci : str) -> JsonDict:
 
     # Get flattened tree from cache
     tree_data = get_flatten_group_tree(csoci=csoci)
     if not tree_data.get("success"):
-        frappe.log_error("Could not get flattened group tree for DIMA", "build_filter_group_list")
+        frappe.log_error(f"Could not get flattened group tree for {csoci}", "build_filter_group_list")
         return data  # fallback: return original data
 
     flat_paths = tree_data["paths"]
@@ -178,7 +177,7 @@ def build_filter_group_list(data: JsonDict) -> JsonDict:
     }
     return result
 
-def build_category_breadcrumbs(category_query: str, csoci: str = "DIMA") -> List[Dict[str, str]]:
+def build_category_breadcrumbs(category_query: str, csoci: str) -> List[Dict[str, str]]:
     # Step 1: Extract path from query (e.g. and-0001,0011 → ['0001', '0011'])
     if not category_query:
         return []

@@ -117,17 +117,21 @@ def product_list(**kwargs):
         if isinstance(result, tuple):
             result = result[0]
 
+        csoci = result.get('csoci',None)
+
         if 'response' in result and result['response'] == 'no result':
             return {'success': False}
 
         build_result = paginate(build_product_list(result), per_page, result['totalCount'], result['page'], result['pages'])
         filter_list = build_filter_list(result)
-        filter_list = build_filter_group_list(filter_list)
+        if csoci:
+            filter_list = build_filter_group_list(filter_list , csoci)
+            
         build_tab_list = result['tabs']
         #Add category breadcrumbs only if present
         category_query = kwargs.get('category')
-        if category_query:
-            breadcrumbs = build_category_breadcrumbs(category_query)
+        if category_query and csoci:
+            breadcrumbs = build_category_breadcrumbs(category_query, csoci)
             if breadcrumbs:
                 build_tab_list["category"] = breadcrumbs
 
