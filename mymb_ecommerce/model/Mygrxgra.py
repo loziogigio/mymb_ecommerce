@@ -8,10 +8,10 @@ Base = declarative_base()
 
 def get_mygrxgra_full_tablename():
     db = frappe.get_doc('Mymb Settings').get("db_erp")
-    return f"{db}.mygrxgru"
+    return f"{db}.mygrxgra"
 
 class Mygrxgra(Base):
-    __tablename__ = 'mygrxgru'
+    __tablename__ = 'mygrxgra'
 
     csoci = Column(String(4), primary_key=True, nullable=False)
     cgrup_darti = Column(String(24), primary_key=True, nullable=False)
