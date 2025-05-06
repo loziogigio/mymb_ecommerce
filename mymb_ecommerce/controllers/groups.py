@@ -171,14 +171,27 @@ def get_flatten_group_tree(**kwargs):
         if not csoci:
             return {"success": False, "error": "Missing csoci parameter"}
 
+        # Define cache keys
         cache_key_paths = f"group_flat_paths::{csoci}"
         cache_key_labels = f"group_flat_labels::{csoci}"
+        cache_key_timestamp = f"group_flat_timestamp::{csoci}"
 
-        # Try cache
+        # Load cache
         cached_paths = frappe.cache().get_value(cache_key_paths)
         cached_labels = frappe.cache().get_value(cache_key_labels)
+        cached_timestamp = frappe.cache().get_value(cache_key_timestamp)
 
-        if cached_paths and cached_labels and not force_refresh:
+        now = datetime.now(timezone.utc)
+
+        is_expired = True
+        if cached_timestamp:
+            try:
+                timestamp_dt = datetime.fromisoformat(cached_timestamp)
+                is_expired = (now - timestamp_dt) > timedelta(hours=1)
+            except Exception:
+                is_expired = True
+
+        if cached_paths and cached_labels and not force_refresh and not is_expired:
             return {
                 "success": True,
                 "cached": True,
@@ -188,14 +201,14 @@ def get_flatten_group_tree(**kwargs):
                 "labels": cached_labels
             }
 
-        # Step 1: Get full group tree
+        # Refresh the full tree
         tree_response = get_group_tree(csoci=csoci, force_refresh=force_refresh)
         if not tree_response.get("success"):
             return {"success": False, "error": "Failed to load group tree"}
 
         tree = tree_response["data"]
 
-        # Step 2: Flatten tree
+        # Flatten the tree
         def flatten_tree(tree, path=None, flat_paths=None, label_map=None):
             if flat_paths is None:
                 flat_paths = {}
@@ -219,9 +232,10 @@ def get_flatten_group_tree(**kwargs):
 
         flat_paths, label_map = flatten_tree(tree)
 
-        # Step 3: Cache in frappe.cache
+        # Save all in cache
         frappe.cache().set_value(cache_key_paths, flat_paths)
         frappe.cache().set_value(cache_key_labels, label_map)
+        frappe.cache().set_value(cache_key_timestamp, now.isoformat())
 
         return {
             "success": True,
@@ -238,4 +252,3 @@ def get_flatten_group_tree(**kwargs):
             "success": False,
             "error": str(e)
         }
-

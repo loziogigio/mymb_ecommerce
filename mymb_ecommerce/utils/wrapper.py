@@ -133,7 +133,7 @@ def build_filter_list(erp_data):
 
 def extract_category_ids(filter_str: str) -> List[str]:
     """Extract category values from a filter string."""
-    match = re.search(r'category=(?:and-)?([0-9,]+)', filter_str)
+    match = re.search(r'category=(?:and-)?([\w,]+)', filter_str)
     if match:
         return match.group(1).split(',')
     return []
