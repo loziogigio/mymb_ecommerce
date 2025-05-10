@@ -67,7 +67,7 @@ class MymbAPIClient:
 
 		try:
 			response = requests.request(
-				url=url, method=method, headers=headers, json=body, params=params, files=files
+				url=url, method=method, headers=headers, json=body, params=params, files=files , timeout=30
 			)
 			# mymb_b2c gives useful info in response text, show it in error logs
 			response.reason = cstr(response.reason) + cstr(response.text)

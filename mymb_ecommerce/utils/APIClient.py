@@ -43,7 +43,7 @@ class APIClient:
 
         try:
             response = requests.request(
-                url=url, method=method, headers=headers, json=body, params=params, files=files
+                url=url, method=method, headers=headers, json=body, params=params, files=files , timeout=10
             )
             # mymb_b2c gives useful info in response text, show it in error logs
             if response.text.strip() == '1' or response.text.strip() == 'false':
@@ -51,7 +51,7 @@ class APIClient:
             response.reason = cstr(response.reason) + cstr(response.text)
             response.raise_for_status()
         except Exception as e:
-            frappe.log_error(message=f"An error occurred while : {str(e)}", title="Request")
+            frappe.log_error(message=f"An error occurred while {url}: {str(e)}", title=f"Request {endpoint}")
             return None, False
 
         if method == "GET" and "application/json" not in response.headers.get("content-type"):
