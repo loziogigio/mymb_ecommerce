@@ -73,9 +73,23 @@ class MymbAPIClient:
 			response.reason = cstr(response.reason) + cstr(response.text)
 			response.raise_for_status()
 		except Exception as e:
-			frappe.log_error(message=f"An error occurred while : {str(e)}", title="Request")
-			if log_error:
-				create_mymb_b2c_log(status="Error", make_new=True)
+			error_message = f"An error occurred while {url}: {str(e)}"
+			frappe.log_error(message=error_message, title=f"Request {endpoint}")
+
+			# Send alert email to admins
+			try:
+				frappe.sendmail(
+					recipients=["admin@crowdechain.com", "mymb.support@timegroup.it"],
+					subject=f"[API ERROR] Request failed at {endpoint}",
+					message=error_message,
+					sender=frappe.db.get_single_value("Email Account", "email_id")  # or hardcode if needed
+				)
+			except Exception as email_error:
+				frappe.log_error(
+					message=f"Failed to send failure notification email: {str(email_error)}",
+					title="Sendmail Failure"
+				)
+
 			return None, False
 
 		if method == "GET" and "application/json" not in response.headers.get("content-type"):
