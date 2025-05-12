@@ -12,6 +12,8 @@ from mymb_ecommerce.mymb_b2c.constants import SETTINGS_DOCTYPE
 from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 from frappe.utils.password import get_decrypted_password
 from datetime import datetime
+from requests.exceptions import ReadTimeout, ConnectTimeout, HTTPError
+
 
 JsonDict = Dict[str, Any]
 
@@ -72,24 +74,52 @@ class MymbAPIClient:
 			# mymb_b2c gives useful info in response text, show it in error logs
 			response.reason = cstr(response.reason) + cstr(response.text)
 			response.raise_for_status()
-		except Exception as e:
-			error_message = f"An error occurred while {url}: {str(e)}"
-			frappe.log_error(message=error_message, title=f"Request {endpoint}")
+		except (ReadTimeout, ConnectTimeout) as timeout_error:
+			error_message = f"Timeout occurred while accessing {url}: {str(timeout_error)}"
+			frappe.log_error(message=error_message, title=f"Request Timeout - {endpoint}")
 
-			# Send alert email to admins
 			try:
 				frappe.sendmail(
 					recipients=["admin@crowdechain.com", "mymb.support@timegroup.it"],
-					subject=f"[API ERROR] Request failed at {endpoint}",
+					subject=f"[TIMEOUT ERROR] API call failed at {endpoint}",
 					message=error_message,
-					sender=frappe.db.get_single_value("Email Account", "email_id")  # or hardcode if needed
+					sender=frappe.db.get_single_value("Email Account", "email_id")
 				)
 			except Exception as email_error:
 				frappe.log_error(
-					message=f"Failed to send failure notification email: {str(email_error)}",
+					message=f"Failed to send timeout notification email: {str(email_error)}",
 					title="Sendmail Failure"
 				)
+			return None, False
 
+		except HTTPError as http_err:
+			if 400 <= http_err.response.status_code < 500:
+				# Ignore client-side errors (e.g., 401, 403, 404)
+				frappe.log_error(
+					message=f"Client error at {url}: {str(http_err)}",
+					title=f"Client Error - {endpoint}"
+				)
+			else:
+				# Server-side errors
+				error_message = f"Server error while {url}: {str(http_err)}"
+				frappe.log_error(message=error_message, title=f"Server Error - {endpoint}")
+				try:
+					frappe.sendmail(
+						recipients=["admin@crowdechain.com"],
+						subject=f"[SERVER ERROR] Request failed at {endpoint}",
+						message=error_message,
+						sender=frappe.db.get_single_value("Email Account", "email_id")
+					)
+				except Exception as email_error:
+					frappe.log_error(
+						message=f"Failed to send server error email: {str(email_error)}",
+						title="Sendmail Failure"
+					)
+			return None, False
+
+		except Exception as e:
+			error_message = f"An error occurred while {url}: {str(e)}"
+			frappe.log_error(message=error_message, title=f"Request Error - {endpoint}")
 			return None, False
 
 		if method == "GET" and "application/json" not in response.headers.get("content-type"):
