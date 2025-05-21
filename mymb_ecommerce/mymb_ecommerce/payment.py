@@ -13,7 +13,7 @@ from   erpnext.accounts.doctype.payment_request.payment_request import get_party
 from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import get_redirect_uri, setup_redirect,update_integration_request_status,make_post_request,get_paypal_and_transaction_details
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
-
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 
 
@@ -254,6 +254,148 @@ def get_quotation_addresses(quotation_name):
 
 
     return customer_address_name, customer_address, shipping_address_name, shipping_address
+
+@frappe.whitelist(allow_guest=True)
+def make_direct_guest_payment_request(amount, customer_email, payment_gateway="paypal", currency="EUR" , payment_channel="B2B"):
+    """
+    Create a Sales Order for a guest user and use it as the reference to generate a Payment Request.
+    """
+    args = frappe._dict({
+        "payment_gateway": payment_gateway
+    })
+    gateway_account = get_gateway_details(args) or frappe._dict()
+
+    if not gateway_account.get("name"):
+        frappe.throw("Payment gateway configuration not found.")
+
+    guest_customer = "Guest"
+    company = frappe.defaults.get_user_default("Company")
+    series_format = get_or_create_sales_order_series(payment_channel)
+
+    # Ensure the service item exists
+    item_code = get_or_create_guest_service_item(company)
+
+    # Create Sales Order
+    sales_order = frappe.get_doc({
+        "doctype": "Sales Order",
+        "naming_series": series_format,
+        "customer": guest_customer,
+        "currency": currency,
+        "delivery_date": frappe.utils.nowdate(),
+        "transaction_date": frappe.utils.nowdate(),
+        "items": [{
+            "item_code": item_code,
+            "qty": 1,
+            "rate": amount
+        }],
+        "company": company
+    }).insert(ignore_permissions=True)
+
+    # sales_order.submit()
+
+    # Create Payment Request using Sales Order
+    pr = frappe.new_doc("Payment Request")
+    pr.update({
+        "payment_gateway_account": gateway_account.name,
+        "payment_gateway": gateway_account.payment_gateway,
+        "payment_account": gateway_account.payment_account,
+        "payment_channel": gateway_account.get("payment_channel", "Email"),
+        "payment_request_type": "Inward",
+        "currency": currency,
+        "grand_total": sales_order.grand_total,
+        "mode_of_payment": gateway_account.mode_of_payment,
+        "email_to": customer_email,
+        "subject": f"Payment Request for Guest: {customer_email}",
+        "message": f"Please complete your payment of {amount} {currency}.",
+        "party_type": "Customer",
+        "party": guest_customer,
+        "reference_doctype": "Sales Order",
+        "reference_name": sales_order.name,
+    })
+
+    pr.flags.mute_email = True
+    pr.insert(ignore_permissions=True)
+    pr.submit()
+
+    # Determine payment method
+    payment_url = None
+    client_secret = None
+
+    if payment_gateway == "stripe":
+        client_secret = get_stripe_secret(pr)
+    elif payment_gateway == "paypal":
+        payment_url = pr.get_payment_url()
+    elif payment_gateway == "gestpay":
+        payment_url = get_gestpay_url(pr)
+    # elif payment_gateway == "transfer":
+    #     config = Configurations()
+    #     payment_url = "/pages/payment-success?paymentgateway=transfer"
+    #     submit_sales_order(sales_order.name)
+    #     wired_transfer_data = f"{config.get_mymb_b2b_wire_transfer()}<h2>{sales_order.name}</h2>"
+    elif payment_gateway == "cash_on_delivery":
+        config = Configurations()
+        payment_url = "/pages/payment-success?paymentgateway=cash_on_delivery"
+        submit_sales_order(sales_order.name)
+    else:
+        payment_url = pr.get_default_url()  # Define this function to provide a default URL
+
+    return {
+        "payment_request": pr.name,
+        "payment_url": payment_url,
+        "client_secret": client_secret,
+        "reference": sales_order.name
+    }
+
+
+def get_or_create_guest_service_item(company):
+    item_code = "GUEST-ITEM-SERVICE"
+
+    if frappe.db.exists("Item", item_code):
+        return item_code
+
+    income_account = "Sales - " + frappe.get_cached_value("Company", company, "abbr")
+
+    item = frappe.get_doc({
+        "doctype": "Item",
+        "item_code": item_code,
+        "item_name": "Guest Payment Service",
+        "description": "Service payment for guest checkout",
+        "stock_uom": "Nos",
+        "is_sales_item": 1,
+        "is_stock_item": 0,
+        "maintain_stock": 0,
+        "disabled": 0,
+        "item_group": "Services",
+        "income_account": income_account
+    }).insert(ignore_permissions=True)
+
+    return item.item_code
+
+def get_or_create_sales_order_series(payment_channel: str) -> str:
+    """
+    Ensure a naming series like 'B2B-.YY.-.#' exists and is set up correctly for Sales Order.
+    """
+
+    new_series = f"{payment_channel.upper()}-.YY.-.#"
+
+    # Load existing options from metadata
+    meta = frappe.get_meta("Sales Order")
+    field = meta.get_field("naming_series")
+    existing_options = field.options.split("\n") if field and field.options else []
+
+    if new_series not in existing_options:
+        updated_options = existing_options + [new_series]
+
+        # Update options
+        make_property_setter("Sales Order", "naming_series", "options", "\n".join(updated_options), "Text")
+
+        # Optionally set default
+        make_property_setter("Sales Order", "naming_series", "default", new_series, "Text")
+
+        # Clear cache
+        frappe.clear_cache(doctype="Sales Order")
+
+    return new_series
 
 
 @frappe.whitelist(allow_guest=True)
