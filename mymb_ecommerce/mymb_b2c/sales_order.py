@@ -11,10 +11,11 @@ from frappe import db
 from datetime import datetime, timedelta
 from erpnext.selling.doctype.sales_order.sales_order import close_or_unclose_sales_orders
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.controllers.wrapper import set_payment_completed
+
 import json  
 
 import uuid
-
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def get_sales_order(limit=None, page=None, time_laps=None, filters=None):
@@ -47,19 +48,62 @@ def safe_concat(*args):
 
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
-def export_sales_order(doc=None, method=None , sales_order_name=None):
-
+def export_sales_order(doc=None, method=None, sales_order_name=None):
+    """
+    Generic export handler, routes B2B paid orders to a separate flow.
+    """
     if doc:
         sales_order_name = doc.name
     elif not sales_order_name:
-        # if neither doc nor sales_order_name is provided, return an error
-        return {"error": "Both doc and sales_order_name cannot be empty."}
+        frappe.throw("Both doc and sales_order_name cannot be empty.")
 
-    # Create the filter dictionary for the sales_order name
+    # Route B2B paid orders to the special handler
+    if doc and getattr(doc, "channel", None) == "B2B" and getattr(doc, "paid", None) == "YES":
+        handle_b2b_paid_sales_order(doc)
+        return
+
+    # Default export for other cases
     filters = {"name": sales_order_name}
-
-    # Call the export_new_sales_order function using the filter
     export_new_sales_order(filters=filters)
+
+
+def handle_b2b_paid_sales_order(doc):
+    """
+    Handles post-payment logic for B2B orders: sends payment confirmation via API.
+    """
+    cart_id = getattr(doc, "erp_document_number", None)
+    trandaction_id = (
+        getattr(doc, "payment_code", None) or
+        getattr(doc, "custom_payment_code", None)
+    )
+
+    if not cart_id or not trandaction_id:
+        frappe.log_error(
+            title="Missing cart_id or transaction_id in B2B paid order",
+            message=frappe.as_json({
+                "doc": doc.name,
+                "cart_id": cart_id,
+                "transaction_id": trandaction_id
+            })
+        )
+        return
+
+    # 1. Send confirmation to external system
+    set_payment_completed(
+        cart_id=cart_id,
+        success=True,
+        trandaction_id=trandaction_id
+    )
+
+    # 2. Close the Sales Order if valid
+    try:
+        close_or_unclose_sales_orders(json.dumps([doc.name]), "Closed")
+    except Exception as e:
+        frappe.log_error(
+            title="Failed to close B2B Sales Order",
+            message=f"Sales Order: {doc.name}\nError: {str(e)}"
+        )
+
 
 
 

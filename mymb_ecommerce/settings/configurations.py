@@ -11,6 +11,8 @@ class Configurations:
         self.image_uri = self.doc.get('image_uri')
         self.solr_mymb_backoffice = self.doc.get('solr_mymb_backoffice')
         self.solr_url = self.doc.get('solr_url')
+        self.mymb_payment_success_page = self.doc.get('mymb_payment_success_page')
+        self.mymb_payment_failed_page = self.doc.get('mymb_payment_failed_page')
         #solr section
         self.solr = None
         
@@ -39,15 +41,15 @@ class Configurations:
         """Get the Solr image instance from the Mymb Settings DocType"""
         return self.image_uri
     
-    def get_mymb_b2c_payment_success_page(self):
+    def get_mymb_payment_success_page(self):
         """Get Success payment page from the Mymb Settings DocType"""
 
-        return self.mymb_b2c_payment_success_page
+        return self.mymb_payment_success_page
     
-    def get_mymb_b2c_payment_failed_page(self):
+    def get_mymb_payment_failed_page(self):
         """Get Success payment page from the Mymb Settings DocType"""
 
-        return self.mymb_b2c_payment_failed_page
+        return self.mymb_payment_failed_page
     
     def get_email_b2b(self):
         """Get the email b2b support instance from the Mymb  Settings DocType"""

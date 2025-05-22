@@ -469,6 +469,56 @@ def send_order(**kwargs):
 
     return result
 
+@frappe.whitelist(allow_guest=True)
+def set_payment_completed(cart_id: int = None, success: bool = None, trandaction_id: str = None):
+    if not cart_id or not trandaction_id:
+        frappe.throw("Missing required parameters: cart_id or trandaction_id.")
+
+    config = Configurations()
+
+    payload = {
+        "cart_id": cart_id,
+        "success": success,
+        "trandaction_id": trandaction_id
+    }
+
+    # Call the external service
+    result = APIClient.request(
+        endpoint='ipn-paypal',
+        method='POST',
+        body=payload,
+        base_url=config.get_api_drupal()
+    )
+
+    # Unpack response if it's a tuple (dict, status)
+    response_dict, _ = result if isinstance(result, tuple) else (result, False)
+
+    # Extract response safely
+    result_data = response_dict.get("result", {}) if isinstance(response_dict, dict) else {}
+    status = result_data.get("status", False)
+    response_service = result_data.get("response_service", {})
+
+    # If failed, log it
+    if not status:
+        frappe.log_error(
+            title=f"fail - complete order {cart_id}",
+            message=(
+                f"cart_id: {cart_id}\n"
+                f"transaction_id: {trandaction_id}\n"
+                f"response: {frappe.as_json(response_service)}"
+            )
+        )
+
+    return {
+        "result": {
+            "response_service": response_service,
+            "status": status
+        },
+        "id_carrello": cart_id,
+        "transaction_id": trandaction_id
+    }
+
+
 # Get Order Detail
 @frappe.whitelist(allow_guest=True)
 def get_order_detail(**kwargs):

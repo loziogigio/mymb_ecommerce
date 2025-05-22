@@ -111,6 +111,9 @@ def job_emails_confirm_sales_order(doc=None, method=None, sales_order_name=None)
     else:
         sales_order = doc
 
+    if(sales_order.channel=="B2B"):
+        return
+    
     wire_info = ""
     email_template = config.confirm_sales_order_html_template
 

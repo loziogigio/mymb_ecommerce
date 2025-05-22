@@ -12,6 +12,7 @@ from   payments.utils.utils import get_payment_gateway_controller
 from   erpnext.accounts.doctype.payment_request.payment_request import get_party_bank_account,get_amount,get_dummy_message,get_existing_payment_request_amount,get_gateway_details,get_accounting_dimensions
 from   payments.payment_gateways.doctype.paypal_settings.paypal_settings import get_redirect_uri, setup_redirect,update_integration_request_status,make_post_request,get_paypal_and_transaction_details
 from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
+from mymb_ecommerce.settings.configurations import Configurations as B2BConfigurations
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
@@ -255,15 +256,31 @@ def get_quotation_addresses(quotation_name):
 
     return customer_address_name, customer_address, shipping_address_name, shipping_address
 
+def get_gateway_details_like(gateway_name_substring: str) -> frappe._dict:
+    """
+    Retrieve payment gateway account whose name contains the given lowercase substring.
+    """
+    substring = gateway_name_substring.lower()
+
+    all_accounts = frappe.get_all(
+        "Payment Gateway Account",
+        fields=["name", "payment_gateway", "payment_account", "payment_channel", "message"]
+    )
+
+    for account in all_accounts:
+        if substring in account.get("payment_gateway", "").lower():
+            return frappe._dict(account)
+
+    frappe.throw(f"No Payment Gateway Account found matching '{substring}'.")
+
+
 @frappe.whitelist(allow_guest=True)
-def make_direct_guest_payment_request(amount, customer_email, payment_gateway="paypal", currency="EUR" , payment_channel="B2B"):
+def make_direct_guest_payment_request(amount, customer_email, payment_gateway="paypal", currency="EUR" , payment_channel="B2B" , customer_type="Company" , client_id=0 ,erp_document_numbe=0 ):
     """
     Create a Sales Order for a guest user and use it as the reference to generate a Payment Request.
     """
-    args = frappe._dict({
-        "payment_gateway": payment_gateway
-    })
-    gateway_account = get_gateway_details(args) or frappe._dict()
+    
+    gateway_account = get_gateway_details_like(payment_gateway)
 
     if not gateway_account.get("name"):
         frappe.throw("Payment gateway configuration not found.")
@@ -281,6 +298,10 @@ def make_direct_guest_payment_request(amount, customer_email, payment_gateway="p
         "naming_series": series_format,
         "customer": guest_customer,
         "currency": currency,
+        "channel": payment_channel,
+        "customer_type":customer_type,
+        "client_id":client_id,
+        "erp_document_number":erp_document_numbe,
         "delivery_date": frappe.utils.nowdate(),
         "transaction_date": frappe.utils.nowdate(),
         "items": [{
@@ -677,6 +698,7 @@ def get_express_checkout_details(token):
     except Exception:
         frappe.log_error(frappe.get_traceback())
 
+
 @frappe.whitelist(allow_guest=True, xss_safe=True)
 def confirm_payment(token):
 
@@ -703,8 +725,20 @@ def confirm_payment(token):
             # Counting the number of items in the Sales Order
             item_count = so.total_qty if so else 0
 
-        # Build the description
-        description = f"Order {sales_order_name} at {shop_name}, Product count: {item_count}" if reference_docname else f"Payment at {shop_name}"
+        if so.channel == "B2B":
+            config = B2BConfigurations()
+            mymb_payment_success_page = config.get_mymb_payment_success_page()
+            mymb_payment_failed_page = config.get_mymb_payment_failed_page()
+            cart_number = so.erp_document_number
+            description = f"Order {sales_order_name} / Cart. Number  {cart_number}" if reference_docname else f"Payment at {shop_name}"
+        else:
+            config = Configurations()
+            mymb_payment_success_page = config.get_mymb_b2c_payment_success_page()
+            mymb_payment_failed_page = config.get_mymb_b2c_payment_failed_page()
+            # Build the description
+            description = f"Order {sales_order_name} at {shop_name}, Product count: {item_count}" if reference_docname else f"Payment at {shop_name}"
+
+        
 
 
         params.update(
@@ -720,9 +754,9 @@ def confirm_payment(token):
         )
 
         response = make_post_request(url, data=params)
-        config = Configurations()
-        mymb_b2c_payment_success_page = config.get_mymb_b2c_payment_success_page()
-        mymb_b2c_payment_failed_page = config.get_mymb_b2c_payment_failed_page()
+
+        
+        
 
         if response.get("ACK")[0] == "Success":
             _confirm_sales_order(payment_request_id=data.get("reference_docname") , status=response.get("ACK")[0] , payment_code=response.get("PAYMENTINFO_0_TRANSACTIONID")[0])
@@ -747,10 +781,10 @@ def confirm_payment(token):
 
             
             redirect_url = "{}?doctype={}&docname={}".format(
-                mymb_b2c_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
+                mymb_payment_success_page,data.get("reference_doctype"), data.get("reference_docname")
             )
         else:
-            redirect_url = mymb_b2c_payment_failed_page
+            redirect_url = mymb_payment_failed_page
 
         setup_redirect(data, redirect_url )
 
@@ -768,6 +802,7 @@ def _confirm_sales_order(payment_request_id=None, status='No', payment_code=None
     so.transaction_date = frappe.utils.now_datetime()
     so.paid = 'YES' if status == "Success" else 'NO'
     so.payment_code = payment_code
+    so.custom_payment_code = payment_code
     so.save(ignore_permissions=True)
     frappe.db.commit()
     so.submit()
