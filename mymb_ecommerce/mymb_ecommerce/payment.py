@@ -15,6 +15,7 @@ from mymb_ecommerce.mymb_b2c.settings.configurations import Configurations
 from mymb_ecommerce.settings.configurations import Configurations as B2BConfigurations
 from omnicommerce.controllers.email import send_sales_order_confirmation_email_html
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+from payments.payment_gateways.doctype.paypal_settings.paypal_settings import PayPalSettings
 
 
 
@@ -275,7 +276,7 @@ def get_gateway_details_like(gateway_name_substring: str) -> frappe._dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def make_direct_guest_payment_request(amount, customer_email, payment_gateway="paypal", currency="EUR" , payment_channel="B2B" , customer_type="Company" , client_id=0 ,erp_document_numbe=0 ):
+def make_direct_guest_payment_request(amount, customer_email, payment_gateway="paypal", currency="EUR" , payment_channel="B2B" , customer_type="Company" , client_id=0 ,erp_document_numbe=0 , cancel_url=None):
     """
     Create a Sales Order for a guest user and use it as the reference to generate a Payment Request.
     """
@@ -345,7 +346,22 @@ def make_direct_guest_payment_request(amount, customer_email, payment_gateway="p
     if payment_gateway == "stripe":
         client_secret = get_stripe_secret(pr)
     elif payment_gateway == "paypal":
-        payment_url = pr.get_payment_url()
+        # payment_url = pr.get_payment_url()
+
+        paypal = frappe.get_doc("PayPal Settings")
+        payment_url = paypal.get_payment_url(
+            amount=pr.grand_total,
+            title=pr.subject,
+            description=pr.message,
+            reference_doctype=pr.doctype,
+            reference_docname=pr.name,
+            payer_email=pr.email_to,
+            payer_name="Guest",
+            order_id=pr.name,
+            currency=pr.currency,
+            payment_gateway=pr.payment_gateway,
+            cancel_url=cancel_url # ✅ inject your cancel URL here
+        )
     elif payment_gateway == "gestpay":
         payment_url = get_gestpay_url(pr)
     # elif payment_gateway == "transfer":
