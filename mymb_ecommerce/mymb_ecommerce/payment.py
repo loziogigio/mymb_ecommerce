@@ -426,9 +426,6 @@ def get_or_create_sales_order_series(payment_channel: str) -> str:
         # Update options
         make_property_setter("Sales Order", "naming_series", "options", "\n".join(updated_options), "Text")
 
-        # Optionally set default
-        make_property_setter("Sales Order", "naming_series", "default", new_series, "Text")
-
         # Clear cache
         frappe.clear_cache(doctype="Sales Order")
 
