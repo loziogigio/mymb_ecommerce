@@ -50,3 +50,49 @@ def get_products_price(
             return {"error": "No prices found with given parameters."}
     except Exception as e:
         return {"error": str(e)}
+    
+@frappe.whitelist(allow_guest=True)
+def get_alternative_items(
+    item_code: str,
+    pricing_date: Optional[str] = None,
+    id_elaborazione: str = "0"
+):
+    """
+    Frappe endpoint to get alternative item codes for a given item.
+    Returns only a list of CodiceInternoArticolo values (item codes).
+
+    Example call:
+    /api/method/your_module.path.get_alternative_items?item_code=101552&id_elaborazione=0
+    """
+    try:
+        # Initialize the API client
+        client = MymbAPIClient()
+
+        # Call the backend service to get alternative items
+        response = client.get_alternative_items(
+            item_code=item_code,
+            pricing_date=pricing_date,
+            id_elaborazione=id_elaborazione
+        )
+
+        # Extract the 'ListaPrezzatura' from the response payload
+        items = response.get("ListaPrezzatura", [])
+
+        # Collect all CodiceInternoArticolo values
+        item_codes = [
+            row.get("CodiceInternoArticolo")
+            for row in items
+            if row.get("CodiceInternoArticolo")
+        ]
+
+        # Return the list or a default error if empty
+        return { "item_codes":item_codes}  or {"error": "No alternative item codes found."}
+
+    except Exception as e:
+        # Log error and return user-facing error message
+        frappe.log_error(
+            title="get_alternative_items error",
+            message=f"Error fetching alternative items for code {item_code}: {str(e)}"
+        )
+        return {"error": str(e)}
+

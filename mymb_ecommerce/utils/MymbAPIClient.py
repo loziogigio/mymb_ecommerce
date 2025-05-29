@@ -749,4 +749,49 @@ class MymbAPIClient:
 				"params": params
 			}
 
-		
+	def get_alternative_items(
+		self,
+		item_code: str,
+		pricing_date: Optional[str] = None,
+		id_elaborazione: str = "0",
+		log_error=True
+	) -> Optional[JsonDict]:
+		"""
+		Get alternative items for a given item code.
+
+		Example API:
+		/GetListaArticoliAlternativi?CodiceInternoArticolo=101552&IdElaborazione=0&DataPrezzatura=14052025
+		"""
+
+		from datetime import datetime
+
+		if not pricing_date:
+			pricing_date = datetime.now().strftime("%d%m%Y")  # Format like 14052025
+
+		params = {
+			"CodiceInternoArticolo": item_code,
+			"IdElaborazione": id_elaborazione,
+			"DataPrezzatura": pricing_date
+		}
+
+		try:
+			result, status = self.request(
+				endpoint="/GetListaArticoliAlternativi",
+				method="GET",
+				params=params,
+				log_error=log_error
+			)
+
+			if status:
+				# Assume the result contains a list of alternatives
+				return result.get("GetListaArticoliAlternativiResult")
+
+			return None
+
+		except Exception as e:
+			if log_error:
+				frappe.log_error(
+					title="GetListaArticoliAlternativi Error",
+					message=f"Error while retrieving alternatives for item {item_code} | {str(e)} | Params: {params}"
+				)
+			return None
