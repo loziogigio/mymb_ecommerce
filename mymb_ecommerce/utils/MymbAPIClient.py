@@ -78,18 +78,21 @@ class MymbAPIClient:
 			error_message = f"Timeout occurred while accessing {url}: {str(timeout_error)}"
 			frappe.log_error(message=error_message, title=f"Request Timeout - {endpoint}")
 
-			try:
-				frappe.sendmail(
-					recipients=["admin@crowdechain.com", "mymb.support@timegroup.it"],
-					subject=f"[TIMEOUT ERROR] API call failed at {endpoint}",
-					message=error_message,
-					sender=frappe.db.get_single_value("Email Account", "email_id")
-				)
-			except Exception as email_error:
-				frappe.log_error(
-					message=f"Failed to send timeout notification email: {str(email_error)}",
-					title="Sendmail Failure"
-				)
+			# Avoid sending email if the endpoint is /GetEsposizioneAggiornataB2B
+			if "/GetEsposizioneAggiornataB2B" not in endpoint:
+				try:
+					frappe.sendmail(
+						recipients=["admin@crowdechain.com", "mymb.support@timegroup.it"],
+						subject=f"[TIMEOUT ERROR] API call failed at {endpoint}",
+						message=error_message,
+						sender=frappe.db.get_single_value("Email Account", "email_id")
+					)
+				except Exception as email_error:
+					frappe.log_error(
+						message=f"Failed to send timeout notification email: {str(email_error)}",
+						title="Sendmail Failure"
+					)
+
 			return None, False
 
 		except HTTPError as http_err:
