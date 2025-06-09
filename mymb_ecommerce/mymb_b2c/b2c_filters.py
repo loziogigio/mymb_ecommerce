@@ -4,22 +4,44 @@ from datetime import datetime
 from frappe import _
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_province():
+def get_regions():
     """
-    Fetch distinct province codes and their names.
-    Returns a list of tuples containing (codice_provincia, provincia).
+    Return distinct list of regions (regione) from the Cap table.
     """
-    # SQL query to select distinct province codes and names
-    data = frappe.db.sql("""
-        SELECT DISTINCT `codice_provincia`, `provincia`
+    regions = frappe.db.sql("""
+        SELECT DISTINCT regione
         FROM `tabCap`
-        ORDER BY `codice_provincia`
+        WHERE regione IS NOT NULL AND regione != ''
+        ORDER BY regione
     """, as_dict=True)
-    
-    # Return the result as a list of dictionaries
+    return regions
+
+
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def get_province(region=""):
+    """
+    Fetch distinct province codes and their names, optionally filtered by region.
+    Args:
+        region (str): Optional region name to filter by.
+    Returns:
+        list of dict: A list of provinces with fields 'codice_provincia' and 'provincia'.
+    """
+    if region:
+        data = frappe.db.sql("""
+            SELECT DISTINCT `codice_provincia`, `provincia`
+            FROM `tabCap`
+            WHERE `regione` = %s
+            ORDER BY `codice_provincia`
+        """, (region,), as_dict=True)
+    else:
+        data = frappe.db.sql("""
+            SELECT DISTINCT `codice_provincia`, `provincia`
+            FROM `tabCap`
+            ORDER BY `codice_provincia`
+        """, as_dict=True)
+
     return data
 
-import frappe
 
 @frappe.whitelist(allow_guest=True)
 def get_zipcode(province_code=""):
