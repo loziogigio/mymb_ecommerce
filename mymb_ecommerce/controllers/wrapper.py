@@ -13,6 +13,7 @@ from mymb_ecommerce.settings.configurations import Configurations
 from mymb_ecommerce.utils.APIClient import APIClient
 from mymb_ecommerce.utils.email_lib import sendmail
 from mymb_ecommerce.utils.wrapper import paginate, build_product_list, build_filter_list, build_filter_group_list,  wrap_product_detail, wrap_child_product_detail , build_category_breadcrumbs
+from urllib.parse import urlencode
 
 from frappe.utils.pdf import get_pdf
 import os
@@ -104,7 +105,7 @@ def product_list(**kwargs):
         query_args = {key: value for key, value in kwargs.items() if key not in body_keys}
 
         # Build query string
-        query_string = '?' + '&'.join([f'{key}={value}' for key, value in query_args.items()]) if query_args else ''
+        query_string = '?' + urlencode(query_args) if query_args else ''
 
         # Make the API request
         result = APIClient.request(
