@@ -149,37 +149,49 @@ def get_items_from_external_db(limit=None, time_laps=None, page=1,  filters=None
 
 @frappe.whitelist(allow_guest=True, methods=['POST'])
 def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fetch_property=False, fetch_media=False , fetch_price=False , fetch_categories=True , channel_id=None , feature_channel_id=None):
-    items = get_items_from_external_db(limit=limit, page=page,time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price ,fetch_categories=fetch_categories , channel_id=channel_id , feature_channel_id=feature_channel_id)
+    items = get_items_from_external_db(limit=limit, page=page, time_laps=time_laps, filters=filters, fetch_property=fetch_property, fetch_media=fetch_media, fetch_price=fetch_price, fetch_categories=fetch_categories, channel_id=channel_id, feature_channel_id=feature_channel_id)
 
     success_items = []
     failure_items = []
     skipped_items = []
+    log_lines = []
 
-    if(items["data"]== 0):
-            return items
+    if items["data"] == 0:
+        return items
 
     for item in items["data"]:
-        
         solr_document = transform_to_solr_document(item)
-        
+        sku = item.get('carti', "No code available")
+
         if solr_document is None or not item.get('medias'):
-            sku = item.get('carti', "No code available")
             skipped_items.append(sku)
-            # Log the error without trying to access 'id' in solr_document if it's None
-            log_message = f"Skipped document with SKU: {sku} due to missing slug or prices or properties or medias."
-            if solr_document:
-                log_message += f" Document ID: {solr_document.get('id', 'No ID available')}."
-            else:
-                log_message += " solr_document is None."
-            frappe.log_error(f"Warning: Skipped Item in solr  SKU: {sku}", log_message)
+            msg = f"⏭️ Skipped SKU: {sku} — Missing slug, prices, properties, or medias."
+            log_lines.append(msg)
             continue
 
         result = add_document_to_solr(solr_document)
         if result['status'] == 'success':
             success_items.append(solr_document['sku'])
+            log_lines.append(f"✅ Imported SKU: {solr_document['sku']}")
         else:
             failure_items.append(solr_document['sku'])
-            frappe.log_error(title=f"Error: Import Item in solr SKU: {solr_document['sku']} ID: {solr_document['id']} ", message=f"Failed to add document with SKU: {solr_document['sku']} to Solr. Reason: {result['reason']}" )
+            log_lines.append(f"❌ Failed SKU: {solr_document['sku']} — Reason: {result.get('reason', 'Unknown')}")
+
+    # Compose final log message
+    log_summary = f"""
+📦 Solr Import Report
+▶️ Page: {page}, Limit: {limit}
+
+✅ Success: {len(success_items)}
+❌ Failure: {len(failure_items)}
+⏭️ Skipped: {len(skipped_items)}
+
+Details:
+""" + "\n".join(log_lines)
+
+    # Log it
+    frappe.logger().info(log_summary)
+    # Or use frappe.log_error("Solr Import Report", log_summary)
 
     return {
         "data": {
@@ -193,6 +205,7 @@ def import_items_in_solr(limit=None, page=None, time_laps=None, filters=None, fe
             }
         }
     }
+
 
 
 
