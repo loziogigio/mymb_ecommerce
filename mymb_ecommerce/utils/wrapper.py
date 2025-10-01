@@ -2,6 +2,7 @@
 from typing import Any, Dict, List
 import frappe
 import re
+from frappe.utils import cstr
 
 JsonDict = Dict[str, Any]
 
@@ -149,25 +150,54 @@ def build_filter_group_list(data: JsonDict , csoci : str) -> JsonDict:
     flat_paths = tree_data["paths"]
     label_map = tree_data["labels"]
 
-    # Validate each item in facets_results['category']['results']
-    if "facets_results" in data and "category" in data["facets_results"]:
-        valid_results = {}
-        for node_id, item in data["facets_results"]["category"]["results"].items():
-            filter_url = item.get("filter", "")
-            path_ids = extract_category_ids(filter_url)
+    facets_results = data.get("facets_results")
+    category_data = facets_results.get("category") if isinstance(facets_results, dict) else None
+    if isinstance(category_data, dict) and category_data.get("results"):
+        raw_results = category_data.get("results")
 
-            # We only consider valid if the node_id is the last part of the path
-            if not path_ids or path_ids[-1] != node_id:
+        def iterate_results(results):
+            if isinstance(results, dict):
+                for key, value in results.items():
+                    yield key, value
+            elif isinstance(results, list):
+                for entry in results:
+                    if not isinstance(entry, dict):
+                        continue
+                    node_id = entry.get("node") or entry.get("id") or entry.get("value") or entry.get("key")
+                    yield node_id, entry
+
+        normalized = []
+        for node_id, item in iterate_results(raw_results):
+            if not isinstance(item, dict):
                 continue
 
-            # Now check if the full path exists and is correct
-            flat_path = flat_paths.get(node_id)
-            if flat_path and flat_path == path_ids:
-                item["label"] = label_map.get(node_id, node_id)
-                valid_results[node_id] = item
+            filter_url = item.get("filter", "")
+            path_ids = extract_category_ids(filter_url)
+            inferred_node_id = path_ids[-1] if path_ids else None
+            candidate_id = node_id or inferred_node_id or item.get("label")
+            if candidate_id is None:
+                continue
 
-        # Overwrite with filtered and validated list
-        data["facets_results"]["category"]["results"] = valid_results
+            candidate_id = cstr(candidate_id)
+
+            flat_path = flat_paths.get(candidate_id)
+            if path_ids and flat_path and flat_path != path_ids:
+                continue
+
+            if flat_path:
+                item["label"] = label_map.get(candidate_id, candidate_id)
+            else:
+                # Preserve original label but normalise to string to avoid downstream surprises
+                original_label = item.get("label", candidate_id)
+                item["label"] = cstr(original_label)
+
+            item.setdefault("node", candidate_id)
+            normalized.append((candidate_id, item))
+
+        if isinstance(raw_results, dict):
+            category_data["results"] = {node_id: item for node_id, item in normalized}
+        elif isinstance(raw_results, list):
+            category_data["results"] = [item for _, item in normalized]
 
     # Final return
     result = {

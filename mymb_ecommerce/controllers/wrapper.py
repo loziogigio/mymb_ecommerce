@@ -88,7 +88,7 @@ def register(**kwargs):
 
 @frappe.whitelist(allow_guest=True)
 def product_list(**kwargs):
-    try:
+    # try:
         config = Configurations()
         per_page = kwargs.get('per_page')
 
@@ -144,13 +144,13 @@ def product_list(**kwargs):
             'api': config.get_api_drupal()
         }
 
-    except Exception as e:
-        # Log full details: error, input kwargs, and result if available
-        frappe.log_error(
-            title="product_list error",
-            message=f"Exception: {str(e)}\n\nRequest kwargs:\n{kwargs}"
-        )
-        return {'success': False, 'error': 'Internal Server Error'}
+    # except Exception as e:
+    #     # Log full details: error, input kwargs, and result if available
+    #     frappe.log_error(
+    #         title="product_list error",
+    #         message=f"Exception: {str(e)}\n\nRequest kwargs:\n{kwargs}"
+    #     )
+    #     return {'success': False, 'error': 'Internal Server Error'}
 
 
 # Get Child List
