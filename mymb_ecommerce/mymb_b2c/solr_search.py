@@ -263,7 +263,8 @@ def get_menu_category_detail(category_detail):
             'title': doc_dict.get('title'),
             'description': doc_dict.get('description'),
             'category_menu_image': f'{web_site_domain}{doc_dict.get("category_menu_image")}' if doc_dict.get("category_menu_image") else None,
-            'category_banner_image': f'{web_site_domain}{doc_dict.get("category_banner_image")}' if doc_dict.get("category_banner_image") else None
+            'category_banner_image': f'{web_site_domain}{doc_dict.get("category_banner_image")}' if doc_dict.get("category_banner_image") else None,
+            'category_banner_image_mobile': f'{web_site_domain}{doc_dict.get("category_banner_image_mobile")}' if doc_dict.get("category_banner_image_mobile") else None
         }
         
 
