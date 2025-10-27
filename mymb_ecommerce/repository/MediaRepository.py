@@ -22,17 +22,26 @@ class MediaRepository:
         return self.session.query(Media).filter(
             and_(
                 Media.entity_code.in_(entity_codes)
-                # ,Media.channel_id.in_(["B2C", "DEFAULT"])
+                ,Media.media_area_id.in_(["images", "image"])
             )
         ).order_by(Media.sorting).all()
 
     def get_media_by_entity_code(self, entity_code):
-        query = self.session.query(Media).filter(Media.entity_code == entity_code)
+        query = self.session.query(Media).filter(
+            and_(
+                Media.entity_code == entity_code,
+                Media.media_area_id.in_(["images", "image"])
+            )
+        )
         return query.all()
 
     def get_media_by_entity_id(self, entity_id):
-        query = self.session.query(Media).filter(Media.entity_id == entity_id)
+        query = self.session.query(Media).filter(
+            and_(
+                Media.entity_id == entity_id,
+                Media.media_area_id.in_(["images", "image"])
+            )
+        )
         return query.all()
-        return result
 
     # Add other methods as needed
