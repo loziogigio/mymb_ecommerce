@@ -20,9 +20,22 @@ class Database:
             self.connect_mongodb()
 
     def connect_mysql(self):
-        """Connect to a MySQL database"""
+        """Connect to a MySQL database with timeouts to prevent hanging"""
         self.engine = create_engine(
-            f"{self.db_config['drivername']}://{self.db_config['username']}:{self.db_config['password']}@{self.db_config['host']}:{self.db_config['port']}/{self.db_config['database']}"
+            f"{self.db_config['drivername']}://{self.db_config['username']}:{self.db_config['password']}@{self.db_config['host']}:{self.db_config['port']}/{self.db_config['database']}",
+            # Connection timeout: fail fast if B2B database is unreachable (3 seconds)
+            connect_args={
+                'connect_timeout': 3,
+                'read_timeout': 30,
+                'write_timeout': 30
+            },
+            # Verify connections before using them to avoid stale connections
+            pool_pre_ping=True,
+            # Recycle connections after 1 hour to avoid long-lived connections
+            pool_recycle=3600,
+            # Set reasonable pool size limits
+            pool_size=5,
+            max_overflow=10
         )
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
