@@ -33,7 +33,7 @@ def _send_rate_limited_email(
         rate_limit_minutes: Minutes to wait before sending another email for same error (default: 30)
     """
     if recipients is None:
-        recipients = ["admin@crowdechain.com", "mymb.support@timegroup.it"]
+        recipients = ["admin@crowdechain.com", "daniele.ammazzini@timegroup.it", "giovanni.abbatino@timegroup.it"]
 
     # Create a unique cache key for this error type and endpoint
     cache_key = f"api_email_{error_type}_{endpoint.replace('/', '_')}"
