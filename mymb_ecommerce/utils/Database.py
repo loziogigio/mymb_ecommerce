@@ -4,8 +4,10 @@ from pymongo import MongoClient
 
 
 class Database:
-    def __init__(self, db_config):
+    def __init__(self, db_config, pool_size=5, max_overflow=10):
         self.db_config = db_config
+        self.pool_size = pool_size
+        self.max_overflow = max_overflow
         self.engine = None
         self.session = None
         self.mongo_client = None
@@ -33,9 +35,9 @@ class Database:
             pool_pre_ping=True,
             # Recycle connections after 1 hour to avoid long-lived connections
             pool_recycle=3600,
-            # Set reasonable pool size limits
-            pool_size=5,
-            max_overflow=10
+            # Per-tenant pool size limits (passed from Configurations)
+            pool_size=self.pool_size,
+            max_overflow=self.max_overflow
         )
         Session = sessionmaker(bind=self.engine)
         self.session = Session()

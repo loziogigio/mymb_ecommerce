@@ -3,9 +3,15 @@ from frappe import _
 from mymb_ecommerce.utils.Solr import Solr
 from mymb_ecommerce.utils.Database import Database
 from frappe.utils.password import get_decrypted_password
+from mymb_ecommerce.utils.CircuitBreaker import CircuitBreaker
 
 
 class Configurations:
+    # Conservative DB connection pool limits for ALL tenants to prevent worker blocking
+    # Smaller pools = one tenant's DB issues won't exhaust all connections
+    DEFAULT_POOL_SIZE = 3  # Max 3 concurrent DB connections per tenant
+    DEFAULT_MAX_OVERFLOW = 5  # Allow up to 5 extra in bursts
+
     def __init__(self):
         self.doc = frappe.get_doc('Mymb Settings')
         self.image_uri = self.doc.get('image_uri')
@@ -84,7 +90,10 @@ class Configurations:
         return self.mysql_connection
     
     def get_mysql_connection_b2b(self , is_data_property=True, is_db_transaction=False , is_erp_db=False):
-        """Get the MySQL connection from the Mymb Settings DocType"""
+        """
+        Get the MySQL connection from the Mymb Settings DocType with circuit breaker protection.
+        Uses conservative connection pool limits to prevent one tenant from blocking others.
+        """
         if not hasattr(self, 'mysql_connection'):
             username = self.doc.get('db_username')
             db_password = get_decrypted_password("Mymb Settings", self.doc.name, 'db_password')  # Decrypt the password
@@ -97,6 +106,8 @@ class Configurations:
             elif is_data_property:
                 db_name = self.doc.get('db_item_data')
 
+            # Get current site name for logging
+            current_site = getattr(frappe.local, 'site', 'unknown')
 
             db_config = {
                 'drivername': 'mysql',
@@ -106,6 +117,30 @@ class Configurations:
                 'port': db_port,
                 'database': db_name
             }
-            self.mysql_connection = Database(db_config)
+
+            # Create circuit breaker for this DB connection
+            db_circuit_breaker = CircuitBreaker(
+                name=f"b2b_db_{db_host}_{db_name}_{current_site}",
+                failure_threshold=3,
+                timeout_seconds=60,
+                half_open_max_calls=2
+            )
+
+            # Wrap DB connection creation with circuit breaker
+            def _create_db_connection():
+                return Database(
+                    db_config,
+                    pool_size=self.DEFAULT_POOL_SIZE,
+                    max_overflow=self.DEFAULT_MAX_OVERFLOW
+                )
+
+            try:
+                self.mysql_connection = db_circuit_breaker.call(_create_db_connection)
+            except Exception as e:
+                frappe.log_error(
+                    message=f"Failed to create B2B DB connection for {current_site}: {str(e)}",
+                    title="B2B DB Connection Failed"
+                )
+                raise
 
         return self.mysql_connection

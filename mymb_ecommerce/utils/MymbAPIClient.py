@@ -13,6 +13,7 @@ from mymb_ecommerce.mymb_b2c.utils import create_mymb_b2c_log
 from frappe.utils.password import get_decrypted_password
 from datetime import datetime
 from requests.exceptions import ReadTimeout, ConnectTimeout, HTTPError, ConnectionError
+from mymb_ecommerce.utils.CircuitBreaker import CircuitBreaker
 
 
 JsonDict = Dict[str, Any]
@@ -40,8 +41,17 @@ class MymbAPIClient:
 		# Set the API username and password either from the parameters or from the settings
 		self.api_username = api_username or self.settings.mymb_api_username
 		self.api_password = api_password or get_decrypted_password(settings_doctype, self.settings.name, "mymb_api_password")
-		
+
 		self.__initialize_auth()
+
+		# Initialize circuit breaker for this API endpoint
+		# Prevents cascading failures when external B2B API is down
+		self.circuit_breaker = CircuitBreaker(
+			name=f"mymb_api_{self.base_url}",
+			failure_threshold=3,  # Open after 3 failures
+			timeout_seconds=30,   # Try again after 30 seconds
+			half_open_max_calls=2  # Test with 2 calls before fully reopening
+		)
 
 	def __initialize_auth(self):
 		"""Initialize and setup authentication details"""
@@ -124,12 +134,18 @@ class MymbAPIClient:
 		url = self.base_url + endpoint
 
 		try:
-			response = requests.request(
-				url=url, method=method, headers=headers, json=body, params=params, files=files, timeout=(3, 30)
-			)
-			# mymb_b2c gives useful info in response text, show it in error logs
-			response.reason = cstr(response.reason) + cstr(response.text)
-			response.raise_for_status()
+			# Wrap API call with circuit breaker to fail fast if service is down
+			# This prevents blocking workers when B2B API is unavailable
+			def _make_request():
+				response = requests.request(
+					url=url, method=method, headers=headers, json=body, params=params, files=files, timeout=(3, 30)
+				)
+				# mymb_b2c gives useful info in response text, show it in error logs
+				response.reason = cstr(response.reason) + cstr(response.text)
+				response.raise_for_status()
+				return response
+
+			response = self.circuit_breaker.call(_make_request)
 		except (ReadTimeout, ConnectTimeout) as timeout_error:
 			error_message = f"Timeout occurred while accessing {url}: {str(timeout_error)}"
 			frappe.log_error(message=error_message, title=f"Request Timeout - {endpoint}")

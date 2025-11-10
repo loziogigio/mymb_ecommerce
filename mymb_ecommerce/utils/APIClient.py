@@ -8,8 +8,24 @@ from frappe import _
 from frappe.utils import cint, cstr, get_datetime, safe_json_loads
 from pytz import timezone
 from requests.exceptions import ReadTimeout, ConnectTimeout, HTTPError, ConnectionError
+from mymb_ecommerce.utils.CircuitBreaker import CircuitBreaker
 
 JsonDict = Dict[str, Any]
+
+# Module-level circuit breakers for different API endpoints
+_circuit_breakers = {}
+
+
+def _get_circuit_breaker(base_url: str) -> CircuitBreaker:
+    """Get or create circuit breaker for a specific API endpoint"""
+    if base_url not in _circuit_breakers:
+        _circuit_breakers[base_url] = CircuitBreaker(
+            name=f"api_client_{base_url}",
+            failure_threshold=3,
+            timeout_seconds=30,
+            half_open_max_calls=2
+        )
+    return _circuit_breakers[base_url]
 
 
 def _send_rate_limited_email(
@@ -99,14 +115,22 @@ class APIClient:
         url = base_url + endpoint
 
         try:
-            response = requests.request(
-                url=url, method=method, headers=headers, json=body, params=params, files=files, timeout=(3, 30)
-            )
-            # mymb_b2c gives useful info in response text, show it in error logs
-            if response.text.strip() == '1' or response.text.strip() == 'false':
-                return response.text
-            response.reason = cstr(response.reason) + cstr(response.text)
-            response.raise_for_status()
+            # Get circuit breaker for this API endpoint
+            circuit_breaker = _get_circuit_breaker(base_url)
+
+            # Wrap API call with circuit breaker to fail fast if service is down
+            def _make_request():
+                response = requests.request(
+                    url=url, method=method, headers=headers, json=body, params=params, files=files, timeout=(3, 30)
+                )
+                # mymb_b2c gives useful info in response text, show it in error logs
+                if response.text.strip() == '1' or response.text.strip() == 'false':
+                    return response.text
+                response.reason = cstr(response.reason) + cstr(response.text)
+                response.raise_for_status()
+                return response
+
+            response = circuit_breaker.call(_make_request)
         except (ReadTimeout, ConnectTimeout) as timeout_error:
             error_message = f"Timeout occurred while accessing {url}: {str(timeout_error)}"
             frappe.log_error(message=error_message, title=f"Request Timeout - {endpoint}")
