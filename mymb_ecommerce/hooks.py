@@ -181,6 +181,19 @@ override_whitelisted_methods = {
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
 
 
+# Request Hooks - Tenant Rate Limiting
+# -------------------------------------
+# Prevent one tenant from monopolizing all gunicorn workers
+# See TENANT_RATE_LIMITING.md for details
+before_request = [
+    "mymb_ecommerce.utils.request_hooks.apply_tenant_rate_limit"
+]
+
+after_request = [
+    "mymb_ecommerce.utils.request_hooks.release_tenant_rate_limit"
+]
+
+
 # User Data Protection
 # --------------------
 
