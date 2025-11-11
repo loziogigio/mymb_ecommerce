@@ -46,8 +46,10 @@ class MymbAPIClient:
 
 		# Initialize circuit breaker for this API endpoint
 		# Prevents cascading failures when external B2B API is down
+		site = getattr(frappe.local, 'site', 'default')
+		safe_base_url = (self.base_url or 'default').replace("://", "_").replace("/", "_")
 		self.circuit_breaker = CircuitBreaker(
-			name=f"mymb_api_{self.base_url}",
+			name=f"mymb_api_{site}_{safe_base_url}",
 			failure_threshold=3,  # Open after 3 failures
 			timeout_seconds=30,   # Try again after 30 seconds
 			half_open_max_calls=2  # Test with 2 calls before fully reopening
@@ -84,7 +86,8 @@ class MymbAPIClient:
 
 
 		# Create a unique cache key for this error type and endpoint
-		cache_key = f"mymb_api_email_{error_type}_{endpoint.replace('/', '_')}"
+		site = getattr(frappe.local, 'site', 'default')
+		cache_key = f"mymb_api_email_{site}_{error_type}_{endpoint.replace('/', '_')}"
 
 		# Check if we've already sent an email recently
 		cache = frappe.cache()

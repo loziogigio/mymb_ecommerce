@@ -53,8 +53,9 @@ class Database:
             """
             cursor = dbapi_conn.cursor()
             try:
-                # lock_wait_timeout: Max time to wait if table is LOCKED by another transaction
+                # innodb_lock_wait_timeout/lock_wait_timeout: Max time to wait if table is LOCKED by another transaction
                 # If Tenant A has a lock, Tenant B fails after 3s instead of blocking worker
+                cursor.execute("SET SESSION innodb_lock_wait_timeout = 3")
                 cursor.execute("SET SESSION lock_wait_timeout = 3")
 
                 # max_execution_time: Max time for ANY query to execute (prevents slow queries)

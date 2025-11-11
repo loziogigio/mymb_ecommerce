@@ -18,14 +18,18 @@ _circuit_breakers = {}
 
 def _get_circuit_breaker(base_url: str) -> CircuitBreaker:
     """Get or create circuit breaker for a specific API endpoint"""
-    if base_url not in _circuit_breakers:
-        _circuit_breakers[base_url] = CircuitBreaker(
-            name=f"api_client_{base_url}",
+    site = getattr(frappe.local, 'site', 'default')
+    endpoint_id = f"{site}:{base_url or 'default'}"
+
+    if endpoint_id not in _circuit_breakers:
+        safe_base_url = (base_url or 'default').replace("://", "_").replace("/", "_")
+        _circuit_breakers[endpoint_id] = CircuitBreaker(
+            name=f"api_client_{site}_{safe_base_url}",
             failure_threshold=3,
             timeout_seconds=30,
             half_open_max_calls=2
         )
-    return _circuit_breakers[base_url]
+    return _circuit_breakers[endpoint_id]
 
 
 def _send_rate_limited_email(
@@ -52,7 +56,8 @@ def _send_rate_limited_email(
         recipients = ["admin@crowdechain.com", "daniele.ammazzini@timegroup.it", "giovanni.abbatino@timegroup.it"]
 
     # Create a unique cache key for this error type and endpoint
-    cache_key = f"api_email_{error_type}_{endpoint.replace('/', '_')}"
+    site = getattr(frappe.local, 'site', 'default')
+    cache_key = f"api_email_{site}_{error_type}_{endpoint.replace('/', '_')}"
 
     # Check if we've already sent an email recently
     cache = frappe.cache()
