@@ -5,6 +5,23 @@ from mymb_ecommerce.utils.Database import Database
 from frappe.utils.password import get_decrypted_password
 
 
+# Singleton pattern: Cache Configurations instance per site for B2C
+_b2c_configurations_cache = {}
+
+
+def get_b2c_configurations_instance():
+    """
+    Get or create B2C Configurations instance for current site.
+    Uses singleton pattern to ensure connection pools are shared.
+    """
+    site = getattr(frappe.local, 'site', 'default')
+
+    if site not in _b2c_configurations_cache:
+        _b2c_configurations_cache[site] = Configurations()
+
+    return _b2c_configurations_cache[site]
+
+
 class Configurations:
     def __init__(self):
         self.doc = frappe.get_doc('Mymb b2c Settings')

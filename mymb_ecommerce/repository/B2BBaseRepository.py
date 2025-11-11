@@ -1,7 +1,7 @@
 # mymb_ecommerce/mymb_ecommerce/repository/BaseRepository.py
 
 import frappe
-from mymb_ecommerce.settings.configurations import Configurations
+from mymb_ecommerce.settings.configurations import get_configurations_instance
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -10,8 +10,8 @@ class B2BBaseRepository:
 
     def __init__(self, is_data_property=True, is_db_transaction=False , is_erp_db=False, external_db_connection_string=None):
         try:
-            # Get the Configurations instance
-            config = Configurations()
+            # Get the singleton Configurations instance (reuses connection pools!)
+            config = get_configurations_instance()
 
             # If an external DB connection string is provided, use it. Otherwise, use the default connection
             if external_db_connection_string:

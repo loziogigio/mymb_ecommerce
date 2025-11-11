@@ -6,6 +6,26 @@ from frappe.utils.password import get_decrypted_password
 from mymb_ecommerce.utils.CircuitBreaker import CircuitBreaker
 
 
+# Singleton pattern: Cache Configurations instance per site
+# This ensures connection pools are reused across requests
+_configurations_cache = {}
+
+
+def get_configurations_instance():
+    """
+    Get or create Configurations instance for current site.
+    Uses singleton pattern to ensure connection pools are shared.
+
+    IMPORTANT: Always use this function instead of Configurations() directly!
+    """
+    site = getattr(frappe.local, 'site', 'default')
+
+    if site not in _configurations_cache:
+        _configurations_cache[site] = Configurations()
+
+    return _configurations_cache[site]
+
+
 class Configurations:
     # Conservative DB connection pool limits for ALL tenants to prevent worker blocking
     # Smaller pools = one tenant's DB issues won't exhaust all connections
